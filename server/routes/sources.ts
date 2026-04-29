@@ -224,7 +224,9 @@ sources.post('/:id/session-items', async c => {
     .prepare(`SELECT id FROM items WHERE source_id = ? AND id IN (${placeholders})`)
     .all(id, ...ids) as Array<{ id: number }>;
 
-  const insert = db.prepare(`INSERT INTO sessions (item_id, target_repo, status, prompt) VALUES (?, ?, 'queued', ?)`);
+  const insert = db.prepare(
+    `INSERT INTO sessions (item_id, source_id, target_repo, status, prompt) VALUES (?, ?, ?, 'queued', ?)`,
+  );
   const hasActive = db.prepare(`SELECT 1 FROM sessions WHERE item_id = ? AND status IN ('queued','running') LIMIT 1`);
 
   let enqueued = 0;
@@ -234,7 +236,7 @@ sources.post('/:id/session-items', async c => {
       skipped++;
       continue;
     }
-    const res = insert.run(it.id, targetRepo, prompt);
+    const res = insert.run(it.id, id, targetRepo, prompt);
     const sessionId = Number(res.lastInsertRowid);
     createWorkflowForSession(sessionId);
     enqueueSession(sessionId);

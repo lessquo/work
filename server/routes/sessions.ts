@@ -41,8 +41,10 @@ sessions.post('/items/:id/sessions', async c => {
   }
 
   const res = db
-    .prepare(`INSERT INTO sessions (item_id, target_repo, status, prompt) VALUES (?, ?, 'queued', ?)`)
-    .run(itemId, targetRepo, prompt);
+    .prepare(
+      `INSERT INTO sessions (item_id, source_id, target_repo, status, prompt) VALUES (?, ?, ?, 'queued', ?)`,
+    )
+    .run(itemId, item.source_id, targetRepo, prompt);
   const sessionId = Number(res.lastInsertRowid);
   createWorkflowForSession(sessionId);
 
@@ -240,6 +242,9 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
             created.key,
           );
         }
+        db.prepare(
+          `UPDATE sessions SET item_id = (SELECT id FROM items WHERE source_id = ? AND external_id = ?) WHERE id = ?`,
+        ).run(session.source_id, created.key, sessionId);
       } catch (e) {
         console.warn(`[jira] post-create upsert failed for ${created.key}:`, e);
       }
@@ -281,13 +286,17 @@ sessions.post('/sessions/:id/create-github-pr', async c => {
             .get(`${parsed.owner}/${parsed.repo}`) as { id: number } | undefined;
           if (ghSource) {
             await upsertGithubPr(ghSource.id, parsed.owner, parsed.repo, parsed.number);
+            const prExternalId = externalIdForPr(parsed.owner, parsed.repo, parsed.number);
             if (session.workflow_id) {
               db.prepare(`UPDATE items SET workflow_id = ? WHERE source_id = ? AND external_id = ?`).run(
                 session.workflow_id,
                 ghSource.id,
-                externalIdForPr(parsed.owner, parsed.repo, parsed.number),
+                prExternalId,
               );
             }
+            db.prepare(
+              `UPDATE sessions SET item_id = (SELECT id FROM items WHERE source_id = ? AND external_id = ?) WHERE id = ?`,
+            ).run(ghSource.id, prExternalId, sessionId);
           }
         } catch (e) {
           console.warn(`[github] post-create upsert failed for ${url}:`, e);

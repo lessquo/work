@@ -19,9 +19,7 @@ import { parseAsInteger, useQueryState } from 'nuqs';
 import { useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
-type ItemChild = { kind: 'item'; at: string; item: Item };
-type SessionChild = { kind: 'session'; at: string; session: WorkflowSessionChild };
-type Child = ItemChild | SessionChild;
+type ItemColumn = { item: Item; sessions: WorkflowSessionChild[] };
 
 export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
   const { sourceId, workflowId } = useParams();
@@ -107,14 +105,27 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
     return `/sources/${sourceId}/workflows/${wid}${search ? `?${search}` : ''}`;
   }
 
-  const children = useMemo<Child[]>(() => {
-    const items: Child[] = workflow.items.map(item => ({ kind: 'item', at: itemCreationTime(item), item }));
-    const sessions: Child[] = workflow.sessions.map(session => ({
-      kind: 'session',
-      at: session.created_at,
-      session,
-    }));
-    return [...items, ...sessions].sort((a, b) => a.at.localeCompare(b.at));
+  const { columns, orphanSessions } = useMemo(() => {
+    const itemIds = new Set(workflow.items.map(i => i.id));
+    const sessionsByItem = new Map<number, WorkflowSessionChild[]>();
+    const orphans: WorkflowSessionChild[] = [];
+    for (const s of workflow.sessions) {
+      if (s.item_id != null && itemIds.has(s.item_id)) {
+        const list = sessionsByItem.get(s.item_id) ?? [];
+        list.push(s);
+        sessionsByItem.set(s.item_id, list);
+      } else {
+        orphans.push(s);
+      }
+    }
+    for (const list of sessionsByItem.values()) {
+      list.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    }
+    orphans.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const cols: ItemColumn[] = [...workflow.items]
+      .sort((a, b) => itemCreationTime(a).localeCompare(itemCreationTime(b)))
+      .map(item => ({ item, sessions: sessionsByItem.get(item.id) ?? [] }));
+    return { columns: cols, orphanSessions: orphans };
   }, [workflow.items, workflow.sessions]);
 
   const title = workflow.name ?? `Workflow #${workflow.id}`;
@@ -149,35 +160,64 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
           </button>
         </div>
       </div>
-      {children.length === 0 ? (
+      {columns.length === 0 && orphanSessions.length === 0 ? (
         <p className='text-xs text-gray-500'>No items or sessions.</p>
       ) : (
-        <ol className='flex overflow-x-auto'>
-          {children.flatMap((child, idx) => {
-            const chip =
-              child.kind === 'item' ? (
-                <ItemChip
-                  key={`i-${child.item.id}`}
-                  item={child.item}
-                  at={child.at}
-                  to={chipHref('item', child.item.id)}
-                  selected={openItemId === child.item.id}
-                  onDetach={() => handleDetach(child.item)}
-                />
-              ) : (
-                <SessionChip
-                  key={`s-${child.session.id}`}
-                  session={child.session}
-                  at={child.at}
-                  to={chipHref('session', child.session.id)}
-                  selected={openSessionId === child.session.id}
-                />
-              );
-            if (idx === 0) return [chip];
-            const sep = <li key={`sep-${idx}`} aria-hidden className='h-px w-3 shrink-0 self-center bg-gray-300' />;
-            return [sep, chip];
-          })}
-        </ol>
+        <div className='flex items-start overflow-x-auto'>
+          {columns.length > 0 && (
+            <ol className='flex items-start'>
+              {columns.flatMap((col, idx) => {
+                const column = (
+                  <li key={`col-${col.item.id}`} className='flex shrink-0 flex-col gap-1.5'>
+                    <ItemChip
+                      item={col.item}
+                      at={itemCreationTime(col.item)}
+                      to={chipHref('item', col.item.id)}
+                      selected={openItemId === col.item.id}
+                      onDetach={() => handleDetach(col.item)}
+                    />
+                    {col.sessions.length > 0 && (
+                      <ol className='flex flex-col gap-1.5'>
+                        {col.sessions.map(s => (
+                          <AttachedSessionChip
+                            key={`s-${s.id}`}
+                            session={s}
+                            to={chipHref('session', s.id)}
+                            selected={openSessionId === s.id}
+                          />
+                        ))}
+                      </ol>
+                    )}
+                  </li>
+                );
+                if (idx === 0) return [column];
+                const sep = (
+                  <li key={`sep-${idx}`} aria-hidden className='mt-6 h-px w-3 shrink-0 self-start bg-gray-300' />
+                );
+                return [sep, column];
+              })}
+            </ol>
+          )}
+          {orphanSessions.length > 0 && (
+            <div
+              className={cn('shrink-0 border-dashed border-gray-300', columns.length > 0 ? 'ml-4 border-l pl-3' : '')}
+            >
+              <div className='mb-1.5 text-[10px] font-medium tracking-wide text-gray-500 uppercase'>
+                Unattached sessions
+              </div>
+              <ol className='flex flex-col gap-1.5'>
+                {orphanSessions.map(s => (
+                  <OrphanSessionChip
+                    key={`os-${s.id}`}
+                    session={s}
+                    to={chipHref('session', s.id)}
+                    selected={openSessionId === s.id}
+                  />
+                ))}
+              </ol>
+            </div>
+          )}
+        </div>
       )}
       {sourceId && (
         <AttachItemDialog open={attachOpen} onOpenChange={setAttachOpen} workflowId={wid} sourceId={Number(sourceId)} />
@@ -202,7 +242,7 @@ function ItemChip({
   const logo = TYPE_LOGO[item.type];
   const title = itemTitle(item);
   return (
-    <li className='group relative shrink-0'>
+    <div className='group relative shrink-0'>
       <Link
         to={to}
         title={title}
@@ -234,18 +274,43 @@ function ItemChip({
       >
         <X className='size-3' />
       </button>
-    </li>
+    </div>
   );
 }
 
-function SessionChip({
+function AttachedSessionChip({
   session,
-  at,
   to,
   selected,
 }: {
   session: WorkflowSessionChild;
-  at: string;
+  to: string;
+  selected?: boolean;
+}) {
+  const heading = firstLine(`#${session.id} ${session.prompt}`);
+  return (
+    <li className='shrink-0'>
+      <Link
+        to={to}
+        title={`${heading} · #${session.id} · ${timeAgo(session.created_at)}`}
+        className={cn(
+          'flex w-44 items-center gap-1.5 rounded-md border px-2 py-1.5',
+          selected ? 'selected-primary' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
+        )}
+      >
+        <StatusDot status={session.status} />
+        <span className='min-w-0 flex-1 truncate text-[11px] text-gray-700'>{heading}</span>
+      </Link>
+    </li>
+  );
+}
+
+function OrphanSessionChip({
+  session,
+  to,
+  selected,
+}: {
+  session: WorkflowSessionChild;
   to: string;
   selected?: boolean;
 }) {
@@ -253,7 +318,7 @@ function SessionChip({
   const heading =
     session.item_external_id && session.item_type && session.item_raw
       ? itemTitle({ type: session.item_type, raw: session.item_raw, external_id: session.item_external_id })
-      : firstLine(session.user_context) || `Session #${session.id}`;
+      : firstLine(`#${session.id} ${session.prompt}`);
   return (
     <li className='shrink-0'>
       <Link
@@ -273,17 +338,16 @@ function SessionChip({
         <div className='mt-1 flex items-center gap-1 text-[10px] text-gray-500'>
           <span className='truncate'>#{session.id}</span>
           <span>·</span>
-          <span className='shrink-0'>{timeAgo(at)}</span>
+          <span className='shrink-0'>{timeAgo(session.created_at)}</span>
         </div>
       </Link>
     </li>
   );
 }
 
-function firstLine(text: string | null): string | null {
-  if (!text) return null;
+function firstLine(text: string): string {
   const line = text.split('\n').find(l => l.trim().length > 0);
-  return line ? line.trim().slice(0, 80) : null;
+  return line ? line.trim().slice(0, 80) : '';
 }
 
 function TypeBadge({ type }: { type: WorkflowSessionChild['type'] }) {

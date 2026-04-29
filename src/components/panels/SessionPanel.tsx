@@ -3,7 +3,7 @@ import { LogsView } from '@/components/panels/LogsView';
 import { Markdown } from '@/components/panels/Markdown';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
 import { PillTabs, Tabs } from '@/components/ui/Tabs';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api, type Session } from '@/lib/api';
 import { cn } from '@/lib/cn';

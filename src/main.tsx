@@ -1,7 +1,8 @@
 import { App } from '@/App';
 import { ConfirmDialogProvider } from '@/components/ui/ConfirmDialog';
-import { ToastProvider, ToastViewport } from '@/components/ui/Toast';
-import { TooltipProvider } from '@/components/ui/Tooltip';
+import { ToastViewport } from '@/components/ui/Toast';
+import { ToastProvider } from '@/components/ui/Toast.lib';
+import { TooltipProvider } from '@/components/ui/Tooltip.lib';
 import '@/index.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NuqsAdapter } from 'nuqs/adapters/react-router/v7';

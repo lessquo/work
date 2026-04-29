@@ -28,5 +28,3 @@ export function Tooltip({
     </Base.Root>
   );
 }
-
-export const TooltipProvider = Base.Provider;

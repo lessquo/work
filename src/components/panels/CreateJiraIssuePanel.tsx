@@ -1,7 +1,7 @@
 import { PromptPicker } from '@/components/panels/PromptPicker';
 import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
 import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api, DEFAULT_JIRA_PROMPT_ID, type Prompt, type PromptId } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';

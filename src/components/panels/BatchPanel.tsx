@@ -1,7 +1,7 @@
 import { PromptPicker } from '@/components/panels/PromptPicker';
 import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
 import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { parseSentryRaw, type Item, type Prompt, type PromptId } from '@/lib/api';
 import { Copy, Workflow } from 'lucide-react';

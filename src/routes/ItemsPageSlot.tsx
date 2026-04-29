@@ -3,7 +3,7 @@ import { CreateJiraIssuePanel } from '@/components/panels/CreateJiraIssuePanel';
 import { ItemPanel } from '@/components/panels/ItemPanel';
 import { SessionPanel } from '@/components/panels/SessionPanel';
 import { useConfirm } from '@/components/ui/ConfirmDialog';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/Toast.lib';
 import { api, DEFAULT_PROMPT_ID, type PromptId } from '@/lib/api';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';

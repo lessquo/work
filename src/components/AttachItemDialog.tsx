@@ -1,5 +1,5 @@
 import { TYPE_LOGO } from '@/components/typeLogo';
-import { useToast } from '@/components/ui/Toast';
+import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item, itemTitle } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { Dialog } from '@base-ui/react/dialog';

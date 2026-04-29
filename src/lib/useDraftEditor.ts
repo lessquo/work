@@ -1,6 +1,6 @@
 import { useDebouncer } from '@tanstack/react-pacer';
 import { useMutation, useQueryClient, type QueryKey } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export type DraftEditorStatus = 'idle' | 'saving' | 'unsaved' | 'saved' | 'error';
 
@@ -13,40 +13,30 @@ export function useDraftEditor(opts: {
 }) {
   const { queryKey, loaded, save, disabled = false, debounceMs = 200 } = opts;
   const qc = useQueryClient();
-  const [draft, setDraftState] = useState('');
-  const dirtyRef = useRef(false);
+  const [userDraft, setUserDraft] = useState<string | null>(null);
+  const draft = userDraft ?? loaded ?? '';
+  const dirty = userDraft !== null && userDraft !== (loaded ?? '');
 
   const saveMutation = useMutation({
     mutationFn: save,
     onSuccess: (_, content) => {
       qc.setQueryData(queryKey, content);
-      dirtyRef.current = false;
+      setUserDraft(null);
     },
   });
 
-  // Sync draft from the server-loaded baseline — but only when the user hasn't
-  // typed yet, otherwise we'd clobber their in-flight edits with stale data.
-  useEffect(() => {
-    if (dirtyRef.current) return;
-    if (loaded !== undefined) setDraftState(loaded);
-  }, [loaded]);
-
   const saveDebouncer = useDebouncer(saveMutation.mutate, { wait: debounceMs });
   useEffect(() => {
-    if (!dirtyRef.current) return;
-    if (disabled || draft === (loaded ?? '')) {
+    if (!dirty || disabled) {
       saveDebouncer.cancel();
       return;
     }
     saveDebouncer.maybeExecute(draft);
-  }, [draft, loaded, saveDebouncer, disabled]);
+  }, [draft, dirty, disabled, saveDebouncer]);
 
   function setDraft(v: string) {
-    dirtyRef.current = true;
-    setDraftState(v);
+    setUserDraft(v);
   }
-
-  const dirty = draft !== (loaded ?? '');
 
   let status: DraftEditorStatus = 'idle';
   if (saveMutation.error) status = 'error';

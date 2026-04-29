@@ -6,7 +6,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { api, DEFAULT_JIRA_PROMPT_ID, type Prompt, type PromptId } from '@/lib/api';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 export function CreateJiraIssuePanel({
   sourceId,
@@ -26,15 +26,11 @@ export function CreateJiraIssuePanel({
   const [context, setContext] = useState('');
   const [promptId, setPromptId] = useState<PromptId>(DEFAULT_JIRA_PROMPT_ID);
   const [targetRepo, setTargetRepo] = useState('');
-  const selectedPrompt = prompts.find(p => p.id === promptId);
-
-  useEffect(() => {
-    if (prompts.length === 0) return;
-    if (!prompts.some(p => p.id === promptId)) setPromptId(prompts[0].id);
-  }, [prompts, promptId]);
+  const effectivePromptId = prompts.some(p => p.id === promptId) ? promptId : (prompts[0]?.id ?? DEFAULT_JIRA_PROMPT_ID);
+  const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
 
   const startMutation = useMutation({
-    mutationFn: () => api.startJiraDraft(sourceId, context.trim(), promptId, targetRepo),
+    mutationFn: () => api.startJiraDraft(sourceId, context.trim(), effectivePromptId, targetRepo),
     onSuccess: session => {
       toast.add({ title: `Jira draft session #${session.id} queued.` });
       qc.invalidateQueries({ queryKey: ['items'] });
@@ -108,7 +104,7 @@ export function CreateJiraIssuePanel({
         />
       </section>
 
-      <PromptPicker prompts={prompts} promptId={promptId} setPromptId={setPromptId} />
+      <PromptPicker prompts={prompts} promptId={effectivePromptId} setPromptId={setPromptId} />
 
       {selectedPrompt && <PromptTemplateEditor key={selectedPrompt.id} prompt={selectedPrompt} />}
     </aside>

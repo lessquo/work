@@ -8,7 +8,7 @@ import { api, DEFAULT_PROMPT_ID, parseSentryRaw, type PromptId } from '@/lib/api
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Copy, Workflow } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
@@ -33,22 +33,18 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   });
   const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
   const prompts = promptsQuery.data;
-
-  useEffect(() => {
-    if (prompts.length === 0) return;
-    if (!prompts.some(p => p.id === promptId)) setPromptId(prompts[0].id);
-  }, [prompts, promptId]);
+  const effectivePromptId = prompts.some(p => p.id === promptId) ? promptId : (prompts[0]?.id ?? DEFAULT_PROMPT_ID);
 
   const ids = new Set<number>(selectedIds);
   if (itemId !== null) ids.add(itemId);
   const selectedItems = itemsQuery.data.filter(i => ids.has(i.id));
   const count = selectedItems.length;
-  const selectedPrompt = prompts.find(p => p.id === promptId);
+  const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
   const promptLabel = selectedPrompt?.label ?? 'Run';
   const promptHint = selectedPrompt?.hint ?? '';
 
   const sessionMutation = useMutation({
-    mutationFn: (targetIds: number[]) => api.runItems(sid, targetIds, promptId, targetRepo),
+    mutationFn: (targetIds: number[]) => api.runItems(sid, targetIds, effectivePromptId, targetRepo),
     onSuccess: res => {
       const skippedNote = res.skipped > 0 ? ` (${res.skipped} skipped)` : '';
       toast.add({
@@ -238,7 +234,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
         </div>
       </section>
 
-      <PromptPicker prompts={prompts} promptId={promptId} setPromptId={setPromptId} />
+      <PromptPicker prompts={prompts} promptId={effectivePromptId} setPromptId={setPromptId} />
 
       {selectedPrompt && <PromptTemplateEditor key={selectedPrompt.id} prompt={selectedPrompt} />}
     </aside>

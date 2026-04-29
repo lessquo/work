@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import { Dialog } from '@base-ui/react/dialog';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 const SYNC_LIMIT_MIN = 1;
 const SYNC_LIMIT_MAX = 10000;
@@ -58,10 +58,6 @@ function Body({
   const qc = useQueryClient();
   const { data: settings } = useSuspenseQuery({ queryKey: ['settings'], queryFn: api.getSettings });
   const [limit, setLimit] = useState<number>(settings.sync_limit);
-
-  useEffect(() => {
-    setLimit(settings.sync_limit);
-  }, [settings.sync_limit]);
 
   const saveMutation = useMutation({
     mutationFn: (n: number) => api.updateSettings({ sync_limit: n }),

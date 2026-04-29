@@ -6,8 +6,8 @@ import { useParams } from 'react-router';
 
 export function WorkflowsPageSlot() {
   const { workflowId } = useParams();
-  const [openItemId] = useQueryState('item', parseAsInteger);
-  const [openSessionId, setOpenSessionId] = useQueryState('session', parseAsInteger);
+  const [itemId] = useQueryState('item', parseAsInteger);
+  const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
     parseAsStringLiteral(['logs', 'diff', 'pr'] as const).withDefault('logs'),
@@ -17,15 +17,16 @@ export function WorkflowsPageSlot() {
     parseAsStringLiteral(['edit', 'preview'] as const).withDefault('preview'),
   );
 
-  if (openItemId !== null) {
-    return <ItemPanel itemId={openItemId} />;
+  if (itemId !== null) {
+    return <ItemPanel itemId={itemId} />;
   }
 
-  if (openSessionId !== null) {
+  if (sessionId !== null) {
     return (
       <SessionPanel
-        sessionId={openSessionId}
-        onClose={() => setOpenSessionId(null)}
+        key={sessionId}
+        sessionId={sessionId}
+        onClose={() => setSessionId(null)}
         tab={sessionTab}
         setTab={setSessionTab}
         descriptionMode={descriptionMode}

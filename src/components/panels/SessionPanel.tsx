@@ -102,7 +102,6 @@ export function SessionPanel({
   });
 
   useEffect(() => {
-    setLogs('');
     const es = new EventSource(`/api/sessions/${sessionId}/log`);
     es.addEventListener('log', (e: MessageEvent) => {
       setLogs(prev => prev + e.data);

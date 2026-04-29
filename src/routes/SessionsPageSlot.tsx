@@ -18,6 +18,7 @@ export function SessionsPageSlot() {
 
   return (
     <SessionPanel
+      key={sessionId}
       sessionId={Number(sessionId)}
       onClose={() =>
         navigate({ pathname: `/sources/${sourceId}/sessions`, search: window.location.search })

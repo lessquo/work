@@ -7,7 +7,7 @@ import { useToast } from '@/components/ui/Toast';
 import { api, DEFAULT_PROMPT_ID, type PromptId } from '@/lib/api';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 export function ItemsPageSlot() {
@@ -22,7 +22,7 @@ export function ItemsPageSlot() {
   const [filter] = useQueryState('filter', parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'));
   const [sort] = useQueryState('sort', parseAsStringLiteral(['recency', 'title'] as const).withDefault('recency'));
   const [selectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
-  const [openSessionId, setOpenSessionId] = useQueryState('session', parseAsInteger);
+  const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
     parseAsStringLiteral(['logs', 'diff', 'pr'] as const).withDefault('logs'),
@@ -47,11 +47,7 @@ export function ItemsPageSlot() {
 
   const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
   const prompts = promptsQuery.data;
-
-  useEffect(() => {
-    if (prompts.length === 0) return;
-    if (!prompts.some(p => p.id === promptId)) setPromptId(prompts[0].id);
-  }, [prompts, promptId]);
+  const effectivePromptId = prompts.some(p => p.id === promptId) ? promptId : (prompts[0]?.id ?? DEFAULT_PROMPT_ID);
 
   const selection = new Set<number>(selectedIds);
   if (itemIdNum !== null) selection.add(itemIdNum);
@@ -65,7 +61,7 @@ export function ItemsPageSlot() {
   const onMutationError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
   const sessionMutation = useMutation({
-    mutationFn: (ids: number[]) => api.runItems(id, ids, promptId, targetRepo),
+    mutationFn: (ids: number[]) => api.runItems(id, ids, effectivePromptId, targetRepo),
     onSuccess: res => {
       const skippedNote = res.skipped > 0 ? ` (${res.skipped} skipped)` : '';
       toast.add({
@@ -135,7 +131,7 @@ export function ItemsPageSlot() {
 
   async function runSelected() {
     if (selection.size === 0 || !targetRepo) return;
-    const mode = prompts.find(p => p.id === promptId)?.label ?? promptId;
+    const mode = prompts.find(p => p.id === effectivePromptId)?.label ?? effectivePromptId;
     const ok = await confirm({
       title: `Queue ${mode} sessions?`,
       description: `Claude will be queued to ${mode.toLowerCase()} ${selection.size} selected item${selection.size === 1 ? '' : 's'} against ${targetRepo}.`,
@@ -178,17 +174,18 @@ export function ItemsPageSlot() {
         onClose={() => setJiraDraftOpen(false)}
         onSessionStarted={sessionId => {
           setJiraDraftOpen(false);
-          setOpenSessionId(sessionId);
+          setSessionId(sessionId);
         }}
       />
     );
   }
 
-  if (openSessionId !== null) {
+  if (sessionId !== null) {
     return (
       <SessionPanel
-        sessionId={openSessionId}
-        onClose={() => setOpenSessionId(null)}
+        key={sessionId}
+        sessionId={sessionId}
+        onClose={() => setSessionId(null)}
         tab={sessionTab}
         setTab={setSessionTab}
         descriptionMode={descriptionMode}
@@ -203,7 +200,7 @@ export function ItemsPageSlot() {
         filter={filter}
         selectedItems={items.filter(i => selection.has(i.id))}
         prompts={prompts}
-        promptId={promptId}
+        promptId={effectivePromptId}
         setPromptId={setPromptId}
         targetRepo={targetRepo}
         setTargetRepo={setTargetRepo}

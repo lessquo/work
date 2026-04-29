@@ -9,7 +9,7 @@ const PROMPTS_DIR = resolve(process.cwd(), 'prompts');
 const ID_REGEX = /^[a-z0-9][a-z0-9-]*$/;
 
 prompts.get('/prompts', async c => {
-  let entries: string[] = [];
+  let entries: string[];
   try {
     entries = (await readdir(PROMPTS_DIR)).filter(f => f.endsWith('.md'));
   } catch {

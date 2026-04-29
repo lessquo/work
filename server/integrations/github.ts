@@ -24,7 +24,7 @@ async function runGh(args: string[], label: string): Promise<string> {
       err.code === 'ENOENT'
         ? 'gh CLI not found — install from https://cli.github.com and run `gh auth login`'
         : (err.stderr || err.message || String(e)).trim();
-    throw new Error(`${label} failed: ${hint.slice(0, 300)}`);
+    throw new Error(`${label} failed: ${hint.slice(0, 300)}`, { cause: e });
   }
 }
 

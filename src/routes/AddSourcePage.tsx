@@ -1,6 +1,7 @@
+import { Select } from '@/components/ui/Select';
 import { api, type ItemType } from '@/lib/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useForm, type UseFormRegisterReturn } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 
 type SourceFormValues = {
@@ -19,10 +20,10 @@ export function AddSourcePage() {
   const qc = useQueryClient();
 
   const {
-    register,
     handleSubmit,
     setError,
     watch,
+    control,
     formState: { isSubmitting, isDirty, errors },
   } = useForm<SourceFormValues>({ defaultValues: { type: 'sentry_issue', external_id: '' } });
 
@@ -49,34 +50,38 @@ export function AddSourcePage() {
     <div className='mx-auto max-w-xl p-6'>
       <h1 className='mb-1 text-lg font-semibold'>Add source</h1>
       <p className='mb-5 text-sm text-gray-500'>Pick a type and choose from your existing projects/repos.</p>
-      <form onSubmit={submit} className='flex flex-col gap-4'>
+      <form onSubmit={submit} className='flex flex-col gap-5 rounded-lg border bg-white p-5'>
         <Field label='Type' required>
-          <select {...register('type')} className={inputCls}>
-            {TYPE_OPTIONS.map(o => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <Controller
+            name='type'
+            control={control}
+            render={({ field }) => (
+              <Select<ItemType>
+                value={field.value}
+                onChange={field.onChange}
+                options={TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+                ariaLabel='Source type'
+                className={selectCls}
+              />
+            )}
+          />
         </Field>
 
-        <Field label='External ID' hint={option.hint} required>
-          {type === 'sentry_issue' ? (
-            <SentryProjectField
-              register={register('external_id', { validate: v => v.trim().length > 0 })}
-              currentValue={externalId}
-            />
-          ) : type === 'github_pr' ? (
-            <GithubRepoField
-              register={register('external_id', { validate: v => v.trim().length > 0 })}
-              currentValue={externalId}
-            />
-          ) : (
-            <JiraProjectField
-              register={register('external_id', { validate: v => v.trim().length > 0 })}
-              currentValue={externalId}
-            />
-          )}
+        <Field label={option.label} hint={option.hint} required>
+          <Controller
+            name='external_id'
+            control={control}
+            rules={{ validate: v => v.trim().length > 0 }}
+            render={({ field }) =>
+              type === 'sentry_issue' ? (
+                <SentryProjectField value={field.value} onChange={field.onChange} />
+              ) : type === 'github_pr' ? (
+                <GithubRepoField value={field.value} onChange={field.onChange} />
+              ) : (
+                <JiraProjectField value={field.value} onChange={field.onChange} />
+              )
+            }
+          />
         </Field>
 
         {errors.root && (
@@ -85,8 +90,8 @@ export function AddSourcePage() {
           </div>
         )}
 
-        <div className='mt-2 flex items-center justify-end gap-2'>
-          <button type='submit' disabled={!canSubmit} className='btn-md btn-secondary'>
+        <div className='flex items-center justify-end gap-2 pt-1'>
+          <button type='submit' disabled={!canSubmit} className='btn-md btn-primary'>
             {isSubmitting ? 'Creating…' : 'Create source'}
           </button>
         </div>
@@ -95,17 +100,25 @@ export function AddSourcePage() {
   );
 }
 
-function SentryProjectField({ register, currentValue }: { register: UseFormRegisterReturn; currentValue: string }) {
+type FieldProps = { value: string; onChange: (v: string) => void };
+
+function SentryProjectField({ value, onChange }: FieldProps) {
   const projectsQuery = useQuery({ queryKey: ['sentry-projects'], queryFn: api.listSentryProjects });
 
   if (projectsQuery.isPending) {
-    return <input {...register} disabled placeholder='Loading projects…' className={inputCls} />;
+    return <input value={value} disabled placeholder='Loading projects…' className={inputCls} readOnly />;
   }
 
   if (projectsQuery.isError) {
     return (
       <div className='flex flex-col gap-1.5'>
-        <input {...register} placeholder='webapp' className={inputCls} autoFocus />
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder='webapp'
+          className={inputCls}
+          autoFocus
+        />
         <div className='text-xs text-amber-700'>
           Couldn't load Sentry projects ({projectsQuery.error instanceof Error ? projectsQuery.error.message : 'error'}
           ). Make sure the Sentry org slug and token are set in Settings → Sentry, then enter the slug manually.
@@ -115,35 +128,43 @@ function SentryProjectField({ register, currentValue }: { register: UseFormRegis
   }
 
   const projects = projectsQuery.data;
-  const knowsCurrent = currentValue === '' || projects.some(p => p.slug === currentValue);
+  const knowsCurrent = value === '' || projects.some(p => p.slug === value);
 
   return (
     <div className='flex flex-col gap-1.5'>
-      <select {...register} className={inputCls} autoFocus>
-        <option value=''>— Select a project —</option>
-        {!knowsCurrent && <option value={currentValue}>{currentValue} (not in your Sentry projects)</option>}
-        {projects.map(p => (
-          <option key={p.slug} value={p.slug}>
-            {p.name} ({p.slug})
-          </option>
-        ))}
-      </select>
+      <Select
+        value={value}
+        onChange={onChange}
+        ariaLabel='Sentry project'
+        className={selectCls}
+        options={[
+          { value: '', label: '— Select a project —' },
+          ...(!knowsCurrent ? [{ value, label: `${value} (not in your Sentry projects)` }] : []),
+          ...projects.map(p => ({ value: p.slug, label: `${p.name} (${p.slug})` })),
+        ]}
+      />
       {projects.length === 0 && <div className='text-xs text-gray-500'>No projects found in your Sentry org.</div>}
     </div>
   );
 }
 
-function JiraProjectField({ register, currentValue }: { register: UseFormRegisterReturn; currentValue: string }) {
+function JiraProjectField({ value, onChange }: FieldProps) {
   const projectsQuery = useQuery({ queryKey: ['jira-projects'], queryFn: api.listJiraProjects });
 
   if (projectsQuery.isPending) {
-    return <input {...register} disabled placeholder='Loading projects…' className={inputCls} />;
+    return <input value={value} disabled placeholder='Loading projects…' className={inputCls} readOnly />;
   }
 
   if (projectsQuery.isError) {
     return (
       <div className='flex flex-col gap-1.5'>
-        <input {...register} placeholder='PROJ' className={inputCls} autoFocus />
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder='PROJ'
+          className={inputCls}
+          autoFocus
+        />
         <div className='text-xs text-amber-700'>
           Couldn't load Jira projects ({projectsQuery.error instanceof Error ? projectsQuery.error.message : 'error'}).
           Make sure the Jira organization, email, and API token are set in Settings → Jira, then enter the project key
@@ -154,35 +175,43 @@ function JiraProjectField({ register, currentValue }: { register: UseFormRegiste
   }
 
   const projects = projectsQuery.data;
-  const knowsCurrent = currentValue === '' || projects.some(p => p.key === currentValue);
+  const knowsCurrent = value === '' || projects.some(p => p.key === value);
 
   return (
     <div className='flex flex-col gap-1.5'>
-      <select {...register} className={inputCls} autoFocus>
-        <option value=''>— Select a project —</option>
-        {!knowsCurrent && <option value={currentValue}>{currentValue} (not in your Jira site)</option>}
-        {projects.map(p => (
-          <option key={p.key} value={p.key}>
-            {p.name} ({p.key})
-          </option>
-        ))}
-      </select>
+      <Select
+        value={value}
+        onChange={onChange}
+        ariaLabel='Jira project'
+        className={selectCls}
+        options={[
+          { value: '', label: '— Select a project —' },
+          ...(!knowsCurrent ? [{ value, label: `${value} (not in your Jira site)` }] : []),
+          ...projects.map(p => ({ value: p.key, label: `${p.name} (${p.key})` })),
+        ]}
+      />
       {projects.length === 0 && <div className='text-xs text-gray-500'>No projects found in your Jira site.</div>}
     </div>
   );
 }
 
-function GithubRepoField({ register, currentValue }: { register: UseFormRegisterReturn; currentValue: string }) {
+function GithubRepoField({ value, onChange }: FieldProps) {
   const reposQuery = useQuery({ queryKey: ['github-repos'], queryFn: api.listGithubRepos });
 
   if (reposQuery.isPending) {
-    return <input {...register} disabled placeholder='Loading repos…' className={inputCls} />;
+    return <input value={value} disabled placeholder='Loading repos…' className={inputCls} readOnly />;
   }
 
   if (reposQuery.isError) {
     return (
       <div className='flex flex-col gap-1.5'>
-        <input {...register} placeholder='owner/repo' className={inputCls} autoFocus />
+        <input
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder='owner/repo'
+          className={inputCls}
+          autoFocus
+        />
         <div className='text-xs text-amber-700'>
           Couldn't load GitHub repos ({reposQuery.error instanceof Error ? reposQuery.error.message : 'error'}). Make
           sure <code className='rounded bg-gray-100 px-1 py-0.5 font-mono'>gh auth login</code> is set up, then enter{' '}
@@ -193,19 +222,21 @@ function GithubRepoField({ register, currentValue }: { register: UseFormRegister
   }
 
   const repos = reposQuery.data;
-  const knowsCurrent = currentValue === '' || repos.some(r => r.nameWithOwner === currentValue);
+  const knowsCurrent = value === '' || repos.some(r => r.nameWithOwner === value);
 
   return (
     <div className='flex flex-col gap-1.5'>
-      <select {...register} className={inputCls} autoFocus>
-        <option value=''>— Select a repo —</option>
-        {!knowsCurrent && <option value={currentValue}>{currentValue} (not in your GitHub org)</option>}
-        {repos.map(r => (
-          <option key={r.nameWithOwner} value={r.nameWithOwner}>
-            {r.nameWithOwner}
-          </option>
-        ))}
-      </select>
+      <Select
+        value={value}
+        onChange={onChange}
+        ariaLabel='GitHub repo'
+        className={selectCls}
+        options={[
+          { value: '', label: '— Select a repo —' },
+          ...(!knowsCurrent ? [{ value, label: `${value} (not in your GitHub org)` }] : []),
+          ...repos.map(r => ({ value: r.nameWithOwner, label: r.nameWithOwner })),
+        ]}
+      />
       {repos.length === 0 && <div className='text-xs text-gray-500'>No repos found in your GitHub org.</div>}
     </div>
   );
@@ -223,16 +254,18 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className='flex flex-col gap-1'>
+    <div className='flex flex-col gap-1'>
       <span className='text-sm font-medium text-gray-700'>
         {label}
         {required && <span className='text-rose-500'> *</span>}
         {hint && <span className='ml-2 font-normal text-gray-400'>{hint}</span>}
       </span>
       {children}
-    </label>
+    </div>
   );
 }
 
 const inputCls =
   'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20';
+
+const selectCls = 'w-full justify-between border-gray-300 px-3 py-2 text-sm font-normal';

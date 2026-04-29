@@ -9,6 +9,7 @@ import { sentryRoute } from '@server/routes/sentry.js';
 import { sessions } from '@server/routes/sessions.js';
 import { settingsRoute } from '@server/routes/settings.js';
 import { sources } from '@server/routes/sources.js';
+import { workflows } from '@server/routes/workflows.js';
 import 'dotenv/config';
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';
@@ -41,6 +42,7 @@ app.route('/api/secrets', secrets);
 app.route('/api/sentry', sentryRoute);
 app.route('/api/github', githubRoute);
 app.route('/api/jira', jiraRoute);
+app.route('/api/workflows', workflows);
 
 const port = Number(process.env.API_PORT ?? 3011);
 serve({ fetch: app.fetch, port }, info => {

@@ -280,7 +280,9 @@ export const api = {
   createJiraIssue: (sessionId: number) =>
     req<Session>(`/sessions/${sessionId}/create-jira-issue`, { method: 'POST' }),
   listSourceSessions: (sourceId: number) => req<SourceSession[]>(`/sources/${sourceId}/sessions`),
-  listSourceWorkflows: (sourceId: number) => req<WorkflowWithChildren[]>(`/sources/${sourceId}/workflows`),
+  listWorkflows: () => req<WorkflowWithChildren[]>(`/workflows`),
+  createWorkflow: () => req<Workflow>(`/workflows`, { method: 'POST' }),
+  deleteWorkflow: (id: number) => req<{ ok: true }>(`/workflows/${id}`, { method: 'DELETE' }),
   createWorkflowsForItems: (sourceId: number, itemIds: number[]) =>
     req<{ created: number; workflowIds: number[] }>(`/sources/${sourceId}/workflows-from-items`, {
       method: 'POST',

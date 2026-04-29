@@ -5,15 +5,14 @@ import { useEffect } from 'react';
 import { useParams } from 'react-router';
 
 export function WorkflowPanel() {
-  const { sourceId, workflowId } = useParams();
-  const sid = Number(sourceId);
+  const { workflowId } = useParams();
   const wid = workflowId ? Number(workflowId) : null;
   const [, setOpenItemId] = useQueryState('item', parseAsInteger);
   const [, setOpenSessionId] = useQueryState('session', parseAsInteger);
 
   const workflowsQuery = useSuspenseQuery({
-    queryKey: ['source', sid, 'workflows'],
-    queryFn: () => api.listSourceWorkflows(sid),
+    queryKey: ['workflows'],
+    queryFn: api.listWorkflows,
   });
   const workflow = wid !== null ? workflowsQuery.data.find(w => w.id === wid) : undefined;
   const latestSession = workflow?.sessions.reduce<typeof workflow.sessions[number] | null>(

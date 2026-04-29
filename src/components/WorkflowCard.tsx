@@ -14,18 +14,19 @@ import {
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, X } from 'lucide-react';
+import { Plus, Trash2, X } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useMemo, useState } from 'react';
-import { Link, useLocation, useParams } from 'react-router';
+import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 type ItemChild = { kind: 'item'; at: string; item: Item };
 type SessionChild = { kind: 'session'; at: string; session: WorkflowSessionChild };
 type Child = ItemChild | SessionChild;
 
 export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
-  const { sourceId } = useParams();
+  const { sourceId, workflowId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
   const wid = workflow.id;
   const [openItemId] = useQueryState('item', parseAsInteger);
   const [openSessionId] = useQueryState('session', parseAsInteger);
@@ -33,6 +34,37 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
   const confirm = useConfirm();
   const toast = useToast();
   const qc = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.deleteWorkflow(wid),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workflows'] });
+      qc.invalidateQueries({ queryKey: ['allItems'] });
+      if (sourceId) qc.invalidateQueries({ queryKey: ['items', Number(sourceId)] });
+      if (workflowId && Number(workflowId) === wid) {
+        navigate({ pathname: `/sources/${sourceId}/workflows`, search: location.search });
+      }
+      toast.add({ title: 'Workflow deleted', type: 'success' });
+    },
+    onError: e => {
+      toast.add({
+        title: 'Failed to delete workflow',
+        description: e instanceof Error ? e.message : String(e),
+        type: 'error',
+      });
+    },
+  });
+
+  async function handleDelete() {
+    const ok = await confirm({
+      title: 'Delete workflow?',
+      description: `Delete "${workflow.name ?? `Workflow #${workflow.id}`}"? Attached items and sessions will be detached.`,
+      confirmText: 'Delete',
+      destructive: true,
+    });
+    if (!ok) return;
+    deleteMutation.mutate();
+  }
 
   const detachMutation = useMutation({
     mutationFn: (itemId: number) => api.setItemWorkflow(itemId, null),
@@ -92,9 +124,12 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
   return (
     <li className='rounded-lg border bg-white p-3'>
       <div className='mb-2 flex items-center justify-between gap-2'>
-        <h2 className='truncate text-sm font-medium' title={title}>
-          {title}
-        </h2>
+        <div className='flex min-w-0 items-baseline gap-2'>
+          <h2 className='truncate text-sm font-medium' title={title}>
+            {title}
+          </h2>
+          <span className='shrink-0 text-[11px] text-gray-500'>{timeAgo(workflow.created_at)}</span>
+        </div>
         <div className='flex shrink-0 items-center gap-2'>
           <button
             type='button'
@@ -105,7 +140,15 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
             <Plus />
             Add item
           </button>
-          <span className='text-[11px] text-gray-500'>{timeAgo(workflow.created_at)}</span>
+          <button
+            type='button'
+            onClick={handleDelete}
+            className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
+            title='Delete workflow'
+            aria-label='Delete workflow'
+          >
+            <Trash2 />
+          </button>
         </div>
       </div>
       {children.length === 0 ? (

@@ -1,7 +1,7 @@
 import { CreateJiraIssuePanel } from '@/components/panels/CreateJiraIssuePanel';
 import { WorkflowCard } from '@/components/WorkflowCard';
 import { api } from '@/lib/api';
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router';
@@ -10,6 +10,7 @@ export function WorkflowsPage() {
   const { sourceId, workflowId } = useParams();
   const id = Number(sourceId);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [jiraDraftOpen, setJiraDraftOpen] = useQueryState('jiraDraft', parseAsBoolean.withDefault(false));
   const [, setOpenItemId] = useQueryState('item', parseAsInteger);
   const [, setOpenSessionId] = useQueryState('session', parseAsInteger);
@@ -24,8 +25,8 @@ export function WorkflowsPage() {
   const prompts = promptsQuery.data;
 
   const workflowsQuery = useQuery({
-    queryKey: ['source', id, 'workflows'],
-    queryFn: () => api.listSourceWorkflows(id),
+    queryKey: ['workflows'],
+    queryFn: api.listWorkflows,
     refetchInterval: 5000,
   });
   const workflows = useMemo(() => workflowsQuery.data ?? [], [workflowsQuery.data]);
@@ -49,18 +50,34 @@ export function WorkflowsPage() {
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex items-center justify-between'>
             <h1 className='text-lg font-semibold'>Workflows</h1>
-            {source.type === 'jira_issue' && (
+            <div className='flex items-center gap-2'>
               <button
-                onClick={() => {
-                  setOpenItemId(null);
-                  setOpenSessionId(null);
-                  setJiraDraftOpen(true);
+                onClick={async () => {
+                  const workflow = await api.createWorkflow();
+                  await queryClient.invalidateQueries({ queryKey: ['workflows'] });
+                  const params = new URLSearchParams(window.location.search);
+                  navigate({
+                    pathname: `/sources/${sourceId}/workflows/${workflow.id}`,
+                    search: params.toString(),
+                  });
                 }}
-                className='btn-md btn-primary'
+                className='btn-md btn-secondary'
               >
-                Create Jira issue
+                New workflow
               </button>
-            )}
+              {source.type === 'jira_issue' && (
+                <button
+                  onClick={() => {
+                    setOpenItemId(null);
+                    setOpenSessionId(null);
+                    setJiraDraftOpen(true);
+                  }}
+                  className='btn-md btn-primary'
+                >
+                  Create Jira issue
+                </button>
+              )}
+            </div>
           </div>
 
           {error && (

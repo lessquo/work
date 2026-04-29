@@ -1,5 +1,5 @@
 import { TabsList, TabsRoot, TabsTab } from '@/components/ui/Tabs';
-import { List, Settings, Terminal, Workflow } from 'lucide-react';
+import { Box, Settings, Terminal, Workflow } from 'lucide-react';
 import { useMatch, useNavigate, useParams } from 'react-router';
 
 export function SourceTabs() {
@@ -12,7 +12,7 @@ export function SourceTabs() {
     <TabsRoot value={active} onValueChange={value => navigate(value as string)}>
       <TabsList className='-mb-px'>
         <TabsTab value={`${base}/items`}>
-          <List />
+          <Box />
           Items
         </TabsTab>
         <TabsTab value={`${base}/sessions`}>

@@ -1,7 +1,7 @@
 import { PromptPicker } from '@/components/panels/PromptPicker';
 import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
 import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
-import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api, DEFAULT_PROMPT_ID, parseSentryRaw, type PromptId } from '@/lib/api';

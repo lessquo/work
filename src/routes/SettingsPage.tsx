@@ -1,4 +1,4 @@
-import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { api, type SecretKey, type Settings } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';

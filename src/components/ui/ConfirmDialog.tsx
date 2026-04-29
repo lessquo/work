@@ -1,24 +1,7 @@
+import { ConfirmDialogContext, type ConfirmFn, type ConfirmOptions } from '@/components/ui/ConfirmDialog.lib';
 import { cn } from '@/lib/cn';
 import { AlertDialog as Base } from '@base-ui/react/alert-dialog';
-import { createContext, useCallback, useContext, useRef, useState } from 'react';
-
-export type ConfirmOptions = {
-  title: string;
-  description?: string;
-  confirmText?: string;
-  cancelText?: string;
-  destructive?: boolean;
-};
-
-type ConfirmFn = (opts: ConfirmOptions) => Promise<boolean>;
-
-const ConfirmDialogContext = createContext<ConfirmFn | null>(null);
-
-export function useConfirm(): ConfirmFn {
-  const fn = useContext(ConfirmDialogContext);
-  if (!fn) throw new Error('useConfirm must be used inside <ConfirmDialogProvider>');
-  return fn;
-}
+import { useCallback, useRef, useState } from 'react';
 
 type State = { opts: ConfirmOptions; resolve: (v: boolean) => void };
 

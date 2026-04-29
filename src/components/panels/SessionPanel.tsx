@@ -1,7 +1,7 @@
 import { DiffView } from '@/components/panels/DiffView';
 import { LogsView } from '@/components/panels/LogsView';
 import { Markdown } from '@/components/panels/Markdown';
-import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { PillTabs, Tabs } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';

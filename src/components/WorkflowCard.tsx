@@ -1,6 +1,6 @@
 import { AttachItemDialog } from '@/components/AttachItemDialog';
 import { TYPE_LOGO } from '@/components/typeLogo';
-import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import {
   api,

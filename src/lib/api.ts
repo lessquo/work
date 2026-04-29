@@ -231,6 +231,7 @@ export const api = {
     req<ItemWithSessions[]>(`/sources/${sourceId}/items?status=${status}&sort=${sort}`),
   getItemCounts: (sourceId: number) => req<{ open: number; resolved: number }>(`/sources/${sourceId}/counts`),
   listAllItems: () => req<Item[]>('/items'),
+  getItem: (id: number) => req<Item>(`/items/${id}`),
   setItemWorkflow: (itemId: number, workflowId: number | null) =>
     req<Item>(`/items/${itemId}/workflow`, {
       method: 'PUT',

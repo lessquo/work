@@ -4,7 +4,7 @@ import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { api, DEFAULT_PROMPT_ID, parseSentryRaw, type PromptId } from '@/lib/api';
+import { api, DEFAULT_PROMPT_ID, parseSentryRaw, type Item, type ItemWithSessions, type PromptId } from '@/lib/api';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Copy, Workflow } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
@@ -13,8 +13,8 @@ import { useNavigate, useParams } from 'react-router';
 
 export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const { sourceId, itemId: itemIdParam } = useParams();
-  const sid = Number(sourceId);
   const itemId = itemIdProp ?? (itemIdParam ? Number(itemIdParam) : null);
+  const isWorkflowMode = itemIdProp !== undefined;
   const qc = useQueryClient();
   const confirm = useConfirm();
   const toast = useToast();
@@ -27,9 +27,15 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const [promptId, setPromptId] = useState<PromptId>(DEFAULT_PROMPT_ID);
   const [targetRepo, setTargetRepo] = useState('');
 
-  const itemsQuery = useSuspenseQuery({
-    queryKey: ['items', sid, filter, sort],
-    queryFn: () => api.listItems(sid, filter, sort),
+  const sourceItemsQuery = useSuspenseQuery({
+    queryKey: isWorkflowMode ? ['items-noop'] : ['items', Number(sourceId), filter, sort],
+    queryFn: (): Promise<ItemWithSessions[]> =>
+      isWorkflowMode ? Promise.resolve([]) : api.listItems(Number(sourceId), filter, sort),
+  });
+  const workflowItemQuery = useSuspenseQuery({
+    queryKey: isWorkflowMode && itemId !== null ? ['item', itemId] : ['item-noop'],
+    queryFn: (): Promise<Item | null> =>
+      isWorkflowMode && itemId !== null ? api.getItem(itemId) : Promise.resolve(null),
   });
   const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
   const prompts = promptsQuery.data;
@@ -37,11 +43,26 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
 
   const ids = new Set<number>(selectedIds);
   if (itemId !== null) ids.add(itemId);
-  const selectedItems = itemsQuery.data.filter(i => ids.has(i.id));
+  const selectedItems: Item[] = isWorkflowMode
+    ? workflowItemQuery.data
+      ? [workflowItemQuery.data]
+      : []
+    : sourceItemsQuery.data.filter(i => ids.has(i.id));
   const count = selectedItems.length;
+  const sid = isWorkflowMode ? (selectedItems[0]?.source_id ?? Number(sourceId)) : Number(sourceId);
   const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
   const promptLabel = selectedPrompt?.label ?? 'Run';
   const promptHint = selectedPrompt?.hint ?? '';
+
+  function invalidateAfterMutation() {
+    setSelectedIds(null);
+    qc.invalidateQueries({ queryKey: ['items', sid] });
+    qc.invalidateQueries({ queryKey: ['itemCounts', sid] });
+    if (isWorkflowMode) {
+      qc.invalidateQueries({ queryKey: ['workflows'] });
+      if (itemId !== null) qc.invalidateQueries({ queryKey: ['item', itemId] });
+    }
+  }
 
   const sessionMutation = useMutation({
     mutationFn: (targetIds: number[]) => api.runItems(sid, targetIds, effectivePromptId, targetRepo),
@@ -53,9 +74,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
             ? 'Nothing queued.'
             : `Queued ${res.enqueued} session${res.enqueued === 1 ? '' : 's'}${skippedNote}.`,
       });
-      setSelectedIds(null);
-      qc.invalidateQueries({ queryKey: ['items', sid] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', sid] });
+      invalidateAfterMutation();
     },
   });
 
@@ -66,9 +85,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
       if (res.skipped > 0) parts.push(`${res.skipped} skipped`);
       if (res.errors.length > 0) parts.push(`${res.errors.length} error${res.errors.length === 1 ? '' : 's'}`);
       toast.add({ title: parts.join(' · ') + '.' });
-      setSelectedIds(null);
-      qc.invalidateQueries({ queryKey: ['items', sid] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', sid] });
+      invalidateAfterMutation();
     },
   });
 
@@ -81,9 +98,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
             ? 'No workflows created.'
             : `Created ${res.created} workflow${res.created === 1 ? '' : 's'}.`,
       });
-      setSelectedIds(null);
-      qc.invalidateQueries({ queryKey: ['workflows'] });
-      qc.invalidateQueries({ queryKey: ['items', sid] });
+      invalidateAfterMutation();
       navigate(`/sources/${sid}/workflows`);
     },
   });
@@ -97,9 +112,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
       if (res.folder_errors.length > 0)
         parts.push(`${res.folder_errors.length} folder error${res.folder_errors.length === 1 ? '' : 's'}`);
       toast.add({ title: parts.join(' · ') + '.' });
-      setSelectedIds(null);
-      qc.invalidateQueries({ queryKey: ['items', sid] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', sid] });
+      invalidateAfterMutation();
     },
   });
 

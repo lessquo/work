@@ -8,6 +8,13 @@ items.get('/', c => {
   return c.json(rows);
 });
 
+items.get('/:id', c => {
+  const id = Number(c.req.param('id'));
+  const row = db.prepare(`SELECT * FROM items WHERE id = ?`).get(id) as Item | undefined;
+  if (!row) return c.json({ error: 'item not found' }, 404);
+  return c.json(row);
+});
+
 items.put('/:id/workflow', async c => {
   const id = Number(c.req.param('id'));
   const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(id) as Item | undefined;

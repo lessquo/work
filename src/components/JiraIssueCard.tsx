@@ -1,0 +1,74 @@
+import { ItemCardLayout } from '@/components/ItemCardLayout';
+import { MetaRow } from '@/components/MetaRow';
+import { TYPE_LOGO } from '@/components/typeLogo';
+import { parseJiraRaw, type ItemWithSessions, type JiraRaw, type JiraStatusCategory } from '@/lib/api';
+import { cn } from '@/lib/cn';
+import { timeAgo } from '@/lib/time';
+
+export function JiraIssueCard({
+  item,
+  selected = false,
+  onSelect,
+  onOpenSession,
+}: {
+  item: ItemWithSessions;
+  selected?: boolean;
+  onSelect?: (id: number, modifiers: { shiftKey: boolean; metaKey: boolean }) => void;
+  onOpenSession?: (sessionId: number) => void;
+}) {
+  const jira = parseJiraRaw(item.raw);
+  const logo = TYPE_LOGO.jira_issue;
+  const statusName = jira.status_name ?? 'unknown';
+  const statusColor = CATEGORY_COLOR[jira.status_category ?? ''] ?? 'bg-gray-100 text-gray-600';
+  const title = jira.summary ?? item.external_id;
+
+  return (
+    <ItemCardLayout
+      item={item}
+      selected={selected}
+      onSelect={onSelect}
+      onOpenSession={onOpenSession}
+      rightMeta={<div className='text-[11px] text-gray-400'>{item.external_id}</div>}
+      body={
+        <>
+          <div className='flex items-center gap-2'>
+            <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
+            <span
+              className={cn(
+                'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase',
+                statusColor,
+              )}
+            >
+              {statusName}
+            </span>
+            <a
+              href={item.url}
+              target='_blank'
+              rel='noreferrer'
+              className='truncate text-sm font-medium hover:underline'
+            >
+              {title}
+            </a>
+          </div>
+          {jira.issuetype && <div className='mt-0.5 truncate text-xs text-gray-500'>{jira.issuetype}</div>}
+          <JiraStats jira={jira} />
+        </>
+      }
+    />
+  );
+}
+
+function JiraStats({ jira }: { jira: JiraRaw }) {
+  const parts: string[] = [];
+  if (jira.assignee) parts.push(jira.assignee);
+  if (jira.priority) parts.push(jira.priority);
+  if (jira.created) parts.push(`created ${timeAgo(jira.created)}`);
+  if (jira.updated) parts.push(`updated ${timeAgo(jira.updated)}`);
+  return <MetaRow parts={parts} />;
+}
+
+const CATEGORY_COLOR: Record<JiraStatusCategory, string> = {
+  new: 'bg-gray-100 text-gray-700',
+  indeterminate: 'bg-sky-100 text-sky-700',
+  done: 'bg-emerald-100 text-emerald-700',
+};

@@ -1,0 +1,233 @@
+import { BatchPanel } from '@/components/panels/BatchPanel';
+import { CreateJiraIssuePanel } from '@/components/panels/CreateJiraIssuePanel';
+import { ItemPanel } from '@/components/panels/ItemPanel';
+import { SessionPanel } from '@/components/panels/SessionPanel';
+import { useConfirm } from '@/components/ui/ConfirmDialog';
+import { useToast } from '@/components/ui/Toast';
+import { api, DEFAULT_PROMPT_ID, type PromptId } from '@/lib/api';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
+
+export function ItemsPageSlot() {
+  const { sourceId, itemId } = useParams();
+  const id = Number(sourceId);
+  const itemIdNum = itemId ? Number(itemId) : null;
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const confirm = useConfirm();
+  const toast = useToast();
+
+  const [filter] = useQueryState('filter', parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'));
+  const [sort] = useQueryState('sort', parseAsStringLiteral(['recency', 'title'] as const).withDefault('recency'));
+  const [selectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
+  const [openSessionId, setOpenSessionId] = useQueryState('session', parseAsInteger);
+  const [sessionTab, setSessionTab] = useQueryState(
+    'sessionTab',
+    parseAsStringLiteral(['logs', 'diff', 'pr'] as const).withDefault('logs'),
+  );
+  const [descriptionMode, setDescriptionMode] = useQueryState(
+    'descriptionMode',
+    parseAsStringLiteral(['edit', 'preview'] as const).withDefault('preview'),
+  );
+  const [jiraDraftOpen, setJiraDraftOpen] = useQueryState('jiraDraft', parseAsBoolean.withDefault(false));
+
+  const [promptId, setPromptId] = useState<PromptId>(DEFAULT_PROMPT_ID);
+  const [targetRepo, setTargetRepo] = useState('');
+
+  const sourceQuery = useSuspenseQuery({ queryKey: ['source', id], queryFn: () => api.getSource(id) });
+  const source = sourceQuery.data;
+
+  const itemsQuery = useSuspenseQuery({
+    queryKey: ['items', id, filter, sort],
+    queryFn: () => api.listItems(id, filter, sort),
+  });
+  const items = itemsQuery.data;
+
+  const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
+  const prompts = promptsQuery.data;
+
+  useEffect(() => {
+    if (prompts.length === 0) return;
+    if (!prompts.some(p => p.id === promptId)) setPromptId(prompts[0].id);
+  }, [prompts, promptId]);
+
+  const selection = new Set<number>(selectedIds);
+  if (itemIdNum !== null) selection.add(itemIdNum);
+
+  function clearSelection() {
+    const params = new URLSearchParams(window.location.search);
+    params.delete('selected');
+    navigate({ pathname: `/sources/${sourceId}/items`, search: params.toString() });
+  }
+
+  const onMutationError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
+
+  const sessionMutation = useMutation({
+    mutationFn: (ids: number[]) => api.runItems(id, ids, promptId, targetRepo),
+    onSuccess: res => {
+      const skippedNote = res.skipped > 0 ? ` (${res.skipped} skipped)` : '';
+      toast.add({
+        title:
+          res.enqueued === 0
+            ? 'Nothing queued.'
+            : `Queued ${res.enqueued} session${res.enqueued === 1 ? '' : 's'}${skippedNote}.`,
+      });
+      clearSelection();
+      qc.invalidateQueries({ queryKey: ['items', id] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', id] });
+    },
+    onError: onMutationError,
+  });
+
+  const resolveItemsMutation = useMutation({
+    mutationFn: (ids: number[]) => api.resolveItems(id, ids),
+    onSuccess: res => {
+      const parts: string[] = [`Resolved ${res.resolved} item${res.resolved === 1 ? '' : 's'}`];
+      if (res.skipped > 0) parts.push(`${res.skipped} skipped`);
+      if (res.errors.length > 0) parts.push(`${res.errors.length} error${res.errors.length === 1 ? '' : 's'}`);
+      toast.add({ title: parts.join(' · ') + '.' });
+      clearSelection();
+      qc.invalidateQueries({ queryKey: ['items', id] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', id] });
+    },
+    onError: onMutationError,
+  });
+
+  const createWorkflowsMutation = useMutation({
+    mutationFn: (ids: number[]) => api.createWorkflowsForItems(id, ids),
+    onSuccess: res => {
+      toast.add({
+        title:
+          res.created === 0
+            ? 'No workflows created.'
+            : `Created ${res.created} workflow${res.created === 1 ? '' : 's'}.`,
+      });
+      clearSelection();
+      qc.invalidateQueries({ queryKey: ['source', id, 'workflows'] });
+      qc.invalidateQueries({ queryKey: ['items', id] });
+      navigate(`/sources/${sourceId}/workflows`);
+    },
+    onError: onMutationError,
+  });
+
+  const deleteSessionsMutation = useMutation({
+    mutationFn: (ids: number[]) => api.deleteItemSessions(id, ids),
+    onSuccess: res => {
+      const parts: string[] = [`Deleted ${res.deleted} session${res.deleted === 1 ? '' : 's'}`];
+      if (res.skipped_active > 0) parts.push(`${res.skipped_active} skipped (active)`);
+      if (res.no_run > 0) parts.push(`${res.no_run} had no session`);
+      if (res.folder_errors.length > 0)
+        parts.push(`${res.folder_errors.length} folder error${res.folder_errors.length === 1 ? '' : 's'}`);
+      toast.add({ title: parts.join(' · ') + '.' });
+      clearSelection();
+      qc.invalidateQueries({ queryKey: ['items', id] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', id] });
+    },
+    onError: onMutationError,
+  });
+
+  const running = sessionMutation.isPending;
+  const resolving = resolveItemsMutation.isPending;
+  const deletingSessions = deleteSessionsMutation.isPending;
+  const creatingWorkflows = createWorkflowsMutation.isPending;
+
+  async function runSelected() {
+    if (selection.size === 0 || !targetRepo) return;
+    const mode = prompts.find(p => p.id === promptId)?.label ?? promptId;
+    const ok = await confirm({
+      title: `Queue ${mode} sessions?`,
+      description: `Claude will be queued to ${mode.toLowerCase()} ${selection.size} selected item${selection.size === 1 ? '' : 's'} against ${targetRepo}.`,
+      confirmText: `Queue ${selection.size}`,
+    });
+    if (!ok) return;
+    sessionMutation.mutate(Array.from(selection));
+  }
+
+  async function resolveSelected() {
+    if (selection.size === 0) return;
+    const ok = await confirm({
+      title: `Resolve ${selection.size} item${selection.size === 1 ? '' : 's'}?`,
+      description: 'The selected items will be marked as resolved upstream.',
+      confirmText: 'Resolve',
+    });
+    if (!ok) return;
+    resolveItemsMutation.mutate(Array.from(selection));
+  }
+
+  async function deleteSelectedSessions() {
+    if (selection.size === 0) return;
+    const ok = await confirm({
+      title: `Delete sessions for ${selection.size} item${selection.size === 1 ? '' : 's'}?`,
+      description:
+        'The latest session for each selected item will be deleted along with its clone folder. Active (queued/running) sessions will be skipped.',
+      confirmText: 'Delete sessions',
+      destructive: true,
+    });
+    if (!ok) return;
+    deleteSessionsMutation.mutate(Array.from(selection));
+  }
+
+  if (jiraDraftOpen) {
+    return (
+      <CreateJiraIssuePanel
+        sourceId={id}
+        projectKey={source.external_id}
+        prompts={prompts}
+        onClose={() => setJiraDraftOpen(false)}
+        onSessionStarted={sessionId => {
+          setJiraDraftOpen(false);
+          setOpenSessionId(sessionId);
+        }}
+      />
+    );
+  }
+
+  if (openSessionId !== null) {
+    return (
+      <SessionPanel
+        sessionId={openSessionId}
+        onClose={() => setOpenSessionId(null)}
+        tab={sessionTab}
+        setTab={setSessionTab}
+        descriptionMode={descriptionMode}
+        setDescriptionMode={setDescriptionMode}
+      />
+    );
+  }
+
+  if (selection.size > 1) {
+    return (
+      <BatchPanel
+        filter={filter}
+        selectedItems={items.filter(i => selection.has(i.id))}
+        prompts={prompts}
+        promptId={promptId}
+        setPromptId={setPromptId}
+        targetRepo={targetRepo}
+        setTargetRepo={setTargetRepo}
+        onRun={runSelected}
+        onResolve={resolveSelected}
+        onDeleteSessions={deleteSelectedSessions}
+        onCreateWorkflows={() => createWorkflowsMutation.mutate(Array.from(selection))}
+        running={running}
+        resolving={resolving}
+        deletingSessions={deletingSessions}
+        creatingWorkflows={creatingWorkflows}
+      />
+    );
+  }
+
+  if (selection.size === 1) {
+    return <ItemPanel />;
+  }
+
+  return (
+    <div className='flex h-full flex-1 items-center justify-center bg-gray-50 text-sm text-gray-500'>
+      <p>
+        No items yet. Click <b>Sync</b> to fetch.
+      </p>
+    </div>
+  );
+}

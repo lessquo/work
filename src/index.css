@@ -1,0 +1,103 @@
+@import 'tailwindcss';
+
+@theme {
+  --default-font-family: 'Inter', var(--font-sans);
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --blur-2xs: 2px;
+  --spacing-header: 3rem;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  body {
+    @apply bg-white text-gray-900;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  .lucide {
+    @apply size-4 shrink-0 text-gray-600;
+  }
+}
+
+@layer components {
+  /* Button */
+  .btn-sm {
+    @apply flex h-7 items-center gap-1 rounded-md px-1.5 text-xs font-medium;
+  }
+  .btn-md {
+    @apply flex h-9 items-center gap-2 rounded-md px-2.5 text-sm font-medium;
+  }
+  .btn-ghost {
+    @apply not-disabled:hover:bg-gray-100;
+  }
+  .btn-primary {
+    @apply border border-indigo-200 bg-white text-indigo-700 not-disabled:hover:bg-indigo-50/50 disabled:opacity-50;
+  }
+  .btn-secondary {
+    @apply border border-gray-300 bg-white text-gray-700 not-disabled:hover:bg-gray-50 disabled:opacity-50;
+  }
+  .btn-success {
+    @apply border border-emerald-200 bg-white text-emerald-700 not-disabled:hover:bg-emerald-50/50 disabled:opacity-50;
+  }
+  .btn-warning {
+    @apply border border-amber-200 bg-white text-amber-700 not-disabled:hover:bg-amber-50/50 disabled:opacity-50;
+  }
+  .btn-danger {
+    @apply border border-rose-200 bg-white text-rose-700 not-disabled:hover:bg-rose-50/50 disabled:opacity-50;
+  }
+  /* chip */
+  .chip-sm {
+    @apply flex h-5 items-center gap-1 rounded-full px-1.5 text-[10px] font-medium uppercase;
+  }
+  .chip-md {
+    @apply flex h-7 items-center gap-2 rounded-full px-2.5 text-xs font-medium uppercase;
+  }
+  /* Status */
+  .status-primary {
+    @apply border border-indigo-200 bg-indigo-50/50 text-indigo-700;
+  }
+  .status-secondary {
+    @apply border border-gray-300 bg-gray-50 text-gray-700;
+  }
+  .status-success {
+    @apply border border-emerald-200 bg-emerald-50/50 text-emerald-700;
+  }
+  .status-warning {
+    @apply border border-amber-200 bg-amber-50/50 text-amber-700;
+  }
+  .status-danger {
+    @apply border border-rose-200 bg-rose-50/50 text-rose-700;
+  }
+  /* Selected */
+  .selected-primary {
+    @apply border-indigo-200 bg-indigo-50/50;
+  }
+  /* Base UI */
+  .root {
+    isolation: isolate;
+  }
+  .popup {
+    @apply backdrop-blur-2xs min-w-(--anchor-width) rounded-xl border bg-white/90 p-2 shadow-lg;
+  }
+  .menu-group-label {
+    @apply flex h-11 items-center px-3 font-medium select-none;
+  }
+  .menu-item {
+    @apply flex h-9 cursor-pointer items-center gap-2 rounded-md px-3 text-sm outline-none;
+    @apply data-highlighted:bg-gray-100;
+  }
+  .menu-separator {
+    @apply my-2 h-px bg-gray-200;
+  }
+}

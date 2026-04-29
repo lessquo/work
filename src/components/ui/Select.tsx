@@ -1,5 +1,5 @@
 import { cn } from '@/lib/cn';
-import { Select as Base } from '@base-ui-components/react/select';
+import { Select as Base } from '@base-ui/react/select';
 import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 

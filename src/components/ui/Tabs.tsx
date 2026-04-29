@@ -1,5 +1,5 @@
 import { cn } from '@/lib/cn';
-import { Tabs as Base } from '@base-ui-components/react/tabs';
+import { Tabs as Base } from '@base-ui/react/tabs';
 import type { ComponentProps } from 'react';
 
 type ListProps = Omit<ComponentProps<typeof Base.List>, 'className'> & { className?: string };

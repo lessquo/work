@@ -1,7 +1,7 @@
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { api, type ItemType } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { Menu } from '@base-ui-components/react/menu';
+import { Menu } from '@base-ui/react/menu';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import { Link, useMatch } from 'react-router';

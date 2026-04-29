@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import { Dialog } from '@base-ui-components/react/dialog';
+import { Dialog } from '@base-ui/react/dialog';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';

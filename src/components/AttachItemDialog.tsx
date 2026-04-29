@@ -2,7 +2,7 @@ import { TYPE_LOGO } from '@/components/typeLogo';
 import { useToast } from '@/components/ui/Toast';
 import { api, type Item, itemTitle } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { Dialog } from '@base-ui-components/react/dialog';
+import { Dialog } from '@base-ui/react/dialog';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
 import { X } from 'lucide-react';

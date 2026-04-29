@@ -1,5 +1,5 @@
 import { cn } from '@/lib/cn';
-import { AlertDialog as Base } from '@base-ui-components/react/alert-dialog';
+import { AlertDialog as Base } from '@base-ui/react/alert-dialog';
 import { createContext, useCallback, useContext, useRef, useState } from 'react';
 
 export type ConfirmOptions = {

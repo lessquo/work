@@ -2,7 +2,7 @@ import { SyncSetupDialog } from '@/components/SyncSetupDialog';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { api, type Source } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { Dialog } from '@base-ui-components/react/dialog';
+import { Dialog } from '@base-ui/react/dialog';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Check, RefreshCw, X } from 'lucide-react';
 import { useState } from 'react';

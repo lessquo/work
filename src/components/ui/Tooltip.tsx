@@ -1,4 +1,4 @@
-import { Tooltip as Base } from '@base-ui-components/react/tooltip';
+import { Tooltip as Base } from '@base-ui/react/tooltip';
 import type { ReactElement, ReactNode } from 'react';
 
 type Side = 'top' | 'right' | 'bottom' | 'left';

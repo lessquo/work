@@ -63,12 +63,6 @@ export function ItemsPage() {
   const [jiraDraftOpen, setJiraDraftOpen] = useQueryState('jiraDraft', parseAsBoolean.withDefault(false));
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
 
-  const selection = useMemo(() => {
-    const set = new Set<number>(selectedIds);
-    if (itemIdNum !== null) set.add(itemIdNum);
-    return set;
-  }, [selectedIds, itemIdNum]);
-
   function setSelection(newAnchor: number | null, newExtras: number[]) {
     const filtered = newExtras.filter(eid => eid !== newAnchor);
     if (newAnchor === itemIdNum) {
@@ -122,6 +116,18 @@ export function ItemsPage() {
     return fuse.search(q).map(r => r.item);
   }, [allItems, fuse, query]);
 
+  const visibleIds = useMemo(() => new Set(items.map(i => i.id)), [items]);
+  const validSelectedIds = useMemo(
+    () => selectedIds.filter(eid => visibleIds.has(eid)),
+    [selectedIds, visibleIds],
+  );
+  const validItemIdNum = itemIdNum !== null && visibleIds.has(itemIdNum) ? itemIdNum : null;
+  const selection = useMemo(() => {
+    const set = new Set<number>(validSelectedIds);
+    if (validItemIdNum !== null) set.add(validItemIdNum);
+    return set;
+  }, [validSelectedIds, validItemIdNum]);
+
   const countsQuery = useQuery({
     queryKey: ['itemCounts', id],
     queryFn: () => api.getItemCounts(id),
@@ -131,25 +137,14 @@ export function ItemsPage() {
   useEffect(() => {
     const valid = FILTER_TABS[source.type].some(t => t.value === filter);
     if (!valid) setFilter('open');
-  }, [source.type, filter]);
-
-  useEffect(() => {
-    const visible = new Set(items.map(i => i.id));
-    const validExtras = selectedIds.filter(eid => visible.has(eid));
-    const itemIdValid = itemIdNum !== null && visible.has(itemIdNum);
-    const needsItemIdChange = itemIdNum !== null && !itemIdValid;
-    const needsExtrasChange = validExtras.length !== selectedIds.length;
-    if (needsItemIdChange || needsExtrasChange) {
-      setSelection(itemIdValid ? itemIdNum : null, validExtras);
-    }
-  }, [items]);
+  }, [source.type, filter, setFilter]);
 
   useEffect(() => {
     if (items.length === 0) return;
-    if (itemIdNum !== null) return;
+    if (validItemIdNum !== null) return;
     const params = new URLSearchParams(window.location.search);
     navigate({ pathname: `/sources/${sourceId}/items/${items[0].id}`, search: params.toString() }, { replace: true });
-  }, [items, itemIdNum, sourceId, navigate]);
+  }, [items, validItemIdNum, sourceId, navigate]);
 
   const syncMutation = useMutation({
     mutationFn: () => api.syncSource(id),
@@ -164,12 +159,12 @@ export function ItemsPage() {
     (syncMutation.error instanceof Error ? syncMutation.error.message : null);
 
   function selectItem(clickedId: number, modifiers: { shiftKey: boolean; metaKey: boolean }) {
-    const anchor = itemIdNum;
+    const anchor = validItemIdNum;
     if (modifiers.shiftKey && anchor !== null && anchor !== clickedId) {
       const startIdx = items.findIndex(i => i.id === anchor);
       const endIdx = items.findIndex(i => i.id === clickedId);
       if (startIdx !== -1 && endIdx !== -1) {
-        const merged = new Set<number>(selectedIds);
+        const merged = new Set<number>(validSelectedIds);
         const [lo, hi] = startIdx < endIdx ? [startIdx, endIdx] : [endIdx, startIdx];
         for (let i = lo; i <= hi; i++) merged.add(items[i].id);
         setSelection(anchor, Array.from(merged));
@@ -180,21 +175,21 @@ export function ItemsPage() {
       if (selection.has(clickedId)) {
         if (selection.size <= 1) return;
         if (clickedId === anchor) {
-          const remaining = selectedIds.filter(eid => eid !== clickedId);
+          const remaining = validSelectedIds.filter(eid => eid !== clickedId);
           const newAnchor = remaining[0] ?? null;
           const newExtras = remaining.slice(1);
           setSelection(newAnchor, newExtras);
         } else {
           setSelection(
             anchor,
-            selectedIds.filter(eid => eid !== clickedId),
+            validSelectedIds.filter(eid => eid !== clickedId),
           );
         }
       } else {
         if (anchor === null) {
-          setSelection(clickedId, selectedIds);
+          setSelection(clickedId, validSelectedIds);
         } else {
-          setSelection(anchor, [...selectedIds, clickedId]);
+          setSelection(anchor, [...validSelectedIds, clickedId]);
         }
       }
       return;

@@ -3,7 +3,7 @@ import { WorkflowCard } from '@/components/WorkflowCard';
 import { api } from '@/lib/api';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router';
 
 export function WorkflowsPage() {
@@ -28,7 +28,7 @@ export function WorkflowsPage() {
     queryFn: () => api.listSourceWorkflows(id),
     refetchInterval: 5000,
   });
-  const workflows = workflowsQuery.data ?? [];
+  const workflows = useMemo(() => workflowsQuery.data ?? [], [workflowsQuery.data]);
   const error = workflowsQuery.error instanceof Error ? workflowsQuery.error.message : null;
 
   useEffect(() => {

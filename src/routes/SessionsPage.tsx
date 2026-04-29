@@ -45,7 +45,7 @@ export function SessionsPage() {
     queryFn: () => api.listSourceSessions(id),
     refetchInterval: 5000,
   });
-  const sessions: SourceSession[] = sessionsQuery.data ?? [];
+  const sessions = useMemo<SourceSession[]>(() => sessionsQuery.data ?? [], [sessionsQuery.data]);
 
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');

@@ -69,9 +69,7 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
   const detachMutation = useMutation({
     mutationFn: (itemId: number) => api.setItemWorkflow(itemId, null),
     onSuccess: () => {
-      qc.invalidateQueries({
-        predicate: q => q.queryKey[0] === 'source' && q.queryKey[2] === 'workflows',
-      });
+      qc.invalidateQueries({ queryKey: ['workflows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
       if (sourceId) qc.invalidateQueries({ queryKey: ['items', Number(sourceId)] });
       toast.add({ title: 'Item detached from workflow', type: 'success' });

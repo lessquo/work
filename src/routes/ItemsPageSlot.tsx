@@ -101,7 +101,7 @@ export function ItemsPageSlot() {
             : `Created ${res.created} workflow${res.created === 1 ? '' : 's'}.`,
       });
       clearSelection();
-      qc.invalidateQueries({ queryKey: ['source', id, 'workflows'] });
+      qc.invalidateQueries({ queryKey: ['workflows'] });
       qc.invalidateQueries({ queryKey: ['items', id] });
       navigate(`/sources/${sourceId}/workflows`);
     },

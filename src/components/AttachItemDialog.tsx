@@ -78,9 +78,7 @@ function Body({
   const attachMutation = useMutation({
     mutationFn: (itemId: number) => api.setItemWorkflow(itemId, workflowId),
     onSuccess: () => {
-      qc.invalidateQueries({
-        predicate: q => q.queryKey[0] === 'source' && q.queryKey[2] === 'workflows',
-      });
+      qc.invalidateQueries({ queryKey: ['workflows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
       qc.invalidateQueries({ queryKey: ['items', sourceId] });
       toast.add({ title: 'Item attached to workflow', type: 'success' });

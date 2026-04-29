@@ -60,7 +60,7 @@ export function SessionPanel({
       qc.setQueryData(['session', sessionId], updated);
       qc.invalidateQueries({ queryKey: ['items'] });
       qc.invalidateQueries({ queryKey: ['itemCounts'] });
-      if (updated.source_id) qc.invalidateQueries({ queryKey: ['source', updated.source_id, 'workflows'] });
+      qc.invalidateQueries({ queryKey: ['workflows'] });
     },
   });
 
@@ -70,7 +70,7 @@ export function SessionPanel({
       qc.setQueryData(['session', sessionId], updated);
       qc.invalidateQueries({ queryKey: ['items'] });
       qc.invalidateQueries({ queryKey: ['itemCounts'] });
-      if (updated.source_id) qc.invalidateQueries({ queryKey: ['source', updated.source_id, 'workflows'] });
+      qc.invalidateQueries({ queryKey: ['workflows'] });
     },
   });
 

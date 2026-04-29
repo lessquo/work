@@ -82,7 +82,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
             : `Created ${res.created} workflow${res.created === 1 ? '' : 's'}.`,
       });
       setSelectedIds(null);
-      qc.invalidateQueries({ queryKey: ['source', sid, 'workflows'] });
+      qc.invalidateQueries({ queryKey: ['workflows'] });
       qc.invalidateQueries({ queryKey: ['items', sid] });
       navigate(`/sources/${sid}/workflows`);
     },

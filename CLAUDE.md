@@ -17,7 +17,16 @@ This is a personal local only app. Keep clean code and prefer refactoring.
 - `react-hook-form`: Form handling.
 - `react-router`: Prefer `<Link>`, `<NavLink>`, or `<Navigate>` over `useNavigate`.
 
-## `lib` folder
+## `src/components/ui`
+
+- [ConfirmDialog](src/components/ui/ConfirmDialog.tsx) and [ConfirmDialog.lib](src/components/ui/ConfirmDialog.lib.ts)
+- [Input](src/components/ui/Input.tsx)
+- [Select](src/components/ui/Select.tsx)
+- [Tabs](src/components/ui/Tabs.tsx)
+- [Toast](src/components/ui/Toast.tsx) and [Toast.lib](src/components/ui/Toast.lib.ts)
+- [Tooltip](src/components/ui/Tooltip.tsx) and [Tooltip.lib](src/components/ui/Tooltip.lib.ts)
+
+## `src/lib`
 
 - [cn](src/lib/cn.ts): This exports `twMerge` as `cn`
 - [time](src/lib/time.ts): Time utils

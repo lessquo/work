@@ -1,5 +1,6 @@
 import { ItemCard } from '@/components/ItemCard';
 import { SyncSetupDialog } from '@/components/SyncSetupDialog';
+import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, itemTitle, type ItemStatus, type ItemType } from '@/lib/api';
@@ -251,7 +252,8 @@ export function ItemsPage() {
             <SortBar sourceType={source.type} filter={filter} sort={sort} onChange={setSort} />
             <label className='flex w-full max-w-xs items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20'>
               <Search className='text-gray-400' />
-              <input
+              <Input
+                variant='unstyled'
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder='Search by title or ID…'

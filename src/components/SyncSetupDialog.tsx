@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
 import { Dialog } from '@base-ui/react/dialog';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -97,14 +98,14 @@ function Body({
               between {SYNC_LIMIT_MIN} and {SYNC_LIMIT_MAX}
             </span>
           </span>
-          <input
+          <Input
             type='number'
             min={SYNC_LIMIT_MIN}
             max={SYNC_LIMIT_MAX}
             step={100}
             value={Number.isFinite(limit) ? limit : ''}
             onChange={e => setLimit(Number(e.target.value))}
-            className='rounded-md border border-gray-300 bg-white px-3 py-2 font-mono text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none'
+            className='font-mono'
             autoFocus
           />
           <span className='text-xs text-gray-500'>Saved as your default for next time. Higher values take longer.</span>

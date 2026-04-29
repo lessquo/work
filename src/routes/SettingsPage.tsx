@@ -1,4 +1,5 @@
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
+import { Input } from '@/components/ui/Input';
 import { api, type SecretKey, type Settings } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -234,7 +235,8 @@ export function SettingsPage() {
             immediately; running jobs keep going.
           </p>
           <div className='flex items-center gap-3'>
-            <input
+            <Input
+              variant='unstyled'
               type='range'
               min={1}
               max={8}
@@ -313,12 +315,12 @@ function IdentifierField({
       <span className='text-sm font-medium text-gray-700'>{label}</span>
       <p className='text-xs text-gray-400'>{hint}</p>
       <div className='flex items-center gap-2'>
-        <input
+        <Input
           type='text'
           value={value}
           onChange={e => setValue(e.target.value)}
           placeholder={placeholder}
-          className='flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 font-mono text-sm placeholder:font-sans placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none'
+          className='flex-1 font-mono placeholder:font-sans'
           autoComplete='off'
           spellCheck={false}
         />
@@ -389,12 +391,12 @@ function SecretField({
       </div>
       <p className='text-xs text-gray-400'>{hint}</p>
       <div className='flex items-center gap-2'>
-        <input
+        <Input
           type='password'
           value={value}
           onChange={e => setValue(e.target.value)}
           placeholder={configured ? 'Enter new value to replace' : 'Paste secret value'}
-          className='flex-1 rounded-md border border-gray-300 bg-white px-3 py-2 font-mono text-sm placeholder:font-sans placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none'
+          className='flex-1 font-mono placeholder:font-sans'
           autoComplete='off'
         />
         <button

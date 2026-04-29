@@ -87,6 +87,9 @@
   .root {
     isolation: isolate;
   }
+  .input {
+    @apply rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none;
+  }
   .popup {
     @apply backdrop-blur-2xs min-w-(--anchor-width) rounded-xl border bg-white/90 p-2 shadow-lg;
   }

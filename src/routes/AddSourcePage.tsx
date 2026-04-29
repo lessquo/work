@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { api, type ItemType } from '@/lib/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -106,19 +107,13 @@ function SentryProjectField({ value, onChange }: FieldProps) {
   const projectsQuery = useQuery({ queryKey: ['sentry-projects'], queryFn: api.listSentryProjects });
 
   if (projectsQuery.isPending) {
-    return <input value={value} disabled placeholder='Loading projects…' className={inputCls} readOnly />;
+    return <Input value={value} disabled placeholder='Loading projects…' readOnly />;
   }
 
   if (projectsQuery.isError) {
     return (
       <div className='flex flex-col gap-1.5'>
-        <input
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder='webapp'
-          className={inputCls}
-          autoFocus
-        />
+        <Input value={value} onChange={e => onChange(e.target.value)} placeholder='webapp' autoFocus />
         <div className='text-xs text-amber-700'>
           Couldn't load Sentry projects ({projectsQuery.error instanceof Error ? projectsQuery.error.message : 'error'}
           ). Make sure the Sentry org slug and token are set in Settings → Sentry, then enter the slug manually.
@@ -152,19 +147,13 @@ function JiraProjectField({ value, onChange }: FieldProps) {
   const projectsQuery = useQuery({ queryKey: ['jira-projects'], queryFn: api.listJiraProjects });
 
   if (projectsQuery.isPending) {
-    return <input value={value} disabled placeholder='Loading projects…' className={inputCls} readOnly />;
+    return <Input value={value} disabled placeholder='Loading projects…' readOnly />;
   }
 
   if (projectsQuery.isError) {
     return (
       <div className='flex flex-col gap-1.5'>
-        <input
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder='PROJ'
-          className={inputCls}
-          autoFocus
-        />
+        <Input value={value} onChange={e => onChange(e.target.value)} placeholder='PROJ' autoFocus />
         <div className='text-xs text-amber-700'>
           Couldn't load Jira projects ({projectsQuery.error instanceof Error ? projectsQuery.error.message : 'error'}).
           Make sure the Jira organization, email, and API token are set in Settings → Jira, then enter the project key
@@ -199,19 +188,13 @@ function GithubRepoField({ value, onChange }: FieldProps) {
   const reposQuery = useQuery({ queryKey: ['github-repos'], queryFn: api.listGithubRepos });
 
   if (reposQuery.isPending) {
-    return <input value={value} disabled placeholder='Loading repos…' className={inputCls} readOnly />;
+    return <Input value={value} disabled placeholder='Loading repos…' readOnly />;
   }
 
   if (reposQuery.isError) {
     return (
       <div className='flex flex-col gap-1.5'>
-        <input
-          value={value}
-          onChange={e => onChange(e.target.value)}
-          placeholder='owner/repo'
-          className={inputCls}
-          autoFocus
-        />
+        <Input value={value} onChange={e => onChange(e.target.value)} placeholder='owner/repo' autoFocus />
         <div className='text-xs text-amber-700'>
           Couldn't load GitHub repos ({reposQuery.error instanceof Error ? reposQuery.error.message : 'error'}). Make
           sure <code className='rounded bg-gray-100 px-1 py-0.5 font-mono'>gh auth login</code> is set up, then enter{' '}
@@ -264,8 +247,5 @@ function Field({
     </div>
   );
 }
-
-const inputCls =
-  'rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20';
 
 const selectCls = 'w-full justify-between border-gray-300 px-3 py-2 text-sm font-normal';

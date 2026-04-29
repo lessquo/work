@@ -1,4 +1,5 @@
 import { TYPE_LOGO } from '@/components/typeLogo';
+import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item, itemTitle } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -104,12 +105,12 @@ function Body({
       </div>
 
       <div className='border-b px-4 py-3'>
-        <input
+        <Input
           type='search'
           value={query}
           onChange={e => setQuery(e.target.value)}
           placeholder='Search by title or external id…'
-          className='w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none'
+          className='w-full'
           autoFocus
         />
       </div>

@@ -1,5 +1,5 @@
 import { SessionCard } from '@/components/SessionCard';
-import { PillTabs } from '@/components/ui/Tabs';
+import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, type ItemType, type SessionStatus, type SourceSession } from '@/lib/api';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
@@ -79,24 +79,24 @@ export function SessionsPage() {
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex flex-wrap items-center gap-3'>
             <h1 className='text-lg font-semibold'>Sessions</h1>
-            <PillTabs.Root value={typeFilter} onValueChange={v => setTypeFilter(v as TypeFilter)}>
-              <PillTabs.List>
+            <TabsRoot value={typeFilter} onValueChange={v => setTypeFilter(v as TypeFilter)}>
+              <PillTabsList>
                 {TYPE_TABS.map(tab => (
-                  <PillTabs.Tab key={tab.value} value={tab.value}>
+                  <PillTabsTab key={tab.value} value={tab.value}>
                     {tab.label}
-                  </PillTabs.Tab>
+                  </PillTabsTab>
                 ))}
-              </PillTabs.List>
-            </PillTabs.Root>
-            <PillTabs.Root value={statusFilter} onValueChange={v => setStatusFilter(v as StatusFilter)}>
-              <PillTabs.List>
+              </PillTabsList>
+            </TabsRoot>
+            <TabsRoot value={statusFilter} onValueChange={v => setStatusFilter(v as StatusFilter)}>
+              <PillTabsList>
                 {STATUS_TABS.map(tab => (
-                  <PillTabs.Tab key={tab.value} value={tab.value}>
+                  <PillTabsTab key={tab.value} value={tab.value}>
                     {tab.label}
-                  </PillTabs.Tab>
+                  </PillTabsTab>
                 ))}
-              </PillTabs.List>
-            </PillTabs.Root>
+              </PillTabsList>
+            </TabsRoot>
           </div>
 
           {error && (

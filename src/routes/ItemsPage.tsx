@@ -1,7 +1,7 @@
 import { ItemCard } from '@/components/ItemCard';
 import { SyncSetupDialog } from '@/components/SyncSetupDialog';
 import { Select } from '@/components/ui/Select';
-import { PillTabs } from '@/components/ui/Tabs';
+import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, itemTitle, type ItemStatus, type ItemType } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
@@ -330,15 +330,15 @@ function FilterTabs({
 }) {
   const tabs = tabsFor(sourceType);
   return (
-    <PillTabs.Root value={value} onValueChange={v => onChange(v as Filter)}>
-      <PillTabs.List>
+    <TabsRoot value={value} onValueChange={v => onChange(v as Filter)}>
+      <PillTabsList>
         {tabs.map(tab => (
-          <PillTabs.Tab key={tab.value} value={tab.value}>
+          <PillTabsTab key={tab.value} value={tab.value}>
             {tab.label} <span className='ml-1 text-gray-400'>({counts[tab.value]})</span>
-          </PillTabs.Tab>
+          </PillTabsTab>
         ))}
-      </PillTabs.List>
-    </PillTabs.Root>
+      </PillTabsList>
+    </TabsRoot>
   );
 }
 

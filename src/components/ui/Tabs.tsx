@@ -5,11 +5,19 @@ import type { ComponentProps } from 'react';
 type ListProps = Omit<ComponentProps<typeof Base.List>, 'className'> & { className?: string };
 type TabProps = Omit<ComponentProps<typeof Base.Tab>, 'className'> & { className?: string };
 
-function List({ className, ...props }: ListProps) {
+export function TabsRoot(props: ComponentProps<typeof Base.Root>) {
+  return <Base.Root {...props} />;
+}
+
+export function TabsPanel(props: ComponentProps<typeof Base.Panel>) {
+  return <Base.Panel {...props} />;
+}
+
+export function TabsList({ className, ...props }: ListProps) {
   return <Base.List className={cn('flex h-12 items-center gap-1 border-b bg-white px-4', className)} {...props} />;
 }
 
-function Tab({ className, ...props }: TabProps) {
+export function TabsTab({ className, ...props }: TabProps) {
   return (
     <Base.Tab
       className={cn(
@@ -23,12 +31,12 @@ function Tab({ className, ...props }: TabProps) {
   );
 }
 
-function PillList({ className, ...props }: ListProps) {
+export function PillTabsList({ className, ...props }: ListProps) {
   return <Base.List className={cn('inline-flex overflow-hidden rounded-md border bg-white', className)} {...props} />;
 }
 
 type PillTabProps = TabProps & { size?: 'sm' | 'md' };
-function PillTab({ className, size = 'md', ...props }: PillTabProps) {
+export function PillTabsTab({ className, size = 'md', ...props }: PillTabProps) {
   return (
     <Base.Tab
       className={cn(
@@ -41,17 +49,3 @@ function PillTab({ className, size = 'md', ...props }: PillTabProps) {
     />
   );
 }
-
-export const Tabs = {
-  Root: Base.Root,
-  List,
-  Tab,
-  Panel: Base.Panel,
-};
-
-export const PillTabs = {
-  Root: Base.Root,
-  List: PillList,
-  Tab: PillTab,
-  Panel: Base.Panel,
-};

@@ -1,5 +1,5 @@
 import { Markdown } from '@/components/panels/Markdown';
-import { PillTabs } from '@/components/ui/Tabs';
+import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, type Prompt } from '@/lib/api';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useSuspenseQuery } from '@tanstack/react-query';
@@ -27,16 +27,16 @@ export function PromptTemplateEditor({ prompt }: { prompt: Prompt }) {
     <div className='flex min-h-0 flex-1 flex-col bg-white'>
       <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
         <div className='flex min-w-0 items-center gap-3'>
-          <PillTabs.Root value={mode} onValueChange={v => setMode(v as PromptEditorMode)}>
-            <PillTabs.List>
-              <PillTabs.Tab value='preview' size='sm'>
+          <TabsRoot value={mode} onValueChange={v => setMode(v as PromptEditorMode)}>
+            <PillTabsList>
+              <PillTabsTab value='preview' size='sm'>
                 Preview
-              </PillTabs.Tab>
-              <PillTabs.Tab value='edit' size='sm'>
+              </PillTabsTab>
+              <PillTabsTab value='edit' size='sm'>
                 Edit
-              </PillTabs.Tab>
-            </PillTabs.List>
-          </PillTabs.Root>
+              </PillTabsTab>
+            </PillTabsList>
+          </TabsRoot>
           <span className='min-w-0 truncate text-gray-500'>
             <code className='font-mono text-gray-700'>{prompt.id}</code>
             {prompt.hint && <span className='ml-2'>· {prompt.hint}</span>}

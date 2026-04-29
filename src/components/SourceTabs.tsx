@@ -1,4 +1,4 @@
-import { Tabs } from '@/components/ui/Tabs';
+import { TabsList, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { List, Settings, Terminal, Workflow } from 'lucide-react';
 import { useMatch, useNavigate, useParams } from 'react-router';
 
@@ -9,25 +9,25 @@ export function SourceTabs() {
   const match = useMatch('/sources/:sourceId/:tab/*');
   const active = match?.params.tab ? `${base}/${match.params.tab}` : '';
   return (
-    <Tabs.Root value={active} onValueChange={value => navigate(value as string)}>
-      <Tabs.List className='-mb-px'>
-        <Tabs.Tab value={`${base}/items`}>
+    <TabsRoot value={active} onValueChange={value => navigate(value as string)}>
+      <TabsList className='-mb-px'>
+        <TabsTab value={`${base}/items`}>
           <List />
           Items
-        </Tabs.Tab>
-        <Tabs.Tab value={`${base}/sessions`}>
+        </TabsTab>
+        <TabsTab value={`${base}/sessions`}>
           <Terminal />
           Sessions
-        </Tabs.Tab>
-        <Tabs.Tab value={`${base}/workflows`}>
+        </TabsTab>
+        <TabsTab value={`${base}/workflows`}>
           <Workflow />
           Workflows
-        </Tabs.Tab>
-        <Tabs.Tab value={`${base}/settings`}>
+        </TabsTab>
+        <TabsTab value={`${base}/settings`}>
           <Settings />
           Settings
-        </Tabs.Tab>
-      </Tabs.List>
-    </Tabs.Root>
+        </TabsTab>
+      </TabsList>
+    </TabsRoot>
   );
 }

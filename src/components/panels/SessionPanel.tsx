@@ -2,7 +2,7 @@ import { DiffView } from '@/components/panels/DiffView';
 import { LogsView } from '@/components/panels/LogsView';
 import { Markdown } from '@/components/panels/Markdown';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
-import { PillTabs, Tabs } from '@/components/ui/Tabs';
+import { PillTabsList, PillTabsTab, TabsList, TabsPanel, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api, type Session } from '@/lib/api';
@@ -223,17 +223,17 @@ export function SessionPanel({
       </header>
       {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700'>{prError}</div>}
 
-      <Tabs.Root
+      <TabsRoot
         value={isJira && tab === 'diff' ? 'pr' : tab}
         onValueChange={v => setTab(v as SessionPanelTab)}
         className='flex min-h-0 flex-1 flex-col'
       >
-        <Tabs.List className='border-b'>
-          <Tabs.Tab value='logs'>Logs</Tabs.Tab>
-          {!isJira && <Tabs.Tab value='diff'>Diff</Tabs.Tab>}
-          <Tabs.Tab value='pr'>{isJira ? 'Ticket' : 'PR'}</Tabs.Tab>
-        </Tabs.List>
-        <Tabs.Panel value='logs' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+        <TabsList className='border-b'>
+          <TabsTab value='logs'>Logs</TabsTab>
+          {!isJira && <TabsTab value='diff'>Diff</TabsTab>}
+          <TabsTab value='pr'>{isJira ? 'Ticket' : 'PR'}</TabsTab>
+        </TabsList>
+        <TabsPanel value='logs' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
           <div ref={logRef} className='h-full overflow-auto bg-white p-4 font-mono text-xs text-gray-800'>
             {logs ? (
               <LogsView text={logs} />
@@ -241,17 +241,17 @@ export function SessionPanel({
               <span className='text-gray-500'>{active ? 'Waiting for output…' : '(no output)'}</span>
             )}
           </div>
-        </Tabs.Panel>
+        </TabsPanel>
         {!isJira && (
-          <Tabs.Panel value='diff' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+          <TabsPanel value='diff' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
             <div className='h-full overflow-auto bg-white p-4'>
               <Suspense fallback={<p className='text-sm text-gray-500'>Loading diff…</p>}>
                 <DiffView sessionId={sessionId} />
               </Suspense>
             </div>
-          </Tabs.Panel>
+          </TabsPanel>
         )}
-        <Tabs.Panel value='pr' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
+        <TabsPanel value='pr' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
           <div className='h-40 shrink-0 border-b'>
             <TitleEditor sessionId={sessionId} session={session} isJira={isJira} />
           </div>
@@ -264,8 +264,8 @@ export function SessionPanel({
               setMode={setDescriptionMode}
             />
           </div>
-        </Tabs.Panel>
-      </Tabs.Root>
+        </TabsPanel>
+      </TabsRoot>
       <FollowupComposer
         session={session}
         draft={followupDraft}
@@ -426,16 +426,16 @@ function DescriptionEditor({
   return (
     <div className='flex h-full flex-col bg-white'>
       <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
-        <PillTabs.Root value={mode} onValueChange={v => setMode(v as DescriptionMode)}>
-          <PillTabs.List>
-            <PillTabs.Tab value='preview' size='sm'>
+        <TabsRoot value={mode} onValueChange={v => setMode(v as DescriptionMode)}>
+          <PillTabsList>
+            <PillTabsTab value='preview' size='sm'>
               Preview
-            </PillTabs.Tab>
-            <PillTabs.Tab value='edit' size='sm'>
+            </PillTabsTab>
+            <PillTabsTab value='edit' size='sm'>
               Edit
-            </PillTabs.Tab>
-          </PillTabs.List>
-        </PillTabs.Root>
+            </PillTabsTab>
+          </PillTabsList>
+        </TabsRoot>
         <span className='shrink-0'>
           {status === 'error' && error ? (
             <span className='text-rose-600'>Save failed: {error.message}</span>

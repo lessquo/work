@@ -1,4 +1,4 @@
-import { PillTabs } from '@/components/ui/Tabs';
+import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
 import { useState } from 'react';
 
@@ -16,16 +16,16 @@ export function LogsView({ text }: { text: string }) {
   const stripped = stripAnsi(text);
   return (
     <div className='flex flex-col gap-1.5'>
-      <PillTabs.Root value={view} onValueChange={v => setView(v as View)} className='sticky top-0 z-10 self-start'>
-        <PillTabs.List>
-          <PillTabs.Tab value='pretty' size='sm'>
+      <TabsRoot value={view} onValueChange={v => setView(v as View)} className='sticky top-0 z-10 self-start'>
+        <PillTabsList>
+          <PillTabsTab value='pretty' size='sm'>
             Pretty
-          </PillTabs.Tab>
-          <PillTabs.Tab value='raw' size='sm'>
+          </PillTabsTab>
+          <PillTabsTab value='raw' size='sm'>
             Raw
-          </PillTabs.Tab>
-        </PillTabs.List>
-      </PillTabs.Root>
+          </PillTabsTab>
+        </PillTabsList>
+      </TabsRoot>
       {view === 'pretty' ? (
         parseBlocks(stripped).map((b, i) => <BlockRow key={i} block={b} />)
       ) : (

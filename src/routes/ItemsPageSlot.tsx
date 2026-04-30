@@ -1,5 +1,4 @@
 import { BatchPanel } from '@/components/panels/BatchPanel';
-import { CreateJiraIssuePanel } from '@/components/panels/CreateJiraIssuePanel';
 import { ItemPanel } from '@/components/panels/ItemPanel';
 import { NotebookPanel } from '@/components/panels/NotebookPanel';
 import { SessionPanel } from '@/components/panels/SessionPanel';
@@ -7,7 +6,7 @@ import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item } from '@/lib/api';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
+import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useNavigate, useParams } from 'react-router';
 
 export function ItemsPageSlot() {
@@ -31,8 +30,6 @@ export function ItemsPageSlot() {
     'descriptionMode',
     parseAsStringLiteral(['edit', 'preview'] as const).withDefault('preview'),
   );
-  const [jiraDraftOpen, setJiraDraftOpen] = useQueryState('jiraDraft', parseAsBoolean.withDefault(false));
-
   const sourceQuery = useSuspenseQuery({ queryKey: ['source', sourceId], queryFn: () => api.getSource(sourceId) });
   const source = sourceQuery.data;
 
@@ -41,9 +38,6 @@ export function ItemsPageSlot() {
     queryFn: () => api.listItems(sourceId, filter, sort),
   });
   const items = itemsQuery.data;
-
-  const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
-  const prompts = promptsQuery.data;
 
   const selection = new Set<number>(selectedIds);
   if (itemIdNum !== null) selection.add(itemIdNum);
@@ -161,19 +155,6 @@ export function ItemsPageSlot() {
     });
     if (!ok) return;
     deleteSessionsMutation.mutate(Array.from(selection));
-  }
-
-  if (jiraDraftOpen) {
-    return (
-      <CreateJiraIssuePanel
-        prompts={prompts}
-        onClose={() => setJiraDraftOpen(false)}
-        onSessionStarted={sessionId => {
-          setJiraDraftOpen(false);
-          setSessionId(sessionId);
-        }}
-      />
-    );
   }
 
   if (sessionId !== null) {

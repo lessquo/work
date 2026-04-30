@@ -245,7 +245,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                 ? [
                     {
                       key: 'orphans',
-                      head: <PlaceholderItemChip type={orphanSessions[0].type} />,
+                      head: <PlaceholderItemChip type={orphanSessions[0].source_type} />,
                       sessions: orphanSessions,
                     },
                   ]

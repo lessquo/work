@@ -8,14 +8,7 @@ import { api, itemTitle, type ItemStatus, type ItemType } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
 import { Search } from 'lucide-react';
-import {
-  parseAsArrayOf,
-  parseAsBoolean,
-  parseAsInteger,
-  parseAsString,
-  parseAsStringLiteral,
-  useQueryState,
-} from 'nuqs';
+import { parseAsArrayOf, parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router';
 
@@ -82,7 +75,6 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
   const [query, setQuery] = useQueryState('q', parseAsString.withDefault(''));
   const [selectedIds, setSelectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
   const [sessionId, setOpenSessionId] = useQueryState('session', parseAsInteger);
-  const [jiraDraftOpen, setJiraDraftOpen] = useQueryState('jiraDraft', parseAsBoolean.withDefault(false));
   const [syncDialogOpen, setSyncDialogOpen] = useState(false);
 
   function setSelection(newAnchor: number | null, newExtras: number[]) {
@@ -98,7 +90,6 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
     if (query) params.set('q', query);
     if (filtered.length > 0) params.set('selected', filtered.join(','));
     if (sessionId !== null) params.set('session', String(sessionId));
-    if (jiraDraftOpen) params.set('jiraDraft', 'true');
     const path = newAnchor !== null ? `/items/${newAnchor}` : `/items`;
     navigate({ pathname: path, search: params.toString() });
   }
@@ -249,18 +240,6 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
               <FilterTabs sourceType={source.type} value={filter} onChange={onFilterChange} counts={counts} />
             </div>
             <div className='flex items-center gap-2'>
-              {source.type === 'jira_issue' && (
-                <button
-                  onClick={() => {
-                    setOpenSessionId(null);
-                    clearSelection();
-                    setJiraDraftOpen(true);
-                  }}
-                  className='btn-md btn-primary'
-                >
-                  Create Jira issue
-                </button>
-              )}
               {source.type === 'notes' ? (
                 <button
                   onClick={() => createNotebookMutation.mutate()}

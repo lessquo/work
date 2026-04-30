@@ -3,6 +3,8 @@ import {
   db,
   getLocalNotesSourceId,
   listNotes,
+  sessionColumns,
+  sessionFrom,
   type Item,
   type Note,
   type Session,
@@ -112,14 +114,14 @@ notes.post('/notebooks/:id/sessions', async c => {
 
   const res = db
     .prepare(
-      `INSERT INTO sessions (item_id, source_id, type, user_context, target_repo, status, prompt)
-       VALUES (?, ?, 'notes', ?, ?, 'queued', ?)`,
+      `INSERT INTO sessions (item_id, source_id, user_context, target_repo, status, prompt)
+       VALUES (?, ?, ?, ?, 'queued', ?)`,
     )
     .run(id, item.source_id, userContext || null, targetRepo, prompt);
   const sessionId = Number(res.lastInsertRowid);
   createFlowForSession(sessionId, id);
   enqueueSession(sessionId);
-  const session = db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(sessionId) as Session;
+  const session = db.prepare(`SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.id = ?`).get(sessionId) as Session;
   return c.json(session, 201);
 });
 

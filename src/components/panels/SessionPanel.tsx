@@ -165,8 +165,8 @@ export function SessionPanel({
   }, [onClose]);
 
   const active = session?.status === 'queued' || session?.status === 'running';
-  const isJira = session?.type === 'jira_issue';
-  const isNotes = session?.type === 'notes';
+  const isJira = session?.source_type === 'jira_issue';
+  const isNotes = session?.source_type === 'notes';
   const canRun = isDraft && (isJira || isNotes || !!session?.target_repo);
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
@@ -380,8 +380,8 @@ function SetupTab({ session }: { session: Session | null }) {
   const sources = sourcesQuery.data ?? [];
 
   const isDraft = session?.status === 'draft';
-  const isJira = session?.type === 'jira_issue';
-  const isNotes = session?.type === 'notes';
+  const isJira = session?.source_type === 'jira_issue';
+  const isNotes = session?.source_type === 'notes';
   const allowEmptyRepo = isJira || isNotes;
 
   const updateMutation = useMutation({

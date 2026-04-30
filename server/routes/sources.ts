@@ -2,6 +2,8 @@ import {
   createFlowForItem,
   createFlowForSession,
   db,
+  sessionColumns,
+  sessionFrom,
   type Item,
   type ItemType,
   type Session,
@@ -16,7 +18,7 @@ import {
   syncSentrySource,
 } from '@server/integrations/sentry.js';
 import { getSyncLimit } from '@server/settings.js';
-import { DEFAULT_JIRA_PROMPT_ID, DEFAULT_PROMPT_ID, isPromptId } from '@server/worker/prompt.js';
+import { DEFAULT_PROMPT_ID, isPromptId } from '@server/worker/prompt.js';
 import { deleteSessionFolder, enqueueSession } from '@server/worker/runner.js';
 import { Hono } from 'hono';
 
@@ -284,44 +286,18 @@ sources.get('/:id/sessions', c => {
   if (!source) return c.json({ error: 'not found' }, 404);
   const rows = db
     .prepare(
-      `SELECT s.*,
+      `SELECT ${sessionColumns},
               i.external_id AS item_external_id,
               i.type        AS item_type,
               i.url         AS item_url,
               i.raw         AS item_raw
-         FROM sessions s
+         FROM ${sessionFrom}
          LEFT JOIN items i ON i.id = s.item_id
         WHERE s.source_id = ? OR i.source_id = ?
         ORDER BY s.id DESC`,
     )
     .all(id, id);
   return c.json(rows);
-});
-
-sources.post('/:id/jira-draft-sessions', async c => {
-  const id = Number(c.req.param('id'));
-  const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(id) as Source | undefined;
-  if (!source) return c.json({ error: 'not found' }, 404);
-  if (source.type !== 'jira_issue') return c.json({ error: 'source is not a Jira project' }, 400);
-
-  const body = await c.req
-    .json<{ context?: string; prompt?: string; targetRepo?: string }>()
-    .catch(() => ({}) as { context?: string; prompt?: string; targetRepo?: string });
-  const context = (body.context ?? '').trim();
-  if (!context) return c.json({ error: 'context is required' }, 400);
-  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_JIRA_PROMPT_ID;
-  const targetRepo = (body.targetRepo ?? '').trim() || null;
-
-  const res = db
-    .prepare(
-      `INSERT INTO sessions (source_id, type, user_context, target_repo, status, prompt) VALUES (?, 'jira_issue', ?, ?, 'queued', ?)`,
-    )
-    .run(id, context, targetRepo, prompt);
-  const sessionId = Number(res.lastInsertRowid);
-  createFlowForSession(sessionId);
-  enqueueSession(sessionId);
-  const session = db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(sessionId) as Session;
-  return c.json(session);
 });
 
 sources.post('/:id/delete-sessions', async c => {
@@ -333,7 +309,9 @@ sources.post('/:id/delete-sessions', async c => {
   const ids = Array.isArray(body.itemIds) ? body.itemIds.filter(n => Number.isInteger(n)) : [];
   if (ids.length === 0) return c.json({ deleted: 0, skipped_active: 0, no_run: 0, folder_errors: [] });
 
-  const latestStmt = db.prepare(`SELECT * FROM sessions WHERE item_id = ? ORDER BY id DESC LIMIT 1`);
+  const latestStmt = db.prepare(
+    `SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.item_id = ? ORDER BY s.id DESC LIMIT 1`,
+  );
   const deleteStmt = db.prepare(`DELETE FROM sessions WHERE id = ?`);
 
   let deleted = 0;

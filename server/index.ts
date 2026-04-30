@@ -21,7 +21,6 @@ const orphaned = db
   .prepare(
     `UPDATE sessions
         SET status = 'aborted',
-            finished_at = datetime('now'),
             error = COALESCE(error, 'interrupted by server restart')
       WHERE status IN ('queued','running')`,
   )

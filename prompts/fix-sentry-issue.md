@@ -1,7 +1,7 @@
 ---
 label: Fix Sentry Issue
 hint: Make the minimal code change to fix the bug.
-applies_to: sentry_issue
+applies_to: github_pr
 ---
 
 ## Issue

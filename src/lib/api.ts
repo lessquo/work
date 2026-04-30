@@ -33,13 +33,12 @@ export type FlowSessionChild = {
   item_id: number | null;
   source_id: number;
   flow_id: number | null;
-  type: ItemType;
+  source_type: ItemType;
   status: SessionStatus;
   prompt: string;
   pr_url: string | null;
   user_context: string | null;
   created_at: string;
-  finished_at: string | null;
   item_external_id: string | null;
   item_type: ItemType | null;
   item_url: string | null;
@@ -161,7 +160,6 @@ export function itemCreationTime(item: Pick<Item, 'type' | 'raw' | 'created_at'>
 export type SessionStatus = 'draft' | 'queued' | 'running' | 'succeeded' | 'failed' | 'aborted';
 export type PromptId = string;
 export const DEFAULT_PROMPT_ID: PromptId = 'fix-sentry-issue';
-export const DEFAULT_JIRA_PROMPT_ID: PromptId = 'create-jira-issue';
 export type Prompt = {
   id: PromptId;
   label: string;
@@ -176,16 +174,13 @@ export type Session = {
   item_id: number | null;
   source_id: number;
   flow_id: number | null;
-  type: ItemType;
+  source_type: ItemType;
   user_context: string | null;
   target_repo: string | null;
   status: SessionStatus;
-  started_at: string | null;
-  finished_at: string | null;
   branch: string | null;
   clone_path: string | null;
   log_path: string | null;
-  exit_code: number | null;
   error: string | null;
   pr_url: string | null;
   prompt: string;
@@ -337,11 +332,6 @@ export const api = {
     req<{ created: number; flowIds: number[] }>(`/sources/${sourceId}/flows-from-items`, {
       method: 'POST',
       body: JSON.stringify({ itemIds }),
-    }),
-  startJiraDraft: (sourceId: number, context: string, prompt: PromptId, targetRepo: string) =>
-    req<Session>(`/sources/${sourceId}/jira-draft-sessions`, {
-      method: 'POST',
-      body: JSON.stringify({ context, prompt, targetRepo }),
     }),
   getSessionDiff: async (sessionId: number): Promise<string> => {
     const res = await fetch(`/api/sessions/${sessionId}/diff`);

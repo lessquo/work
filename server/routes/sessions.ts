@@ -1,4 +1,4 @@
-import { createFlowForSession, db, type Item, type ItemType, type Session } from '@server/db.js';
+import { createFlowForSession, db, sessionColumns, sessionFrom, type Item, type Session } from '@server/db.js';
 import { externalIdForPr, parseGithubPrUrl, upsertGithubPr } from '@server/integrations/github.js';
 import { buildJiraIssueContext, createJiraIssue, updateJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
 import { abortSession, getSessionEmitter } from '@server/worker/events.js';
@@ -22,16 +22,20 @@ import { resolve } from 'node:path';
 export const sessions = new Hono();
 
 function getSession(sessionId: number): Session | undefined {
-  return db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(sessionId) as Session | undefined;
+  return db.prepare(`SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.id = ?`).get(sessionId) as
+    | Session
+    | undefined;
 }
 
 function activeSessionForItem(itemId: number): Session | undefined {
   return db
-    .prepare(`SELECT * FROM sessions WHERE item_id = ? AND status IN ('queued','running') ORDER BY id DESC LIMIT 1`)
+    .prepare(
+      `SELECT ${sessionColumns} FROM ${sessionFrom}
+       WHERE s.item_id = ? AND s.status IN ('queued','running')
+       ORDER BY s.id DESC LIMIT 1`,
+    )
     .get(itemId) as Session | undefined;
 }
-
-const SESSION_TYPES: ItemType[] = ['sentry_issue', 'jira_issue', 'github_pr', 'notes'];
 
 // POST /api/sessions/draft — create a draft session (no clone, no run)
 sessions.post('/sessions/draft', async c => {
@@ -40,7 +44,6 @@ sessions.post('/sessions/draft', async c => {
       itemId?: number;
       flowId?: number;
       sourceId?: number;
-      type?: ItemType;
       prompt?: string;
       targetRepo?: string;
     }>()
@@ -49,14 +52,12 @@ sessions.post('/sessions/draft', async c => {
   const originalItemId = typeof body.itemId === 'number' ? body.itemId : null;
   let sessionItemId: number | null = originalItemId;
   let sourceId: number | null = typeof body.sourceId === 'number' ? body.sourceId : null;
-  let type: ItemType = body.type && SESSION_TYPES.includes(body.type) ? body.type : 'github_pr';
   let userContext: string | null = null;
 
   if (originalItemId !== null) {
     const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(originalItemId) as Item | undefined;
     if (!item) return c.json({ error: 'item not found' }, 404);
     sourceId = item.source_id;
-    type = item.type;
     if (item.type === 'jira_issue') {
       userContext = buildJiraIssueContext(item);
       sessionItemId = null;
@@ -85,10 +86,10 @@ sessions.post('/sessions/draft', async c => {
 
   const res = db
     .prepare(
-      `INSERT INTO sessions (item_id, source_id, flow_id, type, user_context, target_repo, status, prompt)
-       VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)`,
+      `INSERT INTO sessions (item_id, source_id, flow_id, user_context, target_repo, status, prompt)
+       VALUES (?, ?, ?, ?, ?, 'draft', ?)`,
     )
-    .run(sessionItemId, sourceId, flowId, type, userContext, targetRepo, prompt);
+    .run(sessionItemId, sourceId, flowId, userContext, targetRepo, prompt);
   const sessionId = Number(res.lastInsertRowid);
 
   // If no explicit flow was supplied, auto-attach via the item's flow (matches runItems' behavior).
@@ -99,7 +100,7 @@ sessions.post('/sessions/draft', async c => {
   return c.json(getSession(sessionId));
 });
 
-// PATCH /api/sessions/:id — edit a draft session's config (prompt, targetRepo, type)
+// PATCH /api/sessions/:id — edit a draft session's config
 sessions.patch('/sessions/:id', async c => {
   const sessionId = Number(c.req.param('id'));
   const session = getSession(sessionId);
@@ -110,7 +111,6 @@ sessions.patch('/sessions/:id', async c => {
     .json<{
       prompt?: string;
       targetRepo?: string;
-      type?: ItemType;
       userContext?: string;
       sourceId?: number;
     }>()
@@ -126,11 +126,6 @@ sessions.patch('/sessions/:id', async c => {
   if (typeof body.targetRepo === 'string') {
     updates.push('target_repo = ?');
     args.push(body.targetRepo.trim() || null);
-  }
-  if (typeof body.type === 'string') {
-    if (!SESSION_TYPES.includes(body.type)) return c.json({ error: 'invalid session type' }, 400);
-    updates.push('type = ?');
-    args.push(body.type);
   }
   if (typeof body.userContext === 'string') {
     updates.push('user_context = ?');
@@ -154,12 +149,13 @@ sessions.post('/sessions/:id/queue', c => {
   const session = getSession(sessionId);
   if (!session) return c.json({ error: 'not found' }, 404);
   if (session.status !== 'draft') return c.json({ error: 'session is not a draft' }, 409);
-  // PR-style sessions need a target repo; jira drafts and notes sessions don't.
-  if (session.type !== 'jira_issue' && session.type !== 'notes' && !session.target_repo) {
-    return c.json({ error: 'targetRepo is required' }, 400);
-  }
-  if (session.type === 'jira_issue' && !session.user_context) {
+  // Jira-creating drafts need user_context; PR-style and notes sessions don't (notes
+  // pulls context from the bound notebook). PR sessions need a target repo to clone.
+  if (session.source_type === 'jira_issue' && !session.user_context) {
     return c.json({ error: 'user_context is required for jira sessions' }, 400);
+  }
+  if (session.source_type !== 'jira_issue' && session.source_type !== 'notes' && !session.target_repo) {
+    return c.json({ error: 'targetRepo is required' }, 400);
   }
 
   db.prepare(`UPDATE sessions SET status = 'queued' WHERE id = ?`).run(sessionId);
@@ -208,7 +204,9 @@ sessions.post('/items/:id/sessions', async c => {
 // GET /api/items/:id/sessions — list all sessions for an item
 sessions.get('/items/:id/sessions', c => {
   const itemId = Number(c.req.param('id'));
-  const rows = db.prepare(`SELECT * FROM sessions WHERE item_id = ? ORDER BY id DESC`).all(itemId) as Session[];
+  const rows = db
+    .prepare(`SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.item_id = ? ORDER BY s.id DESC`)
+    .all(itemId) as Session[];
   return c.json(rows);
 });
 
@@ -240,7 +238,7 @@ sessions.post('/sessions/:id/abort', c => {
   if (!session) return c.json({ error: 'not found' }, 404);
   const killed = abortSession(sessionId);
   if (session.status === 'queued') {
-    db.prepare(`UPDATE sessions SET status = 'aborted', finished_at = datetime('now') WHERE id = ?`).run(sessionId);
+    db.prepare(`UPDATE sessions SET status = 'aborted' WHERE id = ?`).run(sessionId);
   }
   return c.json({ ok: true, killed });
 });
@@ -314,11 +312,11 @@ sessions.get('/sessions/:id/diff', async c => {
 });
 
 function bodyFile(session: Session): MetaFile {
-  return session.type === 'jira_issue' ? 'JIRA_DESCRIPTION.md' : 'PR_BODY.md';
+  return session.source_type === 'jira_issue' ? 'JIRA_DESCRIPTION.md' : 'PR_BODY.md';
 }
 
 function titleFile(session: Session): MetaFile {
-  return session.type === 'jira_issue' ? 'JIRA_TITLE.txt' : 'COMMIT_MSG.txt';
+  return session.source_type === 'jira_issue' ? 'JIRA_TITLE.txt' : 'COMMIT_MSG.txt';
 }
 
 // GET /api/sessions/:id/pr-body — read description file (PR or Jira) from the clone
@@ -364,7 +362,7 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
   const sessionId = Number(c.req.param('id'));
   const session = getSession(sessionId);
   if (!session) return c.json({ error: 'not found' }, 404);
-  if (session.type !== 'jira_issue') return c.json({ error: 'session is not a Jira draft' }, 409);
+  if (session.source_type !== 'jira_issue') return c.json({ error: 'session is not a Jira draft' }, 409);
   if (session.pr_url) return c.json({ error: 'Jira issue already created' }, 409);
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no workspace path' }, 409);
 
@@ -407,7 +405,7 @@ sessions.post('/sessions/:id/update-jira-issue', async c => {
   const sessionId = Number(c.req.param('id'));
   const session = getSession(sessionId);
   if (!session) return c.json({ error: 'not found' }, 404);
-  if (session.type !== 'jira_issue') return c.json({ error: 'session is not a Jira draft' }, 409);
+  if (session.source_type !== 'jira_issue') return c.json({ error: 'session is not a Jira draft' }, 409);
   if (!session.pr_url) return c.json({ error: 'Jira issue not created yet' }, 409);
   if (!session.item_id) return c.json({ error: 'session not linked to Jira item' }, 409);
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no workspace path' }, 409);
@@ -528,9 +526,7 @@ sessions.post('/sessions/:id/followup', async c => {
   const message = (body.message ?? '').trim();
   if (!message) return c.json({ error: 'message required' }, 400);
 
-  db.prepare(
-    `UPDATE sessions SET status = 'queued', finished_at = NULL, exit_code = NULL, error = NULL WHERE id = ?`,
-  ).run(sessionId);
+  db.prepare(`UPDATE sessions SET status = 'queued', error = NULL WHERE id = ?`).run(sessionId);
   enqueueFollowup(sessionId, message);
   return c.json(getSession(sessionId));
 });

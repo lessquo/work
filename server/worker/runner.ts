@@ -1,5 +1,5 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import { db, listNotes, syncNotesForItem, type Item, type Session } from '@server/db.js';
+import { db, listNotes, sessionColumns, sessionFrom, syncNotesForItem, type Item, type Session } from '@server/db.js';
 import { getSecret } from '@server/secrets.js';
 import { getMaxParallel } from '@server/settings.js';
 import { emitSessionEnd, emitSessionLog, registerSessionAbort, unregisterSessionAbort } from '@server/worker/events.js';
@@ -167,9 +167,10 @@ async function runSDKTurn(opts: {
     }
 
     if (abortController.signal.aborted) {
-      db.prepare(
-        `UPDATE sessions SET status = 'aborted', finished_at = datetime('now'), claude_session_id = ? WHERE id = ?`,
-      ).run(claudeSessionId, sessionId);
+      db.prepare(`UPDATE sessions SET status = 'aborted', claude_session_id = ? WHERE id = ?`).run(
+        claudeSessionId,
+        sessionId,
+      );
       await log(`[${new Date().toISOString()}] aborted\n`);
       return;
     }
@@ -195,16 +196,13 @@ async function runSDKTurn(opts: {
 
     db.prepare(
       `UPDATE sessions
-         SET status = 'succeeded', finished_at = datetime('now'), exit_code = 0, claude_session_id = ?
+         SET status = 'succeeded', claude_session_id = ?
        WHERE id = ?`,
     ).run(claudeSessionId, sessionId);
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
     await log(`[${new Date().toISOString()}] error: ${errMsg}\n`);
-    db.prepare(`UPDATE sessions SET status = 'failed', finished_at = datetime('now'), error = ? WHERE id = ?`).run(
-      errMsg,
-      sessionId,
-    );
+    db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(errMsg, sessionId);
   } finally {
     unregisterSessionAbort(sessionId);
     emitSessionEnd(sessionId);
@@ -212,22 +210,24 @@ async function runSDKTurn(opts: {
 }
 
 async function runJob(sessionId: number): Promise<void> {
-  const session = db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(sessionId) as Session | undefined;
+  const session = db.prepare(`SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.id = ?`).get(sessionId) as
+    | Session
+    | undefined;
   if (!session) return;
   if (session.status === 'aborted') return;
 
-  if (session.type === 'jira_issue') {
+  if (session.source_type === 'jira_issue') {
     await runJiraDraftJob(sessionId, session);
     return;
   }
 
-  if (session.type === 'notes') {
+  if (session.source_type === 'notes') {
     await runNotesJob(sessionId, session);
     return;
   }
 
   if (!session.target_repo) {
-    db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
+    db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
       'target_repo is required for PR sessions',
       sessionId,
     );
@@ -242,10 +242,7 @@ async function runJob(sessionId: number): Promise<void> {
   if (session.item_id) {
     const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(session.item_id) as Item | undefined;
     if (!item) {
-      db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
-        'Item not found',
-        sessionId,
-      );
+      db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run('Item not found', sessionId);
       emitSessionEnd(sessionId);
       return;
     }
@@ -273,7 +270,7 @@ async function runJob(sessionId: number): Promise<void> {
     setRunning: () => {
       db.prepare(
         `UPDATE sessions
-           SET status = 'running', started_at = datetime('now'), clone_path = ?, log_path = ?, branch = ?
+           SET status = 'running', clone_path = ?, log_path = ?, branch = ?
          WHERE id = ?`,
       ).run(clonePath, logPath, branch, sessionId);
     },
@@ -298,10 +295,7 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
     | { external_id: string }
     | undefined;
   if (!source) {
-    db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
-      'Source not found',
-      sessionId,
-    );
+    db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run('Source not found', sessionId);
     emitSessionEnd(sessionId);
     return;
   }
@@ -322,7 +316,7 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
     setRunning: () => {
       db.prepare(
         `UPDATE sessions
-           SET status = 'running', started_at = datetime('now'), clone_path = ?, log_path = ?
+           SET status = 'running', clone_path = ?, log_path = ?
          WHERE id = ?`,
       ).run(workspace, logPath, sessionId);
     },
@@ -415,7 +409,7 @@ async function syncNotesWorkspace(itemId: number, workspace: string): Promise<nu
 
 async function runNotesJob(sessionId: number, session: Session): Promise<void> {
   if (!session.item_id) {
-    db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
+    db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
       'item_id is required for notes sessions',
       sessionId,
     );
@@ -441,7 +435,7 @@ async function runNotesJob(sessionId: number, session: Session): Promise<void> {
     setRunning: () => {
       db.prepare(
         `UPDATE sessions
-           SET status = 'running', started_at = datetime('now'), clone_path = ?, log_path = ?
+           SET status = 'running', clone_path = ?, log_path = ?
          WHERE id = ?`,
       ).run(workspace, logPath, sessionId);
     },
@@ -485,12 +479,14 @@ async function runNotesJob(sessionId: number, session: Session): Promise<void> {
 }
 
 async function runFollowupJob(sessionId: number, message: string): Promise<void> {
-  const session = db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(sessionId) as Session | undefined;
+  const session = db.prepare(`SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.id = ?`).get(sessionId) as
+    | Session
+    | undefined;
   if (!session) return;
   if (session.status === 'aborted') return;
 
   if (!session.clone_path || !existsSync(session.clone_path)) {
-    db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
+    db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
       'clone path missing — cannot resume',
       sessionId,
     );
@@ -498,7 +494,7 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     return;
   }
   if (!session.claude_session_id) {
-    db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
+    db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
       'no claude session to resume',
       sessionId,
     );
@@ -506,7 +502,7 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     return;
   }
 
-  const isNotes = session.type === 'notes' && session.item_id !== null;
+  const isNotes = session.source_type === 'notes' && session.item_id !== null;
   const notesItemId = isNotes ? session.item_id! : null;
   const workspace = session.clone_path;
 
@@ -518,9 +514,7 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     initialClaudeSessionId: session.claude_session_id,
     skipGit: isNotes,
     setRunning: () => {
-      db.prepare(
-        `UPDATE sessions SET status = 'running', finished_at = NULL, exit_code = NULL, error = NULL WHERE id = ?`,
-      ).run(sessionId);
+      db.prepare(`UPDATE sessions SET status = 'running', error = NULL WHERE id = ?`).run(sessionId);
     },
     preflight: async log => {
       await log(`\n[${new Date().toISOString()}] follow-up: ${message}\n`);

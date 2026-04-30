@@ -12,7 +12,7 @@ export function SessionCard({
   selected?: boolean;
   onOpen: (sessionId: number) => void;
 }) {
-  const isJira = session.type === 'jira_issue';
+  const isJira = session.source_type === 'jira_issue';
   const item =
     session.item_external_id && session.item_type
       ? {
@@ -38,7 +38,7 @@ export function SessionCard({
       <div className='flex items-start justify-between gap-4'>
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2'>
-            <TypeBadge type={session.type} />
+            <TypeBadge type={session.source_type} />
             <StatusBadge status={session.status} />
             {logo && <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />}
             <span className='truncate text-sm font-medium' title={title}>
@@ -88,7 +88,7 @@ function firstLine(text: string | null): string | null {
   return line ? line.trim().slice(0, 120) : null;
 }
 
-function TypeBadge({ type }: { type: SourceSession['type'] }) {
+function TypeBadge({ type }: { type: SourceSession['source_type'] }) {
   const map = {
     github_pr: 'border-sky-300 bg-sky-50 text-sky-700',
     jira_issue: 'border-violet-300 bg-violet-50 text-violet-700',

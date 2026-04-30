@@ -72,7 +72,7 @@ function SessionsContent({ sourceId }: { sourceId: number }) {
 
   const filtered = useMemo(() => {
     return sessions.filter(s => {
-      if (typeFilter !== 'all' && s.type !== typeFilter) return false;
+      if (typeFilter !== 'all' && s.source_type !== typeFilter) return false;
       if (statusFilter === 'active' && !isActive(s.status)) return false;
       if (statusFilter === 'finished' && isActive(s.status)) return false;
       return true;

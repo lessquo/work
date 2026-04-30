@@ -111,19 +111,19 @@ flows.get('/', c => {
              'item_id',      s.item_id,
              'source_id',    s.source_id,
              'flow_id',      s.flow_id,
-             'type',         s.type,
+             'source_type',  sr.type,
              'status',       s.status,
              'prompt',       s.prompt,
              'pr_url',       s.pr_url,
              'user_context', s.user_context,
              'created_at',   s.created_at,
-             'finished_at',  s.finished_at,
              'item_external_id', si.external_id,
              'item_type',        si.type,
              'item_url',         si.url,
              'item_raw',         si.raw
            ))
            FROM sessions s
+           JOIN sources sr ON sr.id = s.source_id
            LEFT JOIN items si ON si.id = s.item_id
            WHERE s.flow_id = f.id
          ), '[]') AS sessions

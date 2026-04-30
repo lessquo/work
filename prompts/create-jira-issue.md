@@ -29,7 +29,9 @@ You are drafting a new Jira ticket for project `{{project_key}}`. Read the user'
 
 ## User context
 
+```md
 {{user_context}}
+```
 
 ## Before you finish
 

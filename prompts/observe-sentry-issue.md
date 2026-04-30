@@ -1,7 +1,7 @@
 ---
 label: Observe Sentry Issue
 hint: Add logging/context — do not change behavior.
-applies_to: sentry_issue
+applies_to: github_pr
 ---
 
 ## Issue

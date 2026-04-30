@@ -11,7 +11,6 @@ export type PromptMeta = { label: string; hint: string; applies_to: PromptSource
 const PROMPT_SOURCE_TYPES: PromptSourceType[] = ['sentry_issue', 'jira_issue', 'github_pr', 'notes'];
 
 export const DEFAULT_PROMPT_ID: PromptId = 'fix-sentry-issue';
-export const DEFAULT_JIRA_PROMPT_ID: PromptId = 'create-jira-issue';
 
 const ID_REGEX = /^[a-z0-9][a-z0-9-]*$/;
 

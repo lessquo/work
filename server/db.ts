@@ -62,19 +62,14 @@ CREATE TABLE IF NOT EXISTS sessions (
   item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
   source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
-  type TEXT NOT NULL DEFAULT 'github_pr',
   user_context TEXT,
   target_repo TEXT,
   status TEXT NOT NULL,
-  started_at TEXT,
-  finished_at TEXT,
   branch TEXT,
   clone_path TEXT,
   log_path TEXT,
-  exit_code INTEGER,
   error TEXT,
   pr_url TEXT,
-  pr_body TEXT,
   prompt TEXT NOT NULL,
   claude_session_id TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -233,20 +228,23 @@ export type Session = {
   item_id: number | null;
   source_id: number;
   flow_id: number | null;
-  type: ItemType;
   user_context: string | null;
   target_repo: string | null;
   status: SessionStatus;
-  started_at: string | null;
-  finished_at: string | null;
   branch: string | null;
   clone_path: string | null;
   log_path: string | null;
-  exit_code: number | null;
   error: string | null;
   pr_url: string | null;
-  pr_body: string | null;
   prompt: string;
   claude_session_id: string | null;
   created_at: string;
+  // Joined from sources.type — sessions never read the column directly; reads always
+  // come through `selectSessionSql` so this is always populated.
+  source_type: ItemType;
 };
+
+// Reusable SELECT fragment for sessions. All session reads must use this so `source_type`
+// is consistently populated.
+export const sessionColumns = `s.*, sr.type AS source_type`;
+export const sessionFrom = `sessions s JOIN sources sr ON sr.id = s.source_id`;

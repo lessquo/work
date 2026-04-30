@@ -2,10 +2,6 @@
 
 This is a personal local only app. Keep clean code and prefer refactoring.
 
-## DB Migration
-
-- Always remove migration code after execution.
-
 ## Dependencies
 
 - `@base-ui/react`: Basic UI components.

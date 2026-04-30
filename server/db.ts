@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS sources (
   UNIQUE(type, external_id)
 );
 
-CREATE TABLE IF NOT EXISTS workflows (
+CREATE TABLE IF NOT EXISTS flows (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS workflows (
 CREATE TABLE IF NOT EXISTS items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-  workflow_id INTEGER REFERENCES workflows(id) ON DELETE SET NULL,
+  flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
   type TEXT NOT NULL CHECK (type IN ('github_pr','jira_issue','sentry_issue')),
   external_id TEXT NOT NULL,
   url TEXT NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
   source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
-  workflow_id INTEGER REFERENCES workflows(id) ON DELETE SET NULL,
+  flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
   type TEXT NOT NULL DEFAULT 'github_pr' CHECK (type IN ('github_pr','jira_issue','sentry_issue')),
   user_context TEXT,
   target_repo TEXT,
@@ -68,8 +68,8 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
 CREATE INDEX IF NOT EXISTS idx_sessions_item ON sessions(item_id);
-CREATE INDEX IF NOT EXISTS idx_items_workflow ON items(workflow_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_workflow ON sessions(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_items_flow ON items(flow_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_flow ON sessions(flow_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_source ON sessions(source_id);
 `);
 
@@ -95,38 +95,38 @@ export const upsertItems = db.transaction(
   },
 );
 
-const insertWorkflowStmt = db.prepare(`INSERT INTO workflows (name) VALUES (?)`);
-const setSessionWorkflowStmt = db.prepare(`UPDATE sessions SET workflow_id = ? WHERE id = ?`);
-const setItemWorkflowStmt = db.prepare(`UPDATE items SET workflow_id = ? WHERE id = ?`);
+const insertFlowStmt = db.prepare(`INSERT INTO flows (name) VALUES (?)`);
+const setSessionFlowStmt = db.prepare(`UPDATE sessions SET flow_id = ? WHERE id = ?`);
+const setItemFlowStmt = db.prepare(`UPDATE items SET flow_id = ? WHERE id = ?`);
 const getSessionItemIdStmt = db.prepare(`SELECT item_id FROM sessions WHERE id = ?`);
-const getItemWorkflowIdStmt = db.prepare(`SELECT workflow_id FROM items WHERE id = ?`);
+const getItemFlowIdStmt = db.prepare(`SELECT flow_id FROM items WHERE id = ?`);
 
-export const createWorkflowForSession = db.transaction(
+export const createFlowForSession = db.transaction(
   (sessionId: number, sourceItemId: number | null = null, name: string | null = null): number => {
     const itemId =
       sourceItemId ?? (getSessionItemIdStmt.get(sessionId) as { item_id: number | null } | undefined)?.item_id ?? null;
     if (itemId) {
-      const existing = getItemWorkflowIdStmt.get(itemId) as { workflow_id: number | null } | undefined;
-      if (existing?.workflow_id) {
-        setSessionWorkflowStmt.run(existing.workflow_id, sessionId);
-        return existing.workflow_id;
+      const existing = getItemFlowIdStmt.get(itemId) as { flow_id: number | null } | undefined;
+      if (existing?.flow_id) {
+        setSessionFlowStmt.run(existing.flow_id, sessionId);
+        return existing.flow_id;
       }
     }
-    const res = insertWorkflowStmt.run(name);
-    const workflowId = Number(res.lastInsertRowid);
-    setSessionWorkflowStmt.run(workflowId, sessionId);
+    const res = insertFlowStmt.run(name);
+    const flowId = Number(res.lastInsertRowid);
+    setSessionFlowStmt.run(flowId, sessionId);
     if (itemId) {
-      setItemWorkflowStmt.run(workflowId, itemId);
+      setItemFlowStmt.run(flowId, itemId);
     }
-    return workflowId;
+    return flowId;
   },
 );
 
-export const createWorkflowForItem = db.transaction((itemId: number, name: string | null = null): number => {
-  const res = insertWorkflowStmt.run(name);
-  const workflowId = Number(res.lastInsertRowid);
-  setItemWorkflowStmt.run(workflowId, itemId);
-  return workflowId;
+export const createFlowForItem = db.transaction((itemId: number, name: string | null = null): number => {
+  const res = insertFlowStmt.run(name);
+  const flowId = Number(res.lastInsertRowid);
+  setItemFlowStmt.run(flowId, itemId);
+  return flowId;
 });
 
 export type Source = {
@@ -139,7 +139,7 @@ export type Source = {
 export type Item = {
   id: number;
   source_id: number;
-  workflow_id: number | null;
+  flow_id: number | null;
   type: ItemType;
   external_id: string;
   url: string;
@@ -148,7 +148,7 @@ export type Item = {
   updated_at: string;
 };
 
-export type Workflow = {
+export type Flow = {
   id: number;
   name: string;
   created_at: string;
@@ -161,7 +161,7 @@ export type Session = {
   id: number;
   item_id: number | null;
   source_id: number | null;
-  workflow_id: number | null;
+  flow_id: number | null;
   type: ItemType;
   user_context: string | null;
   target_repo: string | null;

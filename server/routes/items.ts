@@ -15,22 +15,22 @@ items.get('/:id', c => {
   return c.json(row);
 });
 
-items.put('/:id/workflow', async c => {
+items.put('/:id/flow', async c => {
   const id = Number(c.req.param('id'));
   const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(id) as Item | undefined;
   if (!item) return c.json({ error: 'item not found' }, 404);
 
-  const body = await c.req.json<{ workflowId?: number | null }>().catch(() => ({}) as { workflowId?: number | null });
-  const workflowId = body.workflowId ?? null;
+  const body = await c.req.json<{ flowId?: number | null }>().catch(() => ({}) as { flowId?: number | null });
+  const flowId = body.flowId ?? null;
 
-  if (workflowId !== null) {
-    const workflow = db.prepare(`SELECT id FROM workflows WHERE id = ?`).get(workflowId);
-    if (!workflow) return c.json({ error: 'workflow not found' }, 404);
+  if (flowId !== null) {
+    const flow = db.prepare(`SELECT id FROM flows WHERE id = ?`).get(flowId);
+    if (!flow) return c.json({ error: 'flow not found' }, 404);
   }
 
   const tx = db.transaction(() => {
-    db.prepare(`UPDATE items SET workflow_id = ? WHERE id = ?`).run(workflowId, id);
-    db.prepare(`UPDATE sessions SET workflow_id = ? WHERE item_id = ?`).run(workflowId, id);
+    db.prepare(`UPDATE items SET flow_id = ? WHERE id = ?`).run(flowId, id);
+    db.prepare(`UPDATE sessions SET flow_id = ? WHERE item_id = ?`).run(flowId, id);
   });
   tx();
 

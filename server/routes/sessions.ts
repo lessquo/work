@@ -1,4 +1,4 @@
-import { createWorkflowForSession, db, type Item, type Session } from '@server/db.js';
+import { createFlowForSession, db, type Item, type Session } from '@server/db.js';
 import { externalIdForPr, parseGithubPrUrl, upsertGithubPr } from '@server/integrations/github.js';
 import { buildJiraIssueContext, createJiraIssue, updateJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
 import { abortSession, getSessionEmitter } from '@server/worker/events.js';
@@ -62,7 +62,7 @@ sessions.post('/items/:id/sessions', async c => {
     )
     .run(sessionItemId, item.source_id, userContext, targetRepo, prompt);
   const sessionId = Number(res.lastInsertRowid);
-  createWorkflowForSession(sessionId, itemId);
+  createFlowForSession(sessionId, itemId);
 
   const session = getSession(sessionId);
   enqueueSession(sessionId);
@@ -249,9 +249,9 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
     if (session.source_id) {
       try {
         await upsertJiraIssue(session.source_id, created.key);
-        if (session.workflow_id) {
-          db.prepare(`UPDATE items SET workflow_id = ? WHERE source_id = ? AND external_id = ?`).run(
-            session.workflow_id,
+        if (session.flow_id) {
+          db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND external_id = ?`).run(
+            session.flow_id,
             session.source_id,
             created.key,
           );
@@ -345,9 +345,9 @@ sessions.post('/sessions/:id/create-github-pr', async c => {
           if (ghSource) {
             await upsertGithubPr(ghSource.id, parsed.owner, parsed.repo, parsed.number);
             const prExternalId = externalIdForPr(parsed.owner, parsed.repo, parsed.number);
-            if (session.workflow_id) {
-              db.prepare(`UPDATE items SET workflow_id = ? WHERE source_id = ? AND external_id = ?`).run(
-                session.workflow_id,
+            if (session.flow_id) {
+              db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND external_id = ?`).run(
+                session.flow_id,
                 ghSource.id,
                 prExternalId,
               );

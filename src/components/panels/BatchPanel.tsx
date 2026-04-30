@@ -19,11 +19,11 @@ export function BatchPanel({
   onRun,
   onResolve,
   onDeleteSessions,
-  onCreateWorkflows,
+  onCreateFlows,
   running,
   resolving,
   deletingSessions,
-  creatingWorkflows,
+  creatingFlows,
 }: {
   filter: Filter;
   selectedItems: Item[];
@@ -35,11 +35,11 @@ export function BatchPanel({
   onRun: () => void;
   onResolve: () => void;
   onDeleteSessions: () => void;
-  onCreateWorkflows: () => void;
+  onCreateFlows: () => void;
   running: boolean;
   resolving: boolean;
   deletingSessions: boolean;
-  creatingWorkflows: boolean;
+  creatingFlows: boolean;
 }) {
   const toast = useToast();
   const count = selectedItems.length;
@@ -109,17 +109,17 @@ export function BatchPanel({
           <Tooltip
             content={
               count === 1
-                ? 'Create a workflow with this item as a child'
-                : `Create ${count} workflows, one per selected item`
+                ? 'Create a flow with this item as a child'
+                : `Create ${count} flows, one per selected item`
             }
           >
             <button
-              onClick={onCreateWorkflows}
-              disabled={creatingWorkflows || count === 0}
+              onClick={onCreateFlows}
+              disabled={creatingFlows || count === 0}
               className='btn-sm btn-secondary'
             >
               <Workflow />
-              {creatingWorkflows ? 'Creating…' : count > 1 ? `Create ${count} workflows` : 'Create workflow'}
+              {creatingFlows ? 'Creating…' : count > 1 ? `Create ${count} flows` : 'Create flow'}
             </button>
           </Tooltip>
           <Tooltip content='Delete the latest session for each selected issue (active sessions skipped)'>

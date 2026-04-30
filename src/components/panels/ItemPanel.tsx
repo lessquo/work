@@ -14,7 +14,7 @@ import { useNavigate, useParams } from 'react-router';
 export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const { sourceId, itemId: itemIdParam } = useParams();
   const itemId = itemIdProp ?? (itemIdParam ? Number(itemIdParam) : null);
-  const isWorkflowMode = itemIdProp !== undefined;
+  const isFlowMode = itemIdProp !== undefined;
   const qc = useQueryClient();
   const confirm = useConfirm();
   const toast = useToast();
@@ -28,14 +28,14 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const [targetRepo, setTargetRepo] = useState('');
 
   const sourceItemsQuery = useSuspenseQuery({
-    queryKey: isWorkflowMode ? ['items-noop'] : ['items', Number(sourceId), filter, sort],
+    queryKey: isFlowMode ? ['items-noop'] : ['items', Number(sourceId), filter, sort],
     queryFn: (): Promise<ItemWithSessions[]> =>
-      isWorkflowMode ? Promise.resolve([]) : api.listItems(Number(sourceId), filter, sort),
+      isFlowMode ? Promise.resolve([]) : api.listItems(Number(sourceId), filter, sort),
   });
-  const workflowItemQuery = useSuspenseQuery({
-    queryKey: isWorkflowMode && itemId !== null ? ['item', itemId] : ['item-noop'],
+  const flowItemQuery = useSuspenseQuery({
+    queryKey: isFlowMode && itemId !== null ? ['item', itemId] : ['item-noop'],
     queryFn: (): Promise<Item | null> =>
-      isWorkflowMode && itemId !== null ? api.getItem(itemId) : Promise.resolve(null),
+      isFlowMode && itemId !== null ? api.getItem(itemId) : Promise.resolve(null),
   });
   const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
   const prompts = promptsQuery.data;
@@ -43,13 +43,13 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
 
   const ids = new Set<number>(selectedIds);
   if (itemId !== null) ids.add(itemId);
-  const selectedItems: Item[] = isWorkflowMode
-    ? workflowItemQuery.data
-      ? [workflowItemQuery.data]
+  const selectedItems: Item[] = isFlowMode
+    ? flowItemQuery.data
+      ? [flowItemQuery.data]
       : []
     : sourceItemsQuery.data.filter(i => ids.has(i.id));
   const count = selectedItems.length;
-  const sid = isWorkflowMode ? (selectedItems[0]?.source_id ?? Number(sourceId)) : Number(sourceId);
+  const sid = isFlowMode ? (selectedItems[0]?.source_id ?? Number(sourceId)) : Number(sourceId);
   const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
   const promptLabel = selectedPrompt?.label ?? 'Run';
   const promptHint = selectedPrompt?.hint ?? '';
@@ -58,8 +58,8 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     setSelectedIds(null);
     qc.invalidateQueries({ queryKey: ['items', sid] });
     qc.invalidateQueries({ queryKey: ['itemCounts', sid] });
-    if (isWorkflowMode) {
-      qc.invalidateQueries({ queryKey: ['workflows'] });
+    if (isFlowMode) {
+      qc.invalidateQueries({ queryKey: ['flows'] });
       if (itemId !== null) qc.invalidateQueries({ queryKey: ['item', itemId] });
     }
   }
@@ -89,17 +89,17 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     },
   });
 
-  const createWorkflowsMutation = useMutation({
-    mutationFn: (targetIds: number[]) => api.createWorkflowsForItems(sid, targetIds),
+  const createFlowsMutation = useMutation({
+    mutationFn: (targetIds: number[]) => api.createFlowsForItems(sid, targetIds),
     onSuccess: res => {
       toast.add({
         title:
           res.created === 0
-            ? 'No workflows created.'
-            : `Created ${res.created} workflow${res.created === 1 ? '' : 's'}.`,
+            ? 'No flows created.'
+            : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
       });
       invalidateAfterMutation();
-      navigate(`/sources/${sid}/workflows`);
+      navigate(`/sources/${sid}/flows`);
     },
   });
 
@@ -119,7 +119,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const running = sessionMutation.isPending;
   const resolving = resolveItemsMutation.isPending;
   const deletingSessions = deleteSessionsMutation.isPending;
-  const creatingWorkflows = createWorkflowsMutation.isPending;
+  const creatingFlows = createFlowsMutation.isPending;
 
   async function copyLinksAsMarkdown() {
     const lines = selectedItems.map(item => {
@@ -222,17 +222,17 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
           <Tooltip
             content={
               count === 1
-                ? 'Create a workflow with this item as a child'
-                : `Create ${count} workflows, one per selected item`
+                ? 'Create a flow with this item as a child'
+                : `Create ${count} flows, one per selected item`
             }
           >
             <button
-              onClick={() => createWorkflowsMutation.mutate(selectedItems.map(i => i.id))}
-              disabled={creatingWorkflows || count === 0}
+              onClick={() => createFlowsMutation.mutate(selectedItems.map(i => i.id))}
+              disabled={creatingFlows || count === 0}
               className='btn-sm btn-secondary'
             >
               <Workflow />
-              {creatingWorkflows ? 'Creating…' : count > 1 ? `Create ${count} workflows` : 'Create workflow'}
+              {creatingFlows ? 'Creating…' : count > 1 ? `Create ${count} flows` : 'Create flow'}
             </button>
           </Tooltip>
           <Tooltip content='Delete the latest session for each selected issue (active sessions skipped)'>

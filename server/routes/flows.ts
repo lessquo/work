@@ -1,8 +1,8 @@
-import { db, type ItemType, type Workflow } from '@server/db.js';
+import { db, type Flow, type ItemType } from '@server/db.js';
 import { generateOneShotText } from '@server/worker/name.js';
 import { Hono } from 'hono';
 
-export const workflows = new Hono();
+export const flows = new Hono();
 
 function extractItemTitle(type: ItemType, raw: string, externalId: string): string {
   try {
@@ -28,30 +28,30 @@ function sanitizeName(s: string): string {
   );
 }
 
-workflows.post('/', c => {
-  const res = db.prepare(`INSERT INTO workflows (name) VALUES (NULL)`).run();
-  const workflow = db.prepare(`SELECT * FROM workflows WHERE id = ?`).get(res.lastInsertRowid) as Workflow;
-  return c.json(workflow);
+flows.post('/', c => {
+  const res = db.prepare(`INSERT INTO flows (name) VALUES (NULL)`).run();
+  const flow = db.prepare(`SELECT * FROM flows WHERE id = ?`).get(res.lastInsertRowid) as Flow;
+  return c.json(flow);
 });
 
-workflows.post('/:id/auto-name', async c => {
+flows.post('/:id/auto-name', async c => {
   const id = Number(c.req.param('id'));
-  const workflow = db.prepare(`SELECT * FROM workflows WHERE id = ?`).get(id) as Workflow | undefined;
-  if (!workflow) return c.json({ error: 'not found' }, 404);
+  const flow = db.prepare(`SELECT * FROM flows WHERE id = ?`).get(id) as Flow | undefined;
+  if (!flow) return c.json({ error: 'not found' }, 404);
 
   const items = db
-    .prepare(`SELECT type, raw, external_id FROM items WHERE workflow_id = ?`)
+    .prepare(`SELECT type, raw, external_id FROM items WHERE flow_id = ?`)
     .all(id) as Array<{ type: ItemType; raw: string; external_id: string }>;
   const sessions = db
-    .prepare(`SELECT prompt, status FROM sessions WHERE workflow_id = ? ORDER BY id ASC`)
+    .prepare(`SELECT prompt, status FROM sessions WHERE flow_id = ? ORDER BY id ASC`)
     .all(id) as Array<{ prompt: string; status: string }>;
 
   if (items.length === 0 && sessions.length === 0) {
-    return c.json({ error: 'workflow has no items or sessions' }, 400);
+    return c.json({ error: 'flow has no items or sessions' }, 400);
   }
 
   const lines: string[] = [];
-  lines.push('Generate a short name for the workflow described below.');
+  lines.push('Generate a short name for the flow described below.');
   lines.push('Constraints:');
   lines.push('- Max 40 characters.');
   lines.push('- Sentence case, plain text, no quotes, no trailing punctuation.');
@@ -70,30 +70,30 @@ workflows.post('/:id/auto-name', async c => {
   try {
     const name = sanitizeName(await generateOneShotText(lines.join('\n')));
     if (!name) return c.json({ error: 'empty name from claude' }, 500);
-    db.prepare(`UPDATE workflows SET name = ?, updated_at = datetime('now') WHERE id = ?`).run(name, id);
+    db.prepare(`UPDATE flows SET name = ?, updated_at = datetime('now') WHERE id = ?`).run(name, id);
     return c.json({ ok: true, name });
   } catch (e) {
     return c.json({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
 
-workflows.delete('/:id', c => {
+flows.delete('/:id', c => {
   const id = Number(c.req.param('id'));
-  const res = db.prepare(`DELETE FROM workflows WHERE id = ?`).run(id);
+  const res = db.prepare(`DELETE FROM flows WHERE id = ?`).run(id);
   if (res.changes === 0) return c.json({ error: 'not found' }, 404);
   return c.json({ ok: true });
 });
 
-workflows.get('/', c => {
+flows.get('/', c => {
   const rows = db
     .prepare(
       `SELECT
-         w.id, w.name, w.created_at, w.updated_at,
+         f.id, f.name, f.created_at, f.updated_at,
          COALESCE((
            SELECT json_group_array(json_object(
              'id',          i.id,
              'source_id',   i.source_id,
-             'workflow_id', i.workflow_id,
+             'flow_id',     i.flow_id,
              'type',        i.type,
              'external_id', i.external_id,
              'url',         i.url,
@@ -101,14 +101,14 @@ workflows.get('/', c => {
              'created_at',  i.created_at,
              'updated_at',  i.updated_at
            ))
-           FROM items i WHERE i.workflow_id = w.id
+           FROM items i WHERE i.flow_id = f.id
          ), '[]') AS items,
          COALESCE((
            SELECT json_group_array(json_object(
              'id',           s.id,
              'item_id',      s.item_id,
              'source_id',    s.source_id,
-             'workflow_id',  s.workflow_id,
+             'flow_id',      s.flow_id,
              'type',         s.type,
              'status',       s.status,
              'prompt',       s.prompt,
@@ -123,10 +123,10 @@ workflows.get('/', c => {
            ))
            FROM sessions s
            LEFT JOIN items si ON si.id = s.item_id
-           WHERE s.workflow_id = w.id
+           WHERE s.flow_id = f.id
          ), '[]') AS sessions
-       FROM workflows w
-       ORDER BY w.created_at DESC, w.id DESC`,
+       FROM flows f
+       ORDER BY f.created_at DESC, f.id DESC`,
     )
     .all() as Array<{ id: number; name: string | null; created_at: string; updated_at: string; items: string; sessions: string }>;
 

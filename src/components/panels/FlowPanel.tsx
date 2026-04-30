@@ -4,22 +4,22 @@ import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect } from 'react';
 import { useParams } from 'react-router';
 
-export function WorkflowPanel() {
-  const { workflowId } = useParams();
-  const wid = workflowId ? Number(workflowId) : null;
+export function FlowPanel() {
+  const { flowId } = useParams();
+  const wid = flowId ? Number(flowId) : null;
   const [, setOpenItemId] = useQueryState('item', parseAsInteger);
   const [, setOpenSessionId] = useQueryState('session', parseAsInteger);
 
-  const workflowsQuery = useSuspenseQuery({
-    queryKey: ['workflows'],
-    queryFn: api.listWorkflows,
+  const flowsQuery = useSuspenseQuery({
+    queryKey: ['flows'],
+    queryFn: api.listFlows,
   });
-  const workflow = wid !== null ? workflowsQuery.data.find(w => w.id === wid) : undefined;
-  const latestSession = workflow?.sessions.reduce<typeof workflow.sessions[number] | null>(
+  const flow = wid !== null ? flowsQuery.data.find(w => w.id === wid) : undefined;
+  const latestSession = flow?.sessions.reduce<typeof flow.sessions[number] | null>(
     (acc, s) => (acc === null || s.created_at > acc.created_at ? s : acc),
     null,
   );
-  const latestItem = workflow?.items.reduce<typeof workflow.items[number] | null>(
+  const latestItem = flow?.items.reduce<typeof flow.items[number] | null>(
     (acc, it) => (acc === null || itemCreationTime(it) > itemCreationTime(acc) ? it : acc),
     null,
   );

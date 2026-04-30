@@ -12,12 +12,12 @@ import { useMemo, useState } from 'react';
 export function AttachItemDialog({
   open,
   onOpenChange,
-  workflowId,
+  flowId,
   sourceId,
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
-  workflowId: number;
+  flowId: number;
   sourceId: number;
 }) {
   return (
@@ -25,7 +25,7 @@ export function AttachItemDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className='fixed inset-0 bg-black/30' />
         <Dialog.Popup className='fixed top-1/2 left-1/2 flex h-[80vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border bg-white shadow-xl outline-none'>
-          {open && <Body workflowId={workflowId} sourceId={sourceId} onClose={() => onOpenChange(false)} />}
+          {open && <Body flowId={flowId} sourceId={sourceId} onClose={() => onOpenChange(false)} />}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
@@ -33,11 +33,11 @@ export function AttachItemDialog({
 }
 
 function Body({
-  workflowId,
+  flowId,
   sourceId,
   onClose,
 }: {
-  workflowId: number;
+  flowId: number;
   sourceId: number;
   onClose: () => void;
 }) {
@@ -55,7 +55,7 @@ function Body({
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
-  const candidates = useMemo(() => allItems.filter(it => it.workflow_id !== workflowId), [allItems, workflowId]);
+  const candidates = useMemo(() => allItems.filter(it => it.flow_id !== flowId), [allItems, flowId]);
 
   const fuse = useMemo(
     () =>
@@ -77,12 +77,12 @@ function Body({
   }, [candidates, fuse, query]);
 
   const attachMutation = useMutation({
-    mutationFn: (itemId: number) => api.setItemWorkflow(itemId, workflowId),
+    mutationFn: (itemId: number) => api.setItemFlow(itemId, flowId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['workflows'] });
+      qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
       qc.invalidateQueries({ queryKey: ['items', sourceId] });
-      toast.add({ title: 'Item attached to workflow', type: 'success' });
+      toast.add({ title: 'Item attached to flow', type: 'success' });
       onClose();
     },
     onError: e => {
@@ -98,7 +98,7 @@ function Body({
   return (
     <>
       <div className='flex items-center justify-between border-b px-4 py-3'>
-        <Dialog.Title className='text-base font-semibold'>Attach item to workflow</Dialog.Title>
+        <Dialog.Title className='text-base font-semibold'>Attach item to flow</Dialog.Title>
         <button onClick={onClose} className='btn-md btn-ghost' aria-label='close'>
           <X />
         </button>
@@ -133,9 +133,9 @@ function Body({
         )}
       </ul>
 
-      {selectedId !== null && allItems.find(i => i.id === selectedId)?.workflow_id != null && (
+      {selectedId !== null && allItems.find(i => i.id === selectedId)?.flow_id != null && (
         <div className='border-t bg-amber-50 px-4 py-2 text-[11px] text-amber-800'>
-          This item is currently attached to another workflow. Attaching will move it (and its sessions) here.
+          This item is currently attached to another flow. Attaching will move it (and its sessions) here.
         </div>
       )}
 
@@ -186,11 +186,11 @@ function ItemRow({
             <span className='truncate'>{item.external_id}</span>
             <span>·</span>
             <span className='shrink-0'>{sourceLabel}</span>
-            {item.workflow_id != null && (
+            {item.flow_id != null && (
               <>
                 <span>·</span>
                 <span className='shrink-0 rounded bg-amber-100 px-1 text-[10px] text-amber-800'>
-                  in workflow #{item.workflow_id}
+                  in flow #{item.flow_id}
                 </span>
               </>
             )}

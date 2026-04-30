@@ -1,6 +1,6 @@
 import {
-  createWorkflowForItem,
-  createWorkflowForSession,
+  createFlowForItem,
+  createFlowForSession,
   db,
   type Item,
   type ItemType,
@@ -241,7 +241,7 @@ sources.post('/:id/session-items', async c => {
     const userContext: string | null = isJira ? buildJiraIssueContext(it) : null;
     const res = insert.run(sessionItemId, id, userContext, targetRepo, prompt);
     const sessionId = Number(res.lastInsertRowid);
-    createWorkflowForSession(sessionId, it.id);
+    createFlowForSession(sessionId, it.id);
     enqueueSession(sessionId);
     enqueued++;
   }
@@ -249,25 +249,25 @@ sources.post('/:id/session-items', async c => {
   return c.json({ enqueued, skipped });
 });
 
-sources.post('/:id/workflows-from-items', async c => {
+sources.post('/:id/flows-from-items', async c => {
   const id = Number(c.req.param('id'));
   const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(id) as Source | undefined;
   if (!source) return c.json({ error: 'not found' }, 404);
 
   const body = await c.req.json<{ itemIds?: number[] }>().catch(() => ({}) as { itemIds?: number[] });
   const ids = Array.isArray(body.itemIds) ? body.itemIds.filter(n => Number.isInteger(n)) : [];
-  if (ids.length === 0) return c.json({ created: 0, workflowIds: [] });
+  if (ids.length === 0) return c.json({ created: 0, flowIds: [] });
 
   const placeholders = ids.map(() => '?').join(',');
   const items = db
     .prepare(`SELECT id FROM items WHERE source_id = ? AND id IN (${placeholders})`)
     .all(id, ...ids) as Array<{ id: number }>;
 
-  const workflowIds: number[] = [];
+  const flowIds: number[] = [];
   for (const it of items) {
-    workflowIds.push(createWorkflowForItem(it.id));
+    flowIds.push(createFlowForItem(it.id));
   }
-  return c.json({ created: workflowIds.length, workflowIds });
+  return c.json({ created: flowIds.length, flowIds });
 });
 
 sources.get('/:id/sessions', c => {
@@ -310,7 +310,7 @@ sources.post('/:id/jira-draft-sessions', async c => {
     )
     .run(id, context, targetRepo, prompt);
   const sessionId = Number(res.lastInsertRowid);
-  createWorkflowForSession(sessionId);
+  createFlowForSession(sessionId);
   enqueueSession(sessionId);
   const session = db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(sessionId) as Session;
   return c.json(session);
@@ -357,12 +357,12 @@ sources.post('/:id/delete-sessions', async c => {
 
 async function resolveItemUpstream(source: Source, item: Item, assignTo: string | null): Promise<boolean> {
   if (source.type === 'sentry_issue') {
-    const prUrls = item.workflow_id
+    const prUrls = item.flow_id
       ? (db
           .prepare(
-            `SELECT url FROM items WHERE workflow_id = ? AND type = 'github_pr' AND id != ?`,
+            `SELECT url FROM items WHERE flow_id = ? AND type = 'github_pr' AND id != ?`,
           )
-          .all(item.workflow_id, item.id) as Array<{ url: string }>)
+          .all(item.flow_id, item.id) as Array<{ url: string }>)
       : [];
     if (prUrls.length > 0) {
       const text =

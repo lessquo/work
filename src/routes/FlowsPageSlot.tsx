@@ -1,11 +1,11 @@
+import { FlowPanel } from '@/components/panels/FlowPanel';
 import { ItemPanel } from '@/components/panels/ItemPanel';
 import { SessionPanel } from '@/components/panels/SessionPanel';
-import { WorkflowPanel } from '@/components/panels/WorkflowPanel';
 import { parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useParams } from 'react-router';
 
-export function WorkflowsPageSlot() {
-  const { workflowId } = useParams();
+export function FlowsPageSlot() {
+  const { flowId } = useParams();
   const [itemId] = useQueryState('item', parseAsInteger);
   const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
   const [sessionTab, setSessionTab] = useQueryState(
@@ -35,7 +35,7 @@ export function WorkflowsPageSlot() {
     );
   }
 
-  if (workflowId) return <WorkflowPanel />;
+  if (flowId) return <FlowPanel />;
 
   return null;
 }

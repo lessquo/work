@@ -6,11 +6,11 @@ import {
   api,
   itemCreationTime,
   itemTitle,
+  type FlowSessionChild,
+  type FlowWithChildren,
   type Item,
   type ItemType,
   type SessionStatus,
-  type WorkflowSessionChild,
-  type WorkflowWithChildren,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
@@ -20,13 +20,13 @@ import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
-type ItemColumn = { item: Item; sessions: WorkflowSessionChild[] };
+type ItemColumn = { item: Item; sessions: FlowSessionChild[] };
 
-export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
-  const { sourceId, workflowId } = useParams();
+export function FlowCard({ flow }: { flow: FlowWithChildren }) {
+  const { sourceId, flowId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const wid = workflow.id;
+  const wid = flow.id;
   const [openItemId] = useQueryState('item', parseAsInteger);
   const [openSessionId] = useQueryState('session', parseAsInteger);
   const [attachOpen, setAttachOpen] = useState(false);
@@ -35,19 +35,19 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
   const qc = useQueryClient();
 
   const deleteMutation = useMutation({
-    mutationFn: () => api.deleteWorkflow(wid),
+    mutationFn: () => api.deleteFlow(wid),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['workflows'] });
+      qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
       if (sourceId) qc.invalidateQueries({ queryKey: ['items', Number(sourceId)] });
-      if (workflowId && Number(workflowId) === wid) {
-        navigate({ pathname: `/sources/${sourceId}/workflows`, search: location.search });
+      if (flowId && Number(flowId) === wid) {
+        navigate({ pathname: `/sources/${sourceId}/flows`, search: location.search });
       }
-      toast.add({ title: 'Workflow deleted', type: 'success' });
+      toast.add({ title: 'Flow deleted', type: 'success' });
     },
     onError: e => {
       toast.add({
-        title: 'Failed to delete workflow',
+        title: 'Failed to delete flow',
         description: e instanceof Error ? e.message : String(e),
         type: 'error',
       });
@@ -56,8 +56,8 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
 
   async function handleDelete() {
     const ok = await confirm({
-      title: 'Delete workflow?',
-      description: `Delete "${workflow.name ?? `Workflow #${workflow.id}`}"? Attached items and sessions will be detached.`,
+      title: 'Delete flow?',
+      description: `Delete "${flow.name ?? `Flow #${flow.id}`}"? Attached items and sessions will be detached.`,
       confirmText: 'Delete',
       destructive: true,
     });
@@ -66,13 +66,13 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
   }
 
   const autoNameMutation = useMutation({
-    mutationFn: () => api.autoNameWorkflow(wid),
+    mutationFn: () => api.autoNameFlow(wid),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['workflows'] });
+      qc.invalidateQueries({ queryKey: ['flows'] });
     },
     onError: e => {
       toast.add({
-        title: 'Failed to auto-name workflow',
+        title: 'Failed to auto-name flow',
         description: e instanceof Error ? e.message : String(e),
         type: 'error',
       });
@@ -80,21 +80,21 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
   });
 
   const autoNamedRef = useRef(false);
-  const hasContext = workflow.items.length > 0 || workflow.sessions.length > 0;
+  const hasContext = flow.items.length > 0 || flow.sessions.length > 0;
   useEffect(() => {
-    if (workflow.name == null && hasContext && !autoNamedRef.current && !autoNameMutation.isPending) {
+    if (flow.name == null && hasContext && !autoNamedRef.current && !autoNameMutation.isPending) {
       autoNamedRef.current = true;
       autoNameMutation.mutate();
     }
-  }, [workflow.name, hasContext, autoNameMutation]);
+  }, [flow.name, hasContext, autoNameMutation]);
 
   const detachMutation = useMutation({
-    mutationFn: (itemId: number) => api.setItemWorkflow(itemId, null),
+    mutationFn: (itemId: number) => api.setItemFlow(itemId, null),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['workflows'] });
+      qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
       if (sourceId) qc.invalidateQueries({ queryKey: ['items', Number(sourceId)] });
-      toast.add({ title: 'Item detached from workflow', type: 'success' });
+      toast.add({ title: 'Item detached from flow', type: 'success' });
     },
     onError: e => {
       toast.add({
@@ -108,7 +108,7 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
   async function handleDetach(item: Item) {
     const ok = await confirm({
       title: 'Detach item?',
-      description: `Remove "${itemTitle(item)}" from this workflow?`,
+      description: `Remove "${itemTitle(item)}" from this flow?`,
       confirmText: 'Detach',
       destructive: true,
     });
@@ -126,14 +126,14 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
       params.delete('item');
     }
     const search = params.toString();
-    return `/sources/${sourceId}/workflows/${wid}${search ? `?${search}` : ''}`;
+    return `/sources/${sourceId}/flows/${wid}${search ? `?${search}` : ''}`;
   }
 
   const { columns, orphanSessions } = useMemo(() => {
-    const itemIds = new Set(workflow.items.map(i => i.id));
-    const sessionsByItem = new Map<number, WorkflowSessionChild[]>();
-    const orphans: WorkflowSessionChild[] = [];
-    for (const s of workflow.sessions) {
+    const itemIds = new Set(flow.items.map(i => i.id));
+    const sessionsByItem = new Map<number, FlowSessionChild[]>();
+    const orphans: FlowSessionChild[] = [];
+    for (const s of flow.sessions) {
       if (s.item_id != null && itemIds.has(s.item_id)) {
         const list = sessionsByItem.get(s.item_id) ?? [];
         list.push(s);
@@ -146,23 +146,23 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
       list.sort((a, b) => a.created_at.localeCompare(b.created_at));
     }
     orphans.sort((a, b) => a.created_at.localeCompare(b.created_at));
-    const cols: ItemColumn[] = [...workflow.items]
+    const cols: ItemColumn[] = [...flow.items]
       .sort((a, b) => itemCreationTime(a).localeCompare(itemCreationTime(b)))
       .map(item => ({ item, sessions: sessionsByItem.get(item.id) ?? [] }));
     return { columns: cols, orphanSessions: orphans };
-  }, [workflow.items, workflow.sessions]);
+  }, [flow.items, flow.sessions]);
 
-  const title = workflow.name ?? '';
+  const title = flow.name ?? '';
 
   return (
     <li className='rounded-lg border bg-white p-3'>
       <div className='mb-2 flex items-center justify-between gap-2'>
         <div className='flex min-w-0 items-baseline gap-2'>
           <h2 className='flex items-baseline gap-2 text-sm' title={title}>
-            <span className='truncate font-light text-gray-500'>{workflow.id}</span>
-            <span className='font-medium'>{workflow.name}</span>
+            <span className='truncate font-light text-gray-500'>{flow.id}</span>
+            <span className='font-medium'>{flow.name}</span>
           </h2>
-          <span className='shrink-0 text-[11px] text-gray-500'>{timeAgo(workflow.created_at)}</span>
+          <span className='shrink-0 text-[11px] text-gray-500'>{timeAgo(flow.created_at)}</span>
         </div>
         <div className='flex shrink-0 items-center gap-2'>
           <button
@@ -180,7 +180,7 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
             disabled={!hasContext || autoNameMutation.isPending}
             className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
             title='Auto-rename via Claude'
-            aria-label='Auto-rename workflow'
+            aria-label='Auto-rename flow'
           >
             <Sparkles />
           </button>
@@ -188,8 +188,8 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
             type='button'
             onClick={handleDelete}
             className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
-            title='Delete workflow'
-            aria-label='Delete workflow'
+            title='Delete flow'
+            aria-label='Delete flow'
           >
             <Trash2 />
           </button>
@@ -251,7 +251,7 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
         </div>
       )}
       {sourceId && (
-        <AttachItemDialog open={attachOpen} onOpenChange={setAttachOpen} workflowId={wid} sourceId={Number(sourceId)} />
+        <AttachItemDialog open={attachOpen} onOpenChange={setAttachOpen} flowId={wid} sourceId={Number(sourceId)} />
       )}
     </li>
   );
@@ -294,8 +294,8 @@ function ItemChip({
       </Link>
       <button
         type='button'
-        aria-label='Detach item from workflow'
-        title='Detach from workflow'
+        aria-label='Detach item from flow'
+        title='Detach from flow'
         onClick={e => {
           e.preventDefault();
           e.stopPropagation();
@@ -330,7 +330,7 @@ function SessionChip({
   to,
   selected,
 }: {
-  session: WorkflowSessionChild;
+  session: FlowSessionChild;
   to: string;
   selected?: boolean;
 }) {

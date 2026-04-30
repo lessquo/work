@@ -1,13 +1,13 @@
+import { FlowCard } from '@/components/FlowCard';
 import { CreateJiraIssuePanel } from '@/components/panels/CreateJiraIssuePanel';
-import { WorkflowCard } from '@/components/WorkflowCard';
 import { api } from '@/lib/api';
 import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router';
 
-export function WorkflowsPage() {
-  const { sourceId, workflowId } = useParams();
+export function FlowsPage() {
+  const { sourceId, flowId } = useParams();
   const id = Number(sourceId);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -24,46 +24,43 @@ export function WorkflowsPage() {
   const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
   const prompts = promptsQuery.data;
 
-  const workflowsQuery = useQuery({
-    queryKey: ['workflows'],
-    queryFn: api.listWorkflows,
+  const flowsQuery = useQuery({
+    queryKey: ['flows'],
+    queryFn: api.listFlows,
     refetchInterval: 5000,
   });
-  const workflows = useMemo(() => workflowsQuery.data ?? [], [workflowsQuery.data]);
-  const error = workflowsQuery.error instanceof Error ? workflowsQuery.error.message : null;
+  const flows = useMemo(() => flowsQuery.data ?? [], [flowsQuery.data]);
+  const error = flowsQuery.error instanceof Error ? flowsQuery.error.message : null;
 
   useEffect(() => {
-    if (workflows.length === 0) return;
-    if (workflowId) return;
+    if (flows.length === 0) return;
+    if (flowId) return;
     const params = new URLSearchParams(window.location.search);
-    navigate(
-      { pathname: `/sources/${sourceId}/workflows/${workflows[0].id}`, search: params.toString() },
-      { replace: true },
-    );
-  }, [workflows, workflowId, sourceId, navigate]);
+    navigate({ pathname: `/sources/${sourceId}/flows/${flows[0].id}`, search: params.toString() }, { replace: true });
+  }, [flows, flowId, sourceId, navigate]);
 
   return (
     <>
-      <title>{`${source.external_id} · Workflows`}</title>
+      <title>Flows · Work</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex items-center justify-between'>
-            <h1 className='text-lg font-semibold'>Workflows</h1>
+            <h1 className='text-lg font-semibold'>Flows</h1>
             <div className='flex items-center gap-2'>
               <button
                 onClick={async () => {
-                  const workflow = await api.createWorkflow();
-                  await queryClient.invalidateQueries({ queryKey: ['workflows'] });
+                  const flow = await api.createFlow();
+                  await queryClient.invalidateQueries({ queryKey: ['flows'] });
                   const params = new URLSearchParams(window.location.search);
                   navigate({
-                    pathname: `/sources/${sourceId}/workflows/${workflow.id}`,
+                    pathname: `/sources/${sourceId}/flows/${flow.id}`,
                     search: params.toString(),
                   });
                 }}
                 className='btn-md btn-secondary'
               >
-                New workflow
+                New flow
               </button>
               {source.type === 'jira_issue' && (
                 <button
@@ -84,14 +81,14 @@ export function WorkflowsPage() {
             <div className='mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700'>{error}</div>
           )}
 
-          {workflowsQuery.isLoading ? (
+          {flowsQuery.isLoading ? (
             <p className='text-gray-500'>Loading…</p>
-          ) : workflows.length === 0 ? (
-            <p className='text-gray-500'>No workflows yet.</p>
+          ) : flows.length === 0 ? (
+            <p className='text-gray-500'>No flows yet.</p>
           ) : (
             <ul className='flex flex-col gap-2'>
-              {workflows.map(workflow => (
-                <WorkflowCard key={workflow.id} workflow={workflow} />
+              {flows.map(flow => (
+                <FlowCard key={flow.id} flow={flow} />
               ))}
             </ul>
           )}
@@ -110,7 +107,7 @@ export function WorkflowsPage() {
             />
           </div>
         ) : (
-          workflowId && (
+          flowId && (
             <div className='h-full min-w-0 flex-1 overflow-y-scroll'>
               <Outlet />
             </div>

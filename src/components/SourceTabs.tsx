@@ -19,9 +19,9 @@ export function SourceTabs() {
           <Terminal />
           Sessions
         </TabsTab>
-        <TabsTab value={`${base}/workflows`}>
+        <TabsTab value={`${base}/flows`}>
           <Workflow />
-          Workflows
+          Flows
         </TabsTab>
         <TabsTab value={`${base}/settings`}>
           <Settings />

@@ -91,19 +91,19 @@ export function ItemsPageSlot() {
     onError: onMutationError,
   });
 
-  const createWorkflowsMutation = useMutation({
-    mutationFn: (ids: number[]) => api.createWorkflowsForItems(id, ids),
+  const createFlowsMutation = useMutation({
+    mutationFn: (ids: number[]) => api.createFlowsForItems(id, ids),
     onSuccess: res => {
       toast.add({
         title:
           res.created === 0
-            ? 'No workflows created.'
-            : `Created ${res.created} workflow${res.created === 1 ? '' : 's'}.`,
+            ? 'No flows created.'
+            : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
       });
       clearSelection();
-      qc.invalidateQueries({ queryKey: ['workflows'] });
+      qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['items', id] });
-      navigate(`/sources/${sourceId}/workflows`);
+      navigate(`/sources/${sourceId}/flows`);
     },
     onError: onMutationError,
   });
@@ -127,7 +127,7 @@ export function ItemsPageSlot() {
   const running = sessionMutation.isPending;
   const resolving = resolveItemsMutation.isPending;
   const deletingSessions = deleteSessionsMutation.isPending;
-  const creatingWorkflows = createWorkflowsMutation.isPending;
+  const creatingFlows = createFlowsMutation.isPending;
 
   async function runSelected() {
     if (selection.size === 0 || !targetRepo) return;
@@ -207,11 +207,11 @@ export function ItemsPageSlot() {
         onRun={runSelected}
         onResolve={resolveSelected}
         onDeleteSessions={deleteSelectedSessions}
-        onCreateWorkflows={() => createWorkflowsMutation.mutate(Array.from(selection))}
+        onCreateFlows={() => createFlowsMutation.mutate(Array.from(selection))}
         running={running}
         resolving={resolving}
         deletingSessions={deletingSessions}
-        creatingWorkflows={creatingWorkflows}
+        creatingFlows={creatingFlows}
       />
     );
   }

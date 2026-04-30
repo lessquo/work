@@ -12,7 +12,7 @@ export type Source = {
 export type Item = {
   id: number;
   source_id: number;
-  workflow_id: number | null;
+  flow_id: number | null;
   type: ItemType;
   external_id: string;
   url: string;
@@ -21,18 +21,18 @@ export type Item = {
   updated_at: string;
 };
 
-export type Workflow = {
+export type Flow = {
   id: number;
   name: string | null;
   created_at: string;
   updated_at: string;
 };
 
-export type WorkflowSessionChild = {
+export type FlowSessionChild = {
   id: number;
   item_id: number | null;
   source_id: number | null;
-  workflow_id: number | null;
+  flow_id: number | null;
   type: ItemType;
   status: SessionStatus;
   prompt: string;
@@ -46,9 +46,9 @@ export type WorkflowSessionChild = {
   item_raw: string | null;
 };
 
-export type WorkflowWithChildren = Workflow & {
+export type FlowWithChildren = Flow & {
   items: Item[];
-  sessions: WorkflowSessionChild[];
+  sessions: FlowSessionChild[];
 };
 
 export type ItemSessionSummary = { id: number; status: SessionStatus };
@@ -159,7 +159,7 @@ export type Session = {
   id: number;
   item_id: number | null;
   source_id: number | null;
-  workflow_id: number | null;
+  flow_id: number | null;
   type: ItemType;
   user_context: string | null;
   target_repo: string | null;
@@ -232,10 +232,10 @@ export const api = {
   getItemCounts: (sourceId: number) => req<{ open: number; resolved: number }>(`/sources/${sourceId}/counts`),
   listAllItems: () => req<Item[]>('/items'),
   getItem: (id: number) => req<Item>(`/items/${id}`),
-  setItemWorkflow: (itemId: number, workflowId: number | null) =>
-    req<Item>(`/items/${itemId}/workflow`, {
+  setItemFlow: (itemId: number, flowId: number | null) =>
+    req<Item>(`/items/${itemId}/flow`, {
       method: 'PUT',
-      body: JSON.stringify({ workflowId }),
+      body: JSON.stringify({ flowId }),
     }),
   syncSource: (sourceId: number) => req<{ synced: number }>(`/sources/${sourceId}/sync`, { method: 'POST' }),
   runItems: (sourceId: number, itemIds: number[], prompt: PromptId, targetRepo: string) =>
@@ -283,13 +283,13 @@ export const api = {
   updateJiraIssue: (sessionId: number) =>
     req<Session>(`/sessions/${sessionId}/update-jira-issue`, { method: 'POST' }),
   listSourceSessions: (sourceId: number) => req<SourceSession[]>(`/sources/${sourceId}/sessions`),
-  listWorkflows: () => req<WorkflowWithChildren[]>(`/workflows`),
-  createWorkflow: () => req<Workflow>(`/workflows`, { method: 'POST' }),
-  deleteWorkflow: (id: number) => req<{ ok: true }>(`/workflows/${id}`, { method: 'DELETE' }),
-  autoNameWorkflow: (id: number) =>
-    req<{ ok: true; name: string }>(`/workflows/${id}/auto-name`, { method: 'POST' }),
-  createWorkflowsForItems: (sourceId: number, itemIds: number[]) =>
-    req<{ created: number; workflowIds: number[] }>(`/sources/${sourceId}/workflows-from-items`, {
+  listFlows: () => req<FlowWithChildren[]>(`/flows`),
+  createFlow: () => req<Flow>(`/flows`, { method: 'POST' }),
+  deleteFlow: (id: number) => req<{ ok: true }>(`/flows/${id}`, { method: 'DELETE' }),
+  autoNameFlow: (id: number) =>
+    req<{ ok: true; name: string }>(`/flows/${id}/auto-name`, { method: 'POST' }),
+  createFlowsForItems: (sourceId: number, itemIds: number[]) =>
+    req<{ created: number; flowIds: number[] }>(`/sources/${sourceId}/flows-from-items`, {
       method: 'POST',
       body: JSON.stringify({ itemIds }),
     }),

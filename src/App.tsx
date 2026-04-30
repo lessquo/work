@@ -5,10 +5,10 @@ import { SessionsPage } from '@/routes/SessionsPage';
 import { SettingsPage } from '@/routes/SettingsPage';
 import { SourceIndexPage } from '@/routes/SourceIndexPage';
 import { SourcePage } from '@/routes/SourcePage';
-import { WorkflowsPage } from '@/routes/WorkflowsPage';
+import { FlowsPage } from '@/routes/FlowsPage';
 import { Navigate, Route, Routes } from 'react-router';
+import { FlowsPageSlot } from './routes/FlowsPageSlot';
 import { SessionsPageSlot } from './routes/SessionsPageSlot';
-import { WorkflowsPageSlot } from './routes/WorkflowsPageSlot';
 
 export function App() {
   return (
@@ -26,8 +26,8 @@ export function App() {
             <Route path='sessions' element={<SessionsPage />}>
               <Route path=':sessionId' element={<SessionsPageSlot />} />
             </Route>
-            <Route path='workflows' element={<WorkflowsPage />}>
-              <Route path=':workflowId' element={<WorkflowsPageSlot />} />
+            <Route path='flows' element={<FlowsPage />}>
+              <Route path=':flowId' element={<FlowsPageSlot />} />
             </Route>
             <Route path='settings' element={<SettingsPage />} />
           </Route>

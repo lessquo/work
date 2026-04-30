@@ -23,7 +23,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router';
 type ItemColumn = { item: Item; sessions: FlowSessionChild[] };
 
 export function FlowCard({ flow }: { flow: FlowWithChildren }) {
-  const { sourceId, flowId } = useParams();
+  const { flowId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const wid = flow.id;
@@ -39,9 +39,8 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
-      if (sourceId) qc.invalidateQueries({ queryKey: ['items', Number(sourceId)] });
       if (flowId && Number(flowId) === wid) {
-        navigate({ pathname: `/sources/${sourceId}/flows`, search: location.search });
+        navigate({ pathname: `/flows`, search: location.search });
       }
       toast.add({ title: 'Flow deleted', type: 'success' });
     },
@@ -93,7 +92,6 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
-      if (sourceId) qc.invalidateQueries({ queryKey: ['items', Number(sourceId)] });
       toast.add({ title: 'Item detached from flow', type: 'success' });
     },
     onError: e => {
@@ -126,7 +124,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
       params.delete('item');
     }
     const search = params.toString();
-    return `/sources/${sourceId}/flows/${wid}${search ? `?${search}` : ''}`;
+    return `/flows/${wid}${search ? `?${search}` : ''}`;
   }
 
   const { columns, orphanSessions } = useMemo(() => {
@@ -250,9 +248,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
           </ol>
         </div>
       )}
-      {sourceId && (
-        <AttachItemDialog open={attachOpen} onOpenChange={setAttachOpen} flowId={wid} sourceId={Number(sourceId)} />
-      )}
+      <AttachItemDialog open={attachOpen} onOpenChange={setAttachOpen} flowId={wid} />
     </li>
   );
 }

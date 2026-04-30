@@ -1,28 +1,13 @@
 import { FlowCard } from '@/components/FlowCard';
-import { CreateJiraIssuePanel } from '@/components/panels/CreateJiraIssuePanel';
 import { api } from '@/lib/api';
-import { useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { parseAsBoolean, parseAsInteger, useQueryState } from 'nuqs';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router';
 
 export function FlowsPage() {
-  const { sourceId, flowId } = useParams();
-  const id = Number(sourceId);
+  const { flowId } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [jiraDraftOpen, setJiraDraftOpen] = useQueryState('jiraDraft', parseAsBoolean.withDefault(false));
-  const [, setOpenItemId] = useQueryState('item', parseAsInteger);
-  const [, setOpenSessionId] = useQueryState('session', parseAsInteger);
-
-  const sourceQuery = useSuspenseQuery({
-    queryKey: ['source', id],
-    queryFn: () => api.getSource(id),
-  });
-  const source = sourceQuery.data;
-
-  const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
-  const prompts = promptsQuery.data;
 
   const flowsQuery = useQuery({
     queryKey: ['flows'],
@@ -36,8 +21,8 @@ export function FlowsPage() {
     if (flows.length === 0) return;
     if (flowId) return;
     const params = new URLSearchParams(window.location.search);
-    navigate({ pathname: `/sources/${sourceId}/flows/${flows[0].id}`, search: params.toString() }, { replace: true });
-  }, [flows, flowId, sourceId, navigate]);
+    navigate({ pathname: `/flows/${flows[0].id}`, search: params.toString() }, { replace: true });
+  }, [flows, flowId, navigate]);
 
   return (
     <>
@@ -54,7 +39,7 @@ export function FlowsPage() {
                   await queryClient.invalidateQueries({ queryKey: ['flows'] });
                   const params = new URLSearchParams(window.location.search);
                   navigate({
-                    pathname: `/sources/${sourceId}/flows/${flow.id}`,
+                    pathname: `/flows/${flow.id}`,
                     search: params.toString(),
                   });
                 }}
@@ -62,18 +47,6 @@ export function FlowsPage() {
               >
                 New flow
               </button>
-              {source.type === 'jira_issue' && (
-                <button
-                  onClick={() => {
-                    setOpenItemId(null);
-                    setOpenSessionId(null);
-                    setJiraDraftOpen(true);
-                  }}
-                  className='btn-md btn-primary'
-                >
-                  Create Jira issue
-                </button>
-              )}
             </div>
           </div>
 
@@ -93,25 +66,10 @@ export function FlowsPage() {
             </ul>
           )}
         </div>
-        {jiraDraftOpen ? (
+        {flowId && (
           <div className='h-full min-w-0 flex-1 overflow-y-scroll'>
-            <CreateJiraIssuePanel
-              sourceId={id}
-              projectKey={source.external_id}
-              prompts={prompts}
-              onClose={() => setJiraDraftOpen(false)}
-              onSessionStarted={sessionId => {
-                setJiraDraftOpen(false);
-                setOpenSessionId(sessionId);
-              }}
-            />
+            <Outlet />
           </div>
-        ) : (
-          flowId && (
-            <div className='h-full min-w-0 flex-1 overflow-y-scroll'>
-              <Outlet />
-            </div>
-          )
         )}
       </div>
     </>

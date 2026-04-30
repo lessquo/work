@@ -17,6 +17,10 @@ export function App() {
       <Route element={<RootLayout />}>
         <Route index element={<Navigate to='/sources' replace />} />
         <Route path='/sources-list' element={<SourcesPage />} />
+        <Route path='/settings' element={<SettingsPage />} />
+        <Route path='/flows' element={<FlowsPage />}>
+          <Route path=':flowId' element={<FlowsPageSlot />} />
+        </Route>
         <Route path='/sources'>
           <Route index element={<SourceIndexPage />} />
           <Route path='add' element={<AddSourcePage />} />
@@ -28,10 +32,6 @@ export function App() {
             <Route path='sessions' element={<SessionsPage />}>
               <Route path=':sessionId' element={<SessionsPageSlot />} />
             </Route>
-            <Route path='flows' element={<FlowsPage />}>
-              <Route path=':flowId' element={<FlowsPageSlot />} />
-            </Route>
-            <Route path='settings' element={<SettingsPage />} />
           </Route>
         </Route>
       </Route>

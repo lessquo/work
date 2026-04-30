@@ -18,7 +18,7 @@ export function AttachItemDialog({
   open: boolean;
   onOpenChange: (next: boolean) => void;
   flowId: number;
-  sourceId: number;
+  sourceId?: number;
 }) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -38,7 +38,7 @@ function Body({
   onClose,
 }: {
   flowId: number;
-  sourceId: number;
+  sourceId?: number;
   onClose: () => void;
 }) {
   const qc = useQueryClient();
@@ -81,7 +81,7 @@ function Body({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
+      if (sourceId !== undefined) qc.invalidateQueries({ queryKey: ['items', sourceId] });
       toast.add({ title: 'Item attached to flow', type: 'success' });
       onClose();
     },

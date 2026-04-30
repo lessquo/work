@@ -1,16 +1,24 @@
 import { TabsList, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { Box, Database, Settings, Terminal, Workflow } from 'lucide-react';
-import { useLocation, useMatch, useNavigate } from 'react-router';
+import { useMatch, useNavigate } from 'react-router';
 
 export function RootTabs() {
   const navigate = useNavigate();
-  const location = useLocation();
   const sourceMatch = useMatch('/sources/:sourceId/:tab/*');
-
-  if (!location.pathname.startsWith('/sources')) return null;
+  const sourcesListMatch = useMatch('/sources-list');
+  const flowsMatch = useMatch('/flows/*');
+  const settingsMatch = useMatch('/settings');
 
   const base = sourceMatch ? `/sources/${sourceMatch.params.sourceId}` : null;
-  const active = sourceMatch ? `${base}/${sourceMatch.params.tab}` : '/sources-list';
+  const active = sourceMatch
+    ? `${base}/${sourceMatch.params.tab}`
+    : settingsMatch
+      ? '/settings'
+      : flowsMatch
+        ? '/flows'
+        : sourcesListMatch
+          ? '/sources-list'
+          : '';
 
   return (
     <TabsRoot value={active} onValueChange={value => navigate(value as string)}>
@@ -29,16 +37,16 @@ export function RootTabs() {
               <Terminal />
               Sessions
             </TabsTab>
-            <TabsTab value={`${base}/flows`}>
-              <Workflow />
-              Flows
-            </TabsTab>
-            <TabsTab value={`${base}/settings`}>
-              <Settings />
-              Settings
-            </TabsTab>
           </>
         )}
+        <TabsTab value='/flows'>
+          <Workflow />
+          Flows
+        </TabsTab>
+        <TabsTab value='/settings'>
+          <Settings />
+          Settings
+        </TabsTab>
       </TabsList>
     </TabsRoot>
   );

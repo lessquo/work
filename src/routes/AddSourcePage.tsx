@@ -48,56 +48,60 @@ export function AddSourcePage() {
   });
 
   return (
-    <div className='mx-auto max-w-xl p-6'>
-      <h1 className='mb-1 text-lg font-semibold'>Add source</h1>
-      <p className='mb-5 text-sm text-gray-500'>Pick a type and choose from your existing projects/repos.</p>
-      <form onSubmit={submit} className='flex flex-col gap-5 rounded-lg border bg-white p-5'>
-        <Field label='Type' required>
-          <Controller
-            name='type'
-            control={control}
-            render={({ field }) => (
-              <Select<ItemType>
-                value={field.value}
-                onChange={field.onChange}
-                options={TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-                ariaLabel='Source type'
-                className={selectCls}
-              />
-            )}
-          />
-        </Field>
+    <>
+      <title>Add source · Work</title>
 
-        <Field label={option.label} hint={option.hint} required>
-          <Controller
-            name='external_id'
-            control={control}
-            rules={{ validate: v => v.trim().length > 0 }}
-            render={({ field }) =>
-              type === 'sentry_issue' ? (
-                <SentryProjectField value={field.value} onChange={field.onChange} />
-              ) : type === 'github_pr' ? (
-                <GithubRepoField value={field.value} onChange={field.onChange} />
-              ) : (
-                <JiraProjectField value={field.value} onChange={field.onChange} />
-              )
-            }
-          />
-        </Field>
+      <div className='mx-auto max-w-xl p-6'>
+        <h1 className='mb-1 text-lg font-semibold'>Add source</h1>
+        <p className='mb-5 text-sm text-gray-500'>Pick a type and choose from your existing projects/repos.</p>
+        <form onSubmit={submit} className='flex flex-col gap-5 rounded-lg border bg-white p-5'>
+          <Field label='Type' required>
+            <Controller
+              name='type'
+              control={control}
+              render={({ field }) => (
+                <Select<ItemType>
+                  value={field.value}
+                  onChange={field.onChange}
+                  options={TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+                  ariaLabel='Source type'
+                  className={selectCls}
+                />
+              )}
+            />
+          </Field>
 
-        {errors.root && (
-          <div className='rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700'>
-            {errors.root.message}
+          <Field label={option.label} hint={option.hint} required>
+            <Controller
+              name='external_id'
+              control={control}
+              rules={{ validate: v => v.trim().length > 0 }}
+              render={({ field }) =>
+                type === 'sentry_issue' ? (
+                  <SentryProjectField value={field.value} onChange={field.onChange} />
+                ) : type === 'github_pr' ? (
+                  <GithubRepoField value={field.value} onChange={field.onChange} />
+                ) : (
+                  <JiraProjectField value={field.value} onChange={field.onChange} />
+                )
+              }
+            />
+          </Field>
+
+          {errors.root && (
+            <div className='rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700'>
+              {errors.root.message}
+            </div>
+          )}
+
+          <div className='flex items-center justify-end gap-2 pt-1'>
+            <button type='submit' disabled={!canSubmit} className='btn-md btn-primary'>
+              {isSubmitting ? 'Creating…' : 'Create source'}
+            </button>
           </div>
-        )}
-
-        <div className='flex items-center justify-end gap-2 pt-1'>
-          <button type='submit' disabled={!canSubmit} className='btn-md btn-primary'>
-            {isSubmitting ? 'Creating…' : 'Create source'}
-          </button>
-        </div>
-      </form>
-    </div>
+        </form>
+      </div>
+    </>
   );
 }
 

@@ -118,10 +118,7 @@ export function ItemsPage() {
   }, [allItems, fuse, query]);
 
   const visibleIds = useMemo(() => new Set(items.map(i => i.id)), [items]);
-  const validSelectedIds = useMemo(
-    () => selectedIds.filter(eid => visibleIds.has(eid)),
-    [selectedIds, visibleIds],
-  );
+  const validSelectedIds = useMemo(() => selectedIds.filter(eid => visibleIds.has(eid)), [selectedIds, visibleIds]);
   const validItemIdNum = itemIdNum !== null && visibleIds.has(itemIdNum) ? itemIdNum : null;
   const selection = useMemo(() => {
     const set = new Set<number>(validSelectedIds);
@@ -209,7 +206,7 @@ export function ItemsPage() {
 
   return (
     <>
-      <title>{`${source.external_id} · Work`}</title>
+      <title>{`${source.external_id} · Items`}</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>

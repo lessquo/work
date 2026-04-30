@@ -44,7 +44,7 @@ export function WorkflowsPage() {
 
   return (
     <>
-      <title>{`${source.external_id} workflows · Work`}</title>
+      <title>{`${source.external_id} · Workflows`}</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>

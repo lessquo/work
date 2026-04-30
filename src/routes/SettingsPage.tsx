@@ -375,62 +375,66 @@ function SecretField({
     (clearMutation.error instanceof Error ? clearMutation.error.message : null);
 
   return (
-    <div className='flex flex-col gap-1.5'>
-      <div className='flex items-center gap-2'>
-        <span className='text-sm font-medium text-gray-700'>{label}</span>
-        <span
-          className={cn(
-            'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
-            configured
-              ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-              : 'border border-gray-200 bg-gray-50 text-gray-500',
-          )}
-        >
-          {configured ? 'Configured' : 'Not set'}
-        </span>
-      </div>
-      <p className='text-xs text-gray-400'>{hint}</p>
-      <div className='flex items-center gap-2'>
-        <Input
-          type='password'
-          value={value}
-          onChange={e => setValue(e.target.value)}
-          placeholder={configured ? 'Enter new value to replace' : 'Paste secret value'}
-          className='flex-1 font-mono placeholder:font-sans'
-          autoComplete='off'
-        />
-        <button
-          type='button'
-          onClick={() => saveMutation.mutate()}
-          disabled={value.trim().length === 0 || saveMutation.isPending}
-          className='btn-md btn-secondary'
-        >
-          {saveMutation.isPending ? 'Saving…' : 'Save'}
-        </button>
-        {configured && (
+    <>
+      <title>Settings · Work</title>
+
+      <div className='flex flex-col gap-1.5'>
+        <div className='flex items-center gap-2'>
+          <span className='text-sm font-medium text-gray-700'>{label}</span>
+          <span
+            className={cn(
+              'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+              configured
+                ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
+                : 'border border-gray-200 bg-gray-50 text-gray-500',
+            )}
+          >
+            {configured ? 'Configured' : 'Not set'}
+          </span>
+        </div>
+        <p className='text-xs text-gray-400'>{hint}</p>
+        <div className='flex items-center gap-2'>
+          <Input
+            type='password'
+            value={value}
+            onChange={e => setValue(e.target.value)}
+            placeholder={configured ? 'Enter new value to replace' : 'Paste secret value'}
+            className='flex-1 font-mono placeholder:font-sans'
+            autoComplete='off'
+          />
           <button
             type='button'
-            onClick={async () => {
-              const ok = await confirm({
-                title: `Clear ${label}?`,
-                description: `${label} will be removed from this app. Syncing will fail until you set it again.`,
-                confirmText: 'Clear',
-                destructive: true,
-              });
-              if (!ok) return;
-              clearMutation.mutate();
-            }}
-            disabled={clearMutation.isPending}
-            className='btn-md btn-ghost text-rose-600 hover:bg-rose-50'
+            onClick={() => saveMutation.mutate()}
+            disabled={value.trim().length === 0 || saveMutation.isPending}
+            className='btn-md btn-secondary'
           >
-            {clearMutation.isPending ? 'Clearing…' : 'Clear'}
+            {saveMutation.isPending ? 'Saving…' : 'Save'}
           </button>
+          {configured && (
+            <button
+              type='button'
+              onClick={async () => {
+                const ok = await confirm({
+                  title: `Clear ${label}?`,
+                  description: `${label} will be removed from this app. Syncing will fail until you set it again.`,
+                  confirmText: 'Clear',
+                  destructive: true,
+                });
+                if (!ok) return;
+                clearMutation.mutate();
+              }}
+              disabled={clearMutation.isPending}
+              className='btn-md btn-ghost text-rose-600 hover:bg-rose-50'
+            >
+              {clearMutation.isPending ? 'Clearing…' : 'Clear'}
+            </button>
+          )}
+        </div>
+        {error && (
+          <div className='rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700'>{error}</div>
         )}
       </div>
-      {error && (
-        <div className='rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700'>{error}</div>
-      )}
-    </div>
+    </>
   );
 }
 

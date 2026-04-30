@@ -27,6 +27,7 @@ export function App() {
           <Route path=':flowId' element={<FlowsPageSlot />} />
         </Route>
         <Route path='/settings' element={<SettingsPage />} />
+        <Route path='*' element={<Navigate to='/' replace />} />
       </Route>
     </Routes>
   );

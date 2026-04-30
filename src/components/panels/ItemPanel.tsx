@@ -13,7 +13,7 @@ import { useNavigate, useParams } from 'react-router';
 
 export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const { itemId: itemIdParam } = useParams();
-  const [sourceId] = useQueryState('source', parseAsInteger);
+  const [sourceId] = useQueryState('source', parseAsInteger.withDefault(0));
   const itemId = itemIdProp ?? (itemIdParam ? Number(itemIdParam) : null);
   const isFlowMode = itemIdProp !== undefined;
   const qc = useQueryClient();
@@ -29,9 +29,9 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const [targetRepo, setTargetRepo] = useState('');
 
   const sourceItemsQuery = useSuspenseQuery({
-    queryKey: isFlowMode ? ['items-noop'] : ['items', Number(sourceId), filter, sort],
+    queryKey: isFlowMode ? ['items-noop'] : ['items', sourceId, filter, sort],
     queryFn: (): Promise<ItemWithSessions[]> =>
-      isFlowMode ? Promise.resolve([]) : api.listItems(Number(sourceId), filter, sort),
+      isFlowMode ? Promise.resolve([]) : api.listItems(sourceId, filter, sort),
   });
   const flowItemQuery = useSuspenseQuery({
     queryKey: isFlowMode && itemId !== null ? ['item', itemId] : ['item-noop'],
@@ -49,7 +49,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
       : []
     : sourceItemsQuery.data.filter(i => ids.has(i.id));
   const count = selectedItems.length;
-  const sid = isFlowMode ? (selectedItems[0]?.source_id ?? Number(sourceId)) : Number(sourceId);
+  const sid = isFlowMode ? (selectedItems[0]?.source_id ?? sourceId) : sourceId;
   const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
   const promptLabel = selectedPrompt?.label ?? 'Run';
   const promptHint = selectedPrompt?.hint ?? '';

@@ -18,8 +18,7 @@ export function ItemsPageSlot() {
   const confirm = useConfirm();
   const toast = useToast();
 
-  const [sourceParam] = useQueryState('source', parseAsInteger);
-  const id = sourceParam ?? 0;
+  const [sourceId] = useQueryState('source', parseAsInteger.withDefault(0));
   const [filter] = useQueryState('filter', parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'));
   const [sort] = useQueryState('sort', parseAsStringLiteral(['recency', 'title'] as const).withDefault('recency'));
   const [selectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
@@ -37,12 +36,12 @@ export function ItemsPageSlot() {
   const [promptId, setPromptId] = useState<PromptId>(DEFAULT_PROMPT_ID);
   const [targetRepo, setTargetRepo] = useState('');
 
-  const sourceQuery = useSuspenseQuery({ queryKey: ['source', id], queryFn: () => api.getSource(id) });
+  const sourceQuery = useSuspenseQuery({ queryKey: ['source', sourceId], queryFn: () => api.getSource(sourceId) });
   const source = sourceQuery.data;
 
   const itemsQuery = useSuspenseQuery({
-    queryKey: ['items', id, filter, sort],
-    queryFn: () => api.listItems(id, filter, sort),
+    queryKey: ['items', sourceId, filter, sort],
+    queryFn: () => api.listItems(sourceId, filter, sort),
   });
   const items = itemsQuery.data;
 
@@ -62,7 +61,7 @@ export function ItemsPageSlot() {
   const onMutationError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
   const sessionMutation = useMutation({
-    mutationFn: (ids: number[]) => api.runItems(id, ids, effectivePromptId, targetRepo),
+    mutationFn: (ids: number[]) => api.runItems(sourceId, ids, effectivePromptId, targetRepo),
     onSuccess: res => {
       const skippedNote = res.skipped > 0 ? ` (${res.skipped} skipped)` : '';
       toast.add({
@@ -72,42 +71,42 @@ export function ItemsPageSlot() {
             : `Queued ${res.enqueued} session${res.enqueued === 1 ? '' : 's'}${skippedNote}.`,
       });
       clearSelection();
-      qc.invalidateQueries({ queryKey: ['items', id] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', id] });
+      qc.invalidateQueries({ queryKey: ['items', sourceId] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
     },
     onError: onMutationError,
   });
 
   const resolveItemsMutation = useMutation({
-    mutationFn: (ids: number[]) => api.resolveItems(id, ids),
+    mutationFn: (ids: number[]) => api.resolveItems(sourceId, ids),
     onSuccess: res => {
       const parts: string[] = [`Resolved ${res.resolved} item${res.resolved === 1 ? '' : 's'}`];
       if (res.skipped > 0) parts.push(`${res.skipped} skipped`);
       if (res.errors.length > 0) parts.push(`${res.errors.length} error${res.errors.length === 1 ? '' : 's'}`);
       toast.add({ title: parts.join(' · ') + '.' });
       clearSelection();
-      qc.invalidateQueries({ queryKey: ['items', id] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', id] });
+      qc.invalidateQueries({ queryKey: ['items', sourceId] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
     },
     onError: onMutationError,
   });
 
   const createFlowsMutation = useMutation({
-    mutationFn: (ids: number[]) => api.createFlowsForItems(id, ids),
+    mutationFn: (ids: number[]) => api.createFlowsForItems(sourceId, ids),
     onSuccess: res => {
       toast.add({
         title: res.created === 0 ? 'No flows created.' : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
       });
       clearSelection();
       qc.invalidateQueries({ queryKey: ['flows'] });
-      qc.invalidateQueries({ queryKey: ['items', id] });
+      qc.invalidateQueries({ queryKey: ['items', sourceId] });
       navigate(`/flows`);
     },
     onError: onMutationError,
   });
 
   const deleteSessionsMutation = useMutation({
-    mutationFn: (ids: number[]) => api.deleteItemSessions(id, ids),
+    mutationFn: (ids: number[]) => api.deleteItemSessions(sourceId, ids),
     onSuccess: res => {
       const parts: string[] = [`Deleted ${res.deleted} session${res.deleted === 1 ? '' : 's'}`];
       if (res.skipped_active > 0) parts.push(`${res.skipped_active} skipped (active)`);
@@ -116,8 +115,8 @@ export function ItemsPageSlot() {
         parts.push(`${res.folder_errors.length} folder error${res.folder_errors.length === 1 ? '' : 's'}`);
       toast.add({ title: parts.join(' · ') + '.' });
       clearSelection();
-      qc.invalidateQueries({ queryKey: ['items', id] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', id] });
+      qc.invalidateQueries({ queryKey: ['items', sourceId] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
     },
     onError: onMutationError,
   });
@@ -166,7 +165,7 @@ export function ItemsPageSlot() {
   if (jiraDraftOpen) {
     return (
       <CreateJiraIssuePanel
-        sourceId={id}
+        sourceId={sourceId}
         projectKey={source.external_id}
         prompts={prompts}
         onClose={() => setJiraDraftOpen(false)}

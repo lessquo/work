@@ -256,9 +256,6 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ itemIds }),
     }),
-  startSession: (itemId: number, prompt: PromptId, targetRepo: string) =>
-    req<Session>(`/items/${itemId}/sessions`, { method: 'POST', body: JSON.stringify({ prompt, targetRepo }) }),
-  listSessions: (itemId: number) => req<Session[]>(`/items/${itemId}/sessions`),
   getSession: (sessionId: number) => req<Session>(`/sessions/${sessionId}`),
   getSessionPrBody: async (sessionId: number): Promise<string> => {
     const res = await fetch(`/api/sessions/${sessionId}/pr-body`);

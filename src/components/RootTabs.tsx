@@ -16,8 +16,13 @@ export function RootTabs() {
   const match = useMatch('/:tab/*');
   const active = match ? `/${match.params.tab}` : '';
 
+  function navigateToTab(path: string) {
+    const source = new URLSearchParams(location.search).get('source');
+    navigate({ pathname: path, search: source ? `?source=${source}` : '' });
+  }
+
   return (
-    <TabsRoot value={active} onValueChange={value => navigate({ pathname: value as string, search: location.search })}>
+    <TabsRoot value={active} onValueChange={value => navigateToTab(value as string)}>
       <TabsList className='-mb-px'>
         {TABS.map(({ path, icon: Icon, label }) => (
           <TabsTab key={path} value={path}>

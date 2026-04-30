@@ -7,6 +7,7 @@ import {
   itemCreationTime,
   itemTitle,
   type Item,
+  type ItemType,
   type SessionStatus,
   type WorkflowSessionChild,
   type WorkflowWithChildren,
@@ -198,59 +199,55 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
         <p className='text-xs text-gray-500'>No items or sessions.</p>
       ) : (
         <div className='flex items-start overflow-x-auto'>
-          {columns.length > 0 && (
-            <ol className='flex items-start'>
-              {columns.flatMap((col, idx) => {
-                const column = (
-                  <li key={`col-${col.item.id}`} className='flex shrink-0 flex-col gap-1.5'>
-                    <ItemChip
-                      item={col.item}
-                      at={itemCreationTime(col.item)}
-                      to={chipHref('item', col.item.id)}
-                      selected={openItemId === col.item.id}
-                      onDetach={() => handleDetach(col.item)}
-                    />
-                    {col.sessions.length > 0 && (
-                      <ol className='flex flex-col gap-1.5'>
-                        {col.sessions.map(s => (
-                          <AttachedSessionChip
-                            key={`s-${s.id}`}
-                            session={s}
-                            to={chipHref('session', s.id)}
-                            selected={openSessionId === s.id}
-                          />
-                        ))}
-                      </ol>
-                    )}
-                  </li>
-                );
-                if (idx === 0) return [column];
-                const sep = (
-                  <li key={`sep-${idx}`} aria-hidden className='mt-6 h-px w-3 shrink-0 self-start bg-gray-300' />
-                );
-                return [sep, column];
-              })}
-            </ol>
-          )}
-          {orphanSessions.length > 0 && (
-            <div
-              className={cn('shrink-0 border-dashed border-gray-300', columns.length > 0 ? 'ml-4 border-l pl-3' : '')}
-            >
-              <div className='mb-1.5 text-[10px] font-medium tracking-wide text-gray-500 uppercase'>
-                Unattached sessions
-              </div>
-              <ol className='flex flex-col gap-1.5'>
-                {orphanSessions.map(s => (
-                  <OrphanSessionChip
-                    key={`os-${s.id}`}
-                    session={s}
-                    to={chipHref('session', s.id)}
-                    selected={openSessionId === s.id}
+          <ol className='flex items-start'>
+            {[
+              ...columns.map(col => ({
+                key: `col-${col.item.id}`,
+                head: (
+                  <ItemChip
+                    item={col.item}
+                    at={itemCreationTime(col.item)}
+                    to={chipHref('item', col.item.id)}
+                    selected={openItemId === col.item.id}
+                    onDetach={() => handleDetach(col.item)}
                   />
-                ))}
-              </ol>
-            </div>
-          )}
+                ),
+                sessions: col.sessions,
+              })),
+              ...(orphanSessions.length > 0
+                ? [
+                    {
+                      key: 'orphans',
+                      head: <PlaceholderItemChip type={orphanSessions[0].type} />,
+                      sessions: orphanSessions,
+                    },
+                  ]
+                : []),
+            ].flatMap((col, idx) => {
+              const column = (
+                <li key={col.key} className='flex shrink-0 flex-col gap-1.5'>
+                  {col.head}
+                  {col.sessions.length > 0 && (
+                    <ol className='flex flex-col gap-1.5'>
+                      {col.sessions.map(s => (
+                        <SessionChip
+                          key={`s-${s.id}`}
+                          session={s}
+                          to={chipHref('session', s.id)}
+                          selected={openSessionId === s.id}
+                        />
+                      ))}
+                    </ol>
+                  )}
+                </li>
+              );
+              if (idx === 0) return [column];
+              const sep = (
+                <li key={`sep-${col.key}`} aria-hidden className='mt-6 h-px w-3 shrink-0 self-start bg-gray-300' />
+              );
+              return [sep, column];
+            })}
+          </ol>
         </div>
       )}
       {sourceId && (
@@ -312,7 +309,23 @@ function ItemChip({
   );
 }
 
-function AttachedSessionChip({
+function PlaceholderItemChip({ type }: { type: ItemType }) {
+  const logo = TYPE_LOGO[type];
+  return (
+    <div
+      aria-hidden
+      className='block w-44 shrink-0 rounded-md border border-dashed border-gray-300 bg-white p-2 text-left'
+    >
+      <div className='flex items-center gap-1.5'>
+        <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0 opacity-50' />
+        <span className='truncate text-xs text-gray-400 italic'>No item</span>
+      </div>
+      <div className='mt-1 text-[10px] text-gray-400'>{logo.alt}</div>
+    </div>
+  );
+}
+
+function SessionChip({
   session,
   to,
   selected,
@@ -339,63 +352,9 @@ function AttachedSessionChip({
   );
 }
 
-function OrphanSessionChip({
-  session,
-  to,
-  selected,
-}: {
-  session: WorkflowSessionChild;
-  to: string;
-  selected?: boolean;
-}) {
-  const itemLogo = session.item_type ? TYPE_LOGO[session.item_type] : null;
-  const heading =
-    session.item_external_id && session.item_type && session.item_raw
-      ? itemTitle({ type: session.item_type, raw: session.item_raw, external_id: session.item_external_id })
-      : firstLine(`#${session.id} ${session.prompt}`);
-  return (
-    <li className='shrink-0'>
-      <Link
-        to={to}
-        title={heading}
-        className={cn(
-          'block w-44 rounded-md border p-2 text-left',
-          selected ? 'selected-primary' : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50',
-        )}
-      >
-        <div className='flex items-center gap-1.5'>
-          <TypeBadge type={session.type} />
-          <StatusDot status={session.status} />
-          {itemLogo && <img src={itemLogo.src} alt={itemLogo.alt} className='size-3 shrink-0' />}
-          <span className='truncate text-xs font-medium text-gray-800'>{heading}</span>
-        </div>
-        <div className='mt-1 flex items-center gap-1 text-[10px] text-gray-500'>
-          <span className='truncate'>#{session.id}</span>
-          <span>·</span>
-          <span className='shrink-0'>{timeAgo(session.created_at)}</span>
-        </div>
-      </Link>
-    </li>
-  );
-}
-
 function firstLine(text: string): string {
   const line = text.split('\n').find(l => l.trim().length > 0);
   return line ? line.trim().slice(0, 80) : '';
-}
-
-function TypeBadge({ type }: { type: WorkflowSessionChild['type'] }) {
-  const map = {
-    github_pr: 'border-sky-300 bg-sky-50 text-sky-700',
-    jira_issue: 'border-violet-300 bg-violet-50 text-violet-700',
-    sentry_issue: 'border-amber-300 bg-amber-50 text-amber-700',
-  } as const;
-  const label = type === 'github_pr' ? 'PR' : type === 'jira_issue' ? 'Jira' : 'Sentry';
-  return (
-    <span className={cn('rounded border px-1 py-0 text-[9px] font-semibold tracking-wide uppercase', map[type])}>
-      {label}
-    </span>
-  );
 }
 
 function StatusDot({ status }: { status: SessionStatus }) {

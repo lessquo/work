@@ -280,6 +280,8 @@ export const api = {
     req<Session>(`/sessions/${sessionId}/create-github-pr`, { method: 'POST' }),
   createJiraIssue: (sessionId: number) =>
     req<Session>(`/sessions/${sessionId}/create-jira-issue`, { method: 'POST' }),
+  updateJiraIssue: (sessionId: number) =>
+    req<Session>(`/sessions/${sessionId}/update-jira-issue`, { method: 'POST' }),
   listSourceSessions: (sourceId: number) => req<SourceSession[]>(`/sources/${sourceId}/sessions`),
   listWorkflows: () => req<WorkflowWithChildren[]>(`/workflows`),
   createWorkflow: () => req<Workflow>(`/workflows`, { method: 'POST' }),

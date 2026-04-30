@@ -75,15 +75,6 @@ CREATE INDEX IF NOT EXISTS idx_sessions_source ON sessions(source_id);
 
 db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES ('max_parallel', '2')`).run();
 
-// MIGRATION: jira_base_url replaced by jira_org. Remove after running once.
-db.exec(`
-  INSERT OR IGNORE INTO settings (key, value)
-    SELECT 'jira_org',
-      REPLACE(REPLACE(REPLACE(value, 'https://', ''), 'http://', ''), '.atlassian.net', '')
-    FROM settings WHERE key = 'jira_base_url';
-  DELETE FROM settings WHERE key = 'jira_base_url';
-`);
-
 export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr';
 
 const upsertItemStmt = db.prepare(`

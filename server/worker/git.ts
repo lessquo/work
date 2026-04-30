@@ -110,3 +110,10 @@ export async function createPrViaGh(repo: string, branch: string, title: string,
   if (!match) throw new Error(`Could not parse PR URL from gh output: ${stdout.slice(0, 300)}`);
   return match[0];
 }
+
+export async function editPrViaGh(repo: string, prUrl: string, title: string, body: string): Promise<void> {
+  await execFileP('gh', ['pr', 'edit', prUrl, '--title', title, '--body', body], {
+    cwd: repo,
+    maxBuffer: 10 * 1024 * 1024,
+  });
+}

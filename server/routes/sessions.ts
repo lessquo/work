@@ -1,8 +1,16 @@
 import { createWorkflowForSession, db, type Item, type Session } from '@server/db.js';
 import { externalIdForPr, parseGithubPrUrl, upsertGithubPr } from '@server/integrations/github.js';
-import { createJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
+import { createJiraIssue, updateJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
 import { abortSession, getSessionEmitter } from '@server/worker/events.js';
-import { commitAll, createPrViaGh, diffAgainst, hasChanges, intentToAddAll, pushBranch } from '@server/worker/git.js';
+import {
+  commitAll,
+  createPrViaGh,
+  diffAgainst,
+  editPrViaGh,
+  hasChanges,
+  intentToAddAll,
+  pushBranch,
+} from '@server/worker/git.js';
 import { DEFAULT_PROMPT_ID, isPromptId } from '@server/worker/prompt.js';
 import { deleteSessionFolder, enqueueFollowup, enqueueSession } from '@server/worker/runner.js';
 import { Hono } from 'hono';
@@ -182,7 +190,6 @@ sessions.put('/sessions/:id/pr-body', async c => {
   const sessionId = Number(c.req.param('id'));
   const session = getSession(sessionId);
   if (!session) return c.json({ error: 'not found' }, 404);
-  if (session.pr_url) return c.json({ error: 'already created — locked' }, 409);
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no clone path' }, 409);
   const { content } = await c.req.json<{ content: string }>();
   await writeFile(resolve(session.clone_path, bodyFile(session)), content, 'utf8');
@@ -202,7 +209,6 @@ sessions.put('/sessions/:id/commit-message', async c => {
   const sessionId = Number(c.req.param('id'));
   const session = getSession(sessionId);
   if (!session) return c.json({ error: 'not found' }, 404);
-  if (session.pr_url) return c.json({ error: 'already created — locked' }, 409);
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no clone path' }, 409);
   const { content } = await c.req.json<{ content: string }>();
   await writeFile(resolve(session.clone_path, titleFile(session)), content, 'utf8');
@@ -255,6 +261,37 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
   }
 });
 
+// POST /api/sessions/:id/update-jira-issue — push edited JIRA_TITLE.txt and JIRA_DESCRIPTION.md to the existing issue
+sessions.post('/sessions/:id/update-jira-issue', async c => {
+  const sessionId = Number(c.req.param('id'));
+  const session = getSession(sessionId);
+  if (!session) return c.json({ error: 'not found' }, 404);
+  if (session.type !== 'jira_issue') return c.json({ error: 'session is not a Jira draft' }, 409);
+  if (!session.pr_url) return c.json({ error: 'Jira issue not created yet' }, 409);
+  if (!session.item_id) return c.json({ error: 'session not linked to Jira item' }, 409);
+  if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no workspace path' }, 409);
+
+  const item = db.prepare(`SELECT external_id, source_id FROM items WHERE id = ?`).get(session.item_id) as
+    | { external_id: string; source_id: number }
+    | undefined;
+  if (!item) return c.json({ error: 'item not found' }, 404);
+
+  try {
+    const summary = (await readMetaFile(session, 'JIRA_TITLE.txt')).trim();
+    const description = (await readMetaFile(session, 'JIRA_DESCRIPTION.md')).trim();
+    if (!summary) return c.json({ error: 'JIRA_TITLE.txt is empty' }, 400);
+    await updateJiraIssue(item.external_id, summary, description);
+    try {
+      await upsertJiraIssue(item.source_id, item.external_id);
+    } catch (e) {
+      console.warn(`[jira] post-update refresh failed for ${item.external_id}:`, e);
+    }
+    return c.json(getSession(sessionId));
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : String(e) }, 500);
+  }
+});
+
 // POST /api/sessions/:id/create-github-pr — commit COMMIT_MSG.txt, push, open PR with PR_BODY.md
 sessions.post('/sessions/:id/create-github-pr', async c => {
   const sessionId = Number(c.req.param('id'));
@@ -272,8 +309,21 @@ sessions.post('/sessions/:id/create-github-pr', async c => {
       await commitAll(session.clone_path, commitMsg);
     }
     await pushBranch(session.clone_path, session.branch);
-    if (!session.pr_url) {
-      const title = commitMsg.split(/\r?\n/)[0]?.trim() || 'claude: changes';
+    const title = commitMsg.split(/\r?\n/)[0]?.trim() || 'claude: changes';
+    if (session.pr_url) {
+      await editPrViaGh(session.clone_path, session.pr_url, title, prBody);
+      const parsed = parseGithubPrUrl(session.pr_url);
+      if (parsed) {
+        try {
+          const ghSource = db
+            .prepare(`SELECT id FROM sources WHERE type = 'github_pr' AND external_id = ?`)
+            .get(`${parsed.owner}/${parsed.repo}`) as { id: number } | undefined;
+          if (ghSource) await upsertGithubPr(ghSource.id, parsed.owner, parsed.repo, parsed.number);
+        } catch (e) {
+          console.warn(`[github] post-edit refresh failed for ${session.pr_url}:`, e);
+        }
+      }
+    } else {
       const url = await createPrViaGh(session.clone_path, session.branch, title, prBody);
       db.prepare(`UPDATE sessions SET pr_url = ? WHERE id = ?`).run(url, sessionId);
       // Best-effort: pull the new PR into the local items table so it appears in the Items list

@@ -252,6 +252,29 @@ export async function createJiraIssue(
   return { key: json.key, url: canonicalJiraUrl(json.key) };
 }
 
+export async function updateJiraIssue(key: string, summary: string, descriptionMarkdown: string): Promise<void> {
+  const { base, authHeader } = assertConfig();
+  const body = {
+    fields: {
+      summary,
+      description: markdownToAdf(descriptionMarkdown),
+    },
+  };
+  const res = await fetch(`${base}/rest/api/3/issue/${encodeURIComponent(key)}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: authHeader,
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Jira PUT /issue/${key} ${res.status}: ${text.slice(0, 400)}`);
+  }
+}
+
 export async function fetchJiraIssue(key: string): Promise<JiraRaw> {
   const { base, authHeader } = assertConfig();
   const fields = SEARCH_FIELDS.join(',');

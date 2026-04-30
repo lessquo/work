@@ -74,6 +74,15 @@ export function SessionPanel({
     },
   });
 
+  const updateJiraMutation = useMutation({
+    mutationFn: () => api.updateJiraIssue(sessionId),
+    onSuccess: updated => {
+      qc.setQueryData(['session', sessionId], updated);
+      qc.invalidateQueries({ queryKey: ['items'] });
+      qc.invalidateQueries({ queryKey: ['workflows'] });
+    },
+  });
+
   const abortMutation = useMutation({
     mutationFn: () => api.abortSession(sessionId),
     onSuccess: () => {
@@ -130,6 +139,7 @@ export function SessionPanel({
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
     (createJiraMutation.error instanceof Error ? createJiraMutation.error.message : null) ??
+    (updateJiraMutation.error instanceof Error ? updateJiraMutation.error.message : null) ??
     (deleteMutation.error instanceof Error ? deleteMutation.error.message : null) ??
     (followupMutation.error instanceof Error ? followupMutation.error.message : null);
 
@@ -164,7 +174,15 @@ export function SessionPanel({
           )}
           {session?.status === 'succeeded' &&
             (isJira ? (
-              !session.pr_url && (
+              session.pr_url ? (
+                <button
+                  disabled={updateJiraMutation.isPending}
+                  onClick={() => updateJiraMutation.mutate()}
+                  className='btn-sm btn-primary'
+                >
+                  {updateJiraMutation.isPending ? 'Updating issue…' : 'Update Jira issue'}
+                </button>
+              ) : (
                 <button
                   disabled={createJiraMutation.isPending}
                   onClick={() => createJiraMutation.mutate()}
@@ -279,10 +297,9 @@ export function SessionPanel({
 
 function TitleEditor({ sessionId, session, isJira }: { sessionId: number; session: Session | null; isJira: boolean }) {
   const queryKey = ['session', sessionId, 'commit-message'] as const;
-  const locked = isJira && !!session?.pr_url;
   const noClone = !session?.clone_path;
   const active = session?.status === 'queued' || session?.status === 'running';
-  const disabled = locked || noClone || active;
+  const disabled = noClone || active;
 
   const msgQuery = useQuery({
     queryKey,
@@ -300,7 +317,6 @@ function TitleEditor({ sessionId, session, isJira }: { sessionId: number; sessio
   const firstLine = draft.split('\n')[0] ?? '';
   const limit = isJira ? 120 : 72;
   const overLimit = firstLine.length > limit;
-  const lockedLabel = isJira ? 'Jira issue created — locked' : 'PR created — locked';
   const noClonePathLabel = isJira ? 'No workspace path' : 'No clone path';
   const placeholder = isJira ? 'Concise Jira issue summary' : 'fix(area): short subject line';
   const hint = isJira ? 'Jira issue summary' : 'First line is the commit subject';
@@ -323,8 +339,6 @@ function TitleEditor({ sessionId, session, isJira }: { sessionId: number; sessio
             <span className='text-gray-500'>Unsaved…</span>
           ) : status === 'saved' ? (
             <span className='text-emerald-600'>Saved ✓</span>
-          ) : locked ? (
-            <span className='text-gray-500'>{lockedLabel}</span>
           ) : active ? (
             <span className='text-gray-500'>Working — wait for the turn to finish</span>
           ) : noClone ? (
@@ -405,10 +419,9 @@ function DescriptionEditor({
   setMode: (m: DescriptionMode) => void;
 }) {
   const queryKey = ['session', sessionId, 'pr-body'] as const;
-  const locked = isJira && !!session?.pr_url;
   const noClone = !session?.clone_path;
   const active = session?.status === 'queued' || session?.status === 'running';
-  const disabled = locked || noClone || active;
+  const disabled = noClone || active;
 
   const bodyQuery = useQuery({
     queryKey,
@@ -445,8 +458,6 @@ function DescriptionEditor({
             <span className='text-gray-500'>Unsaved…</span>
           ) : status === 'saved' ? (
             <span className='text-emerald-600'>Saved ✓</span>
-          ) : locked ? (
-            <span className='text-gray-500'>{isJira ? 'Jira issue created — locked' : 'PR created — locked'}</span>
           ) : active ? (
             <span className='text-gray-500'>Working — wait for the turn to finish</span>
           ) : noClone ? (

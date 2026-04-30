@@ -1,7 +1,7 @@
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { api } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 export function TargetRepoPicker({
   value,
@@ -15,9 +15,17 @@ export function TargetRepoPicker({
   const sourcesQuery = useQuery({ queryKey: ['sources'], queryFn: api.listSources });
   const repos = (sourcesQuery.data ?? []).filter(s => s.type === 'github_pr').map(s => s.external_id);
 
+  // Fire the auto-default at most once per mount. Without this guard, callers that pass an
+  // inline onChange (e.g. one that wraps a mutation) recreate the function each render, the
+  // dep array shifts, the effect re-fires, and a new mutation is queued before the previous
+  // one resolves — eventually tripping React's "max update depth" limit.
+  const autoDefaultedRef = useRef(false);
   useEffect(() => {
-    if (allowEmpty) return;
-    if (!value && repos.length > 0) onChange(repos[0]);
+    if (allowEmpty || autoDefaultedRef.current) return;
+    if (!value && repos.length > 0) {
+      autoDefaultedRef.current = true;
+      onChange(repos[0]);
+    }
   }, [allowEmpty, value, repos, onChange]);
 
   const options: SelectOption<string>[] = [

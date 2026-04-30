@@ -70,13 +70,20 @@ sessions.post('/sessions/draft', async c => {
   }
 
   // Sessions require a source. When none was provided (e.g., FlowCard "Add session"
-  // with no item bound), fall back to whichever source was created first so the user
-  // can switch to the right one in the Setup tab afterwards.
+  // with no item bound), fall back to the first source whose type is something a session
+  // can actually write to. Sentry sources are inputs only — no prompt has applies_to:
+  // sentry_issue — so they make a useless default. The user can still switch to one in
+  // the Setup tab if they want to (e.g. just for context grouping), but the picker won't
+  // land on one.
   if (sourceId == null) {
-    const firstSource = db.prepare(`SELECT id FROM sources ORDER BY id ASC LIMIT 1`).get() as
-      | { id: number }
-      | undefined;
-    if (!firstSource) return c.json({ error: 'no sources configured' }, 400);
+    const firstSource = db
+      .prepare(
+        `SELECT id FROM sources
+          WHERE type IN ('github_pr','jira_issue','notes')
+          ORDER BY id ASC LIMIT 1`,
+      )
+      .get() as { id: number } | undefined;
+    if (!firstSource) return c.json({ error: 'no writable sources configured' }, 400);
     sourceId = firstSource.id;
   }
 

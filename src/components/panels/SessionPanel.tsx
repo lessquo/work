@@ -5,20 +5,13 @@ import { Markdown } from '@/components/panels/Markdown';
 import { PromptPicker } from '@/components/panels/PromptPicker';
 import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
 import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
+import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Select, type SelectOption } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsList, TabsPanel, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import {
-  api,
-  DEFAULT_PROMPT_ID,
-  type ItemType,
-  type Prompt,
-  type PromptId,
-  type Session,
-  type Source,
-} from '@/lib/api';
+import { api, DEFAULT_PROMPT_ID, type Prompt, type PromptId, type Session, type Source } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -474,7 +467,18 @@ function SourcePicker({
   const options: SelectOption<string>[] =
     sources.length === 0
       ? [{ value: '', label: loading ? '— loading —' : '— no sources —' }]
-      : sources.map(s => ({ value: String(s.id), label: `${SOURCE_TYPE_LABEL[s.type]}: ${s.external_id}` }));
+      : sources.map(s => {
+          const logo = TYPE_LOGO[s.type];
+          return {
+            value: String(s.id),
+            label: (
+              <span className='flex min-w-0 items-center gap-1.5'>
+                <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
+                <span className='truncate'>{s.external_id}</span>
+              </span>
+            ),
+          };
+        });
 
   return (
     <label className='flex items-center gap-2 text-xs text-gray-600'>
@@ -493,13 +497,6 @@ function SourcePicker({
     </label>
   );
 }
-
-const SOURCE_TYPE_LABEL: Record<ItemType, string> = {
-  sentry_issue: 'Sentry',
-  jira_issue: 'Jira',
-  github_pr: 'GitHub',
-  notes: 'Notes',
-};
 
 function UserContextSection({
   sessionId,

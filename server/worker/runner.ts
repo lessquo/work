@@ -1,6 +1,5 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import { db, listNotes, sessionColumns, sessionFrom, syncNotesForItem, type Item, type Session } from '@server/db.js';
-import { getSecret } from '@server/secrets.js';
 import { getMaxParallel } from '@server/settings.js';
 import { emitSessionEnd, emitSessionLog, registerSessionAbort, unregisterSessionAbort } from '@server/worker/events.js';
 import { checkoutNewBranch, hasChanges, intentToAddAll, prepareClone } from '@server/worker/git.js';
@@ -140,7 +139,6 @@ async function runSDKTurn(opts: {
     const promptText = await preflight(log);
 
     let claudeSessionId: string | null = initialClaudeSessionId;
-    const sentryToken = getSecret('SENTRY_TOKEN');
     const q = query({
       prompt: promptText,
       options: {
@@ -156,7 +154,6 @@ async function runSDKTurn(opts: {
         mcpServers: {
           context7: { type: 'http', url: 'https://mcp.context7.com/mcp' },
         },
-        env: { ...process.env, ...(sentryToken ? { SENTRY_TOKEN: sentryToken } : {}) },
       },
     });
 

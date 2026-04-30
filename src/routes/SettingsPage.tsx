@@ -209,6 +209,13 @@ export function SettingsPage() {
                   is the throwaway clone in <code className={codeCls}>clones/session-&lt;id&gt;/</code>; you still
                   review every change via the <b>Diff</b> tab and create the PR yourself.
                 </p>
+                <p className='mt-3 text-xs text-gray-500'>
+                  MCP connectors you've authorized at{' '}
+                  <ExtLink href='https://claude.ai/settings/connectors'>claude.ai/settings/connectors</ExtLink> (Jira,
+                  Sentry, etc.) ride along with your account auth and are available to the spawned agent automatically —
+                  the Jira and Sentry prompts use them to fetch issue context. The only MCP server configured locally is{' '}
+                  <code className={codeCls}>context7</code> for library docs.
+                </p>
               </>
             }
           />

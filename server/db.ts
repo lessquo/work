@@ -101,23 +101,26 @@ const setItemWorkflowStmt = db.prepare(`UPDATE items SET workflow_id = ? WHERE i
 const getSessionItemIdStmt = db.prepare(`SELECT item_id FROM sessions WHERE id = ?`);
 const getItemWorkflowIdStmt = db.prepare(`SELECT workflow_id FROM items WHERE id = ?`);
 
-export const createWorkflowForSession = db.transaction((sessionId: number, name: string | null = null): number => {
-  const row = getSessionItemIdStmt.get(sessionId) as { item_id: number | null } | undefined;
-  if (row?.item_id) {
-    const existing = getItemWorkflowIdStmt.get(row.item_id) as { workflow_id: number | null } | undefined;
-    if (existing?.workflow_id) {
-      setSessionWorkflowStmt.run(existing.workflow_id, sessionId);
-      return existing.workflow_id;
+export const createWorkflowForSession = db.transaction(
+  (sessionId: number, sourceItemId: number | null = null, name: string | null = null): number => {
+    const itemId =
+      sourceItemId ?? (getSessionItemIdStmt.get(sessionId) as { item_id: number | null } | undefined)?.item_id ?? null;
+    if (itemId) {
+      const existing = getItemWorkflowIdStmt.get(itemId) as { workflow_id: number | null } | undefined;
+      if (existing?.workflow_id) {
+        setSessionWorkflowStmt.run(existing.workflow_id, sessionId);
+        return existing.workflow_id;
+      }
     }
-  }
-  const res = insertWorkflowStmt.run(name);
-  const workflowId = Number(res.lastInsertRowid);
-  setSessionWorkflowStmt.run(workflowId, sessionId);
-  if (row?.item_id) {
-    setItemWorkflowStmt.run(workflowId, row.item_id);
-  }
-  return workflowId;
-});
+    const res = insertWorkflowStmt.run(name);
+    const workflowId = Number(res.lastInsertRowid);
+    setSessionWorkflowStmt.run(workflowId, sessionId);
+    if (itemId) {
+      setItemWorkflowStmt.run(workflowId, itemId);
+    }
+    return workflowId;
+  },
+);
 
 export const createWorkflowForItem = db.transaction((itemId: number, name: string | null = null): number => {
   const res = insertWorkflowStmt.run(name);

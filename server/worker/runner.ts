@@ -71,17 +71,6 @@ async function buildPrompt(item: Item, promptId: string): Promise<string> {
     }
   })();
 
-  if (item.type === 'jira_issue') {
-    return renderPrompt(
-      {
-        jira_url: item.url,
-        issueKey: item.external_id,
-        jiraDomain: new URL(item.url).host,
-      },
-      promptId,
-    );
-  }
-
   return renderPrompt(
     {
       sentry_url: item.url,
@@ -90,6 +79,14 @@ async function buildPrompt(item: Item, promptId: string): Promise<string> {
     },
     promptId,
   );
+}
+
+// Orphan Jira PR sessions store `[KEY](URL)` as the first line of user_context.
+// We pull KEY back out for the branch name so the PR has a readable slug.
+function extractJiraKey(userContext: string | null): string | null {
+  if (!userContext) return null;
+  const m = userContext.match(/^\[([A-Z][A-Z0-9_]*-\d+)\]/);
+  return m?.[1] ?? null;
 }
 
 type Logger = (chunk: string) => Promise<void>;
@@ -212,15 +209,6 @@ async function runJob(sessionId: number): Promise<void> {
     return;
   }
 
-  const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(session.item_id) as Item | undefined;
-  if (!item) {
-    db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
-      'Item not found',
-      sessionId,
-    );
-    emitSessionEnd(sessionId);
-    return;
-  }
   if (!session.target_repo) {
     db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
       'target_repo is required for PR sessions',
@@ -231,15 +219,33 @@ async function runJob(sessionId: number): Promise<void> {
   }
   const targetRepo = session.target_repo;
 
+  let branch: string;
+  let buildPromptText: () => Promise<string>;
+
+  if (session.item_id) {
+    const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(session.item_id) as Item | undefined;
+    if (!item) {
+      db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
+        'Item not found',
+        sessionId,
+      );
+      emitSessionEnd(sessionId);
+      return;
+    }
+    branch = `${safeBranchSlug(item.external_id)}-${sessionId}`;
+    buildPromptText = () => buildPrompt(item, session.prompt);
+  } else {
+    const issueKey = extractJiraKey(session.user_context);
+    branch = issueKey ? `${issueKey}-${sessionId}` : `pr-${sessionId}`;
+    const userContext = session.user_context ?? '';
+    buildPromptText = () => renderPrompt({ user_context: userContext }, session.prompt);
+  }
+
   mkdirSync(CLONES_ROOT, { recursive: true });
   mkdirSync(LOGS_ROOT, { recursive: true });
 
   const clonePath = clonePathFor(sessionId);
   const logPath = logPathFor(sessionId);
-  const branch =
-    item.type === 'jira_issue'
-      ? `${item.external_id}-${sessionId}`
-      : `${safeBranchSlug(item.external_id)}-${sessionId}`;
 
   await writeFile(logPath, '');
 
@@ -263,7 +269,7 @@ async function runJob(sessionId: number): Promise<void> {
       await checkoutNewBranch(clonePath, branch, defaultBranch);
       await log(`[${new Date().toISOString()}] branched ${branch} from ${defaultBranch}\n`);
 
-      const promptText = await buildPrompt(item, session.prompt);
+      const promptText = await buildPromptText();
       await log(`[${new Date().toISOString()}] prompt: ${session.prompt}\n---\n${promptText}\n---\n`);
       return promptText;
     },

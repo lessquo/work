@@ -8,7 +8,7 @@ import {
   type Source,
 } from '@server/db.js';
 import { syncGithubSource } from '@server/integrations/github.js';
-import { syncJiraSource } from '@server/integrations/jira.js';
+import { buildJiraIssueContext, syncJiraSource } from '@server/integrations/jira.js';
 import {
   commentOnSentryIssue,
   getSentryCurrentUsername,
@@ -221,11 +221,11 @@ sources.post('/:id/session-items', async c => {
 
   const placeholders = ids.map(() => '?').join(',');
   const items = db
-    .prepare(`SELECT id FROM items WHERE source_id = ? AND id IN (${placeholders})`)
-    .all(id, ...ids) as Array<{ id: number }>;
+    .prepare(`SELECT * FROM items WHERE source_id = ? AND id IN (${placeholders})`)
+    .all(id, ...ids) as Item[];
 
   const insert = db.prepare(
-    `INSERT INTO sessions (item_id, source_id, target_repo, status, prompt) VALUES (?, ?, ?, 'queued', ?)`,
+    `INSERT INTO sessions (item_id, source_id, user_context, target_repo, status, prompt) VALUES (?, ?, ?, ?, 'queued', ?)`,
   );
   const hasActive = db.prepare(`SELECT 1 FROM sessions WHERE item_id = ? AND status IN ('queued','running') LIMIT 1`);
 
@@ -236,9 +236,12 @@ sources.post('/:id/session-items', async c => {
       skipped++;
       continue;
     }
-    const res = insert.run(it.id, id, targetRepo, prompt);
+    const isJira = it.type === 'jira_issue';
+    const sessionItemId: number | null = isJira ? null : it.id;
+    const userContext: string | null = isJira ? buildJiraIssueContext(it) : null;
+    const res = insert.run(sessionItemId, id, userContext, targetRepo, prompt);
     const sessionId = Number(res.lastInsertRowid);
-    createWorkflowForSession(sessionId);
+    createWorkflowForSession(sessionId, it.id);
     enqueueSession(sessionId);
     enqueued++;
   }

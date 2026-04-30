@@ -275,6 +275,10 @@ export async function updateJiraIssue(key: string, summary: string, descriptionM
   }
 }
 
+export function buildJiraIssueContext(item: { external_id: string; url: string }): string {
+  return `[${item.external_id}](${item.url})`;
+}
+
 export async function fetchJiraIssue(key: string): Promise<JiraRaw> {
   const { base, authHeader } = assertConfig();
   const fields = SEARCH_FIELDS.join(',');

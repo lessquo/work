@@ -5,14 +5,14 @@ hint: Implement the feature described in the Jira issue.
 
 ## Issue
 
-Fetch the Jira issue (with description, comments, and attachments metadata) before investigating. `JIRA_EMAIL` and `JIRA_TOKEN` are in env.
+{{user_context}}
+
+Fetch the full Jira issue (description, comments, attachments metadata) before investigating — extract the host and key from the link above. `JIRA_EMAIL` and `JIRA_TOKEN` are in env.
 
 ```
-curl -s -u "$JIRA_EMAIL:$JIRA_TOKEN" -H "Accept: application/json" "https://{{jiraDomain}}/rest/api/3/issue/{{issueKey}}"
-curl -s -u "$JIRA_EMAIL:$JIRA_TOKEN" -H "Accept: application/json" "https://{{jiraDomain}}/rest/api/3/issue/{{issueKey}}/comment"
+curl -s -u "$JIRA_EMAIL:$JIRA_TOKEN" -H "Accept: application/json" "https://<host>/rest/api/3/issue/<key>"
+curl -s -u "$JIRA_EMAIL:$JIRA_TOKEN" -H "Accept: application/json" "https://<host>/rest/api/3/issue/<key>/comment"
 ```
-
-Jira URL: {{jira_url}}
 
 ## Your tasks
 
@@ -25,7 +25,7 @@ Jira URL: {{jira_url}}
    ```md
    ### Jira link
 
-   [{{issueKey}}]({{jira_url}})
+   [<issue_key>](<issue_url>)
 
    ### Summary
 

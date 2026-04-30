@@ -1,6 +1,6 @@
 import { createWorkflowForSession, db, type Item, type Session } from '@server/db.js';
 import { externalIdForPr, parseGithubPrUrl, upsertGithubPr } from '@server/integrations/github.js';
-import { createJiraIssue, updateJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
+import { buildJiraIssueContext, createJiraIssue, updateJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
 import { abortSession, getSessionEmitter } from '@server/worker/events.js';
 import {
   commitAll,
@@ -48,13 +48,21 @@ sessions.post('/items/:id/sessions', async c => {
     return c.json({ error: 'Item already has an active session' }, 409);
   }
 
+  // Jira-driven PR sessions are orphaned: the session's eventual item is the
+  // GitHub PR it produces, not the originating Jira issue. The issue content
+  // is captured in user_context so the runner doesn't need item_id to render
+  // the prompt. Sentry sessions still own their item.
+  const isJira = item.type === 'jira_issue';
+  const sessionItemId: number | null = isJira ? null : itemId;
+  const userContext: string | null = isJira ? buildJiraIssueContext(item) : null;
+
   const res = db
     .prepare(
-      `INSERT INTO sessions (item_id, source_id, target_repo, status, prompt) VALUES (?, ?, ?, 'queued', ?)`,
+      `INSERT INTO sessions (item_id, source_id, user_context, target_repo, status, prompt) VALUES (?, ?, ?, ?, 'queued', ?)`,
     )
-    .run(itemId, item.source_id, targetRepo, prompt);
+    .run(sessionItemId, item.source_id, userContext, targetRepo, prompt);
   const sessionId = Number(res.lastInsertRowid);
-  createWorkflowForSession(sessionId);
+  createWorkflowForSession(sessionId, itemId);
 
   const session = getSession(sessionId);
   enqueueSession(sessionId);

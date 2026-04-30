@@ -4,16 +4,9 @@ import { api, type SecretKey, type Settings } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router';
 
 export function SettingsPage() {
   const qc = useQueryClient();
-  const confirm = useConfirm();
-  const navigate = useNavigate();
-  const { sourceId } = useParams();
-  const id = Number(sourceId);
-
-  const { data: source } = useSuspenseQuery({ queryKey: ['source', id], queryFn: () => api.getSource(id) });
   const { data: settings } = useSuspenseQuery({ queryKey: ['settings'], queryFn: api.getSettings });
   const { data: secrets } = useSuspenseQuery({ queryKey: ['secrets'], queryFn: api.getSecrets });
 
@@ -24,14 +17,6 @@ export function SettingsPage() {
     onSuccess: s => {
       qc.setQueryData(['settings'], s);
       setMaxParallel(s.max_parallel);
-    },
-  });
-
-  const deleteSourceMutation = useMutation({
-    mutationFn: (deleteId: number) => api.deleteSource(deleteId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['sources'] });
-      navigate('/sources');
     },
   });
 
@@ -257,31 +242,6 @@ export function SettingsPage() {
                 {maxParallel} {saveParallelMutation.isPending && <span className='text-xs text-gray-400'>…</span>}
               </span>
             </div>
-          </section>
-
-          <section className='flex justify-between rounded-md border bg-white p-4'>
-            <div className='flex flex-col gap-1'>
-              <h2 className='text-sm font-semibold'>Delete source</h2>
-              <p className='text-xs text-gray-500'>
-                All items, sessions, and resources for this source will be deleted.
-              </p>
-            </div>
-            <button
-              onClick={async () => {
-                const ok = await confirm({
-                  title: `Delete source "${source.external_id}"?`,
-                  description: 'All items, sessions, and resources for this source will be deleted.',
-                  confirmText: 'Delete source',
-                  destructive: true,
-                });
-                if (!ok) return;
-                deleteSourceMutation.mutate(id);
-              }}
-              disabled={deleteSourceMutation.isPending}
-              className='btn-md btn-danger'
-            >
-              Delete source
-            </button>
           </section>
         </div>
       </div>

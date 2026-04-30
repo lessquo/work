@@ -5,6 +5,7 @@ import { RootLayout } from '@/routes/RootLayout';
 import { SessionsPage } from '@/routes/SessionsPage';
 import { SettingsPage } from '@/routes/SettingsPage';
 import { SourceIndexPage } from '@/routes/SourceIndexPage';
+import { SourcesPage } from '@/routes/SourcesPage';
 import { FlowsPage } from '@/routes/FlowsPage';
 import { Navigate, Route, Routes } from 'react-router';
 import { FlowsPageSlot } from './routes/FlowsPageSlot';
@@ -15,6 +16,7 @@ export function App() {
     <Routes>
       <Route element={<RootLayout />}>
         <Route index element={<Navigate to='/sources' replace />} />
+        <Route path='/sources-list' element={<SourcesPage />} />
         <Route path='/sources'>
           <Route index element={<SourceIndexPage />} />
           <Route path='add' element={<AddSourcePage />} />

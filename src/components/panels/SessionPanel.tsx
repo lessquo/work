@@ -1,18 +1,31 @@
+import { InsertNoteButton } from '@/components/InsertNoteButton';
 import { DiffView } from '@/components/panels/DiffView';
 import { LogsView } from '@/components/panels/LogsView';
 import { Markdown } from '@/components/panels/Markdown';
+import { PromptPicker } from '@/components/panels/PromptPicker';
+import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
+import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
+import { Select, type SelectOption } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsList, TabsPanel, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { api, type Session } from '@/lib/api';
+import {
+  api,
+  DEFAULT_PROMPT_ID,
+  type ItemType,
+  type Prompt,
+  type PromptId,
+  type Session,
+  type Source,
+} from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Copy, X } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
-export type SessionPanelTab = 'logs' | 'diff' | 'pr' | 'notes';
+export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'notes';
 export type DescriptionMode = 'edit' | 'preview';
 
 export function SessionPanel({
@@ -101,16 +114,33 @@ export function SessionPanel({
     },
   });
 
+  const queueMutation = useMutation({
+    mutationFn: () => api.queueDraftSession(sessionId),
+    onSuccess: updated => {
+      qc.setQueryData(['session', sessionId], updated);
+      qc.invalidateQueries({ queryKey: ['items'] });
+      qc.invalidateQueries({ queryKey: ['itemCounts'] });
+      qc.invalidateQueries({ queryKey: ['flows'] });
+      setLogs('');
+      setStreamEpoch(e => e + 1);
+      setTab('logs');
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => api.deleteSession(sessionId),
     onSuccess: () => {
       qc.removeQueries({ queryKey: ['session', sessionId] });
       qc.invalidateQueries({ queryKey: ['items'] });
+      qc.invalidateQueries({ queryKey: ['flows'] });
       onClose();
     },
   });
 
+  const isDraft = session?.status === 'draft';
+
   useEffect(() => {
+    if (isDraft) return;
     const es = new EventSource(`/api/sessions/${sessionId}/log`);
     es.addEventListener('log', (e: MessageEvent) => {
       setLogs(prev => prev + e.data);
@@ -124,7 +154,7 @@ export function SessionPanel({
     });
     es.onerror = () => es.close();
     return () => es.close();
-  }, [sessionId, streamEpoch, qc]);
+  }, [sessionId, streamEpoch, qc, isDraft]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -137,12 +167,14 @@ export function SessionPanel({
   const active = session?.status === 'queued' || session?.status === 'running';
   const isJira = session?.type === 'jira_issue';
   const isNotes = session?.type === 'notes';
+  const canRun = isDraft && (isJira || isNotes || !!session?.target_repo);
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
     (createJiraMutation.error instanceof Error ? createJiraMutation.error.message : null) ??
     (updateJiraMutation.error instanceof Error ? updateJiraMutation.error.message : null) ??
     (deleteMutation.error instanceof Error ? deleteMutation.error.message : null) ??
-    (followupMutation.error instanceof Error ? followupMutation.error.message : null);
+    (followupMutation.error instanceof Error ? followupMutation.error.message : null) ??
+    (queueMutation.error instanceof Error ? queueMutation.error.message : null);
 
   function sendFollowup() {
     const msg = followupDraft.trim();
@@ -172,6 +204,17 @@ export function SessionPanel({
             <a href={session.pr_url} target='_blank' rel='noreferrer' className='btn-sm btn-success'>
               {isJira ? 'View Jira issue ↗' : 'View PR ↗'}
             </a>
+          )}
+          {isDraft && (
+            <Tooltip content={canRun ? 'Queue this session' : 'Pick a target repo first'}>
+              <button
+                onClick={() => queueMutation.mutate()}
+                disabled={!canRun || queueMutation.isPending}
+                className='btn-sm btn-primary'
+              >
+                {queueMutation.isPending ? 'Queuing…' : 'Run'}
+              </button>
+            </Tooltip>
           )}
           {session?.status === 'succeeded' &&
             !isNotes &&
@@ -217,13 +260,17 @@ export function SessionPanel({
               Abort
             </button>
           ) : (
-            <Tooltip content='Delete this session record and its clone folder'>
+            <Tooltip
+              content={isDraft ? 'Discard this draft session' : 'Delete this session record and its clone folder'}
+            >
               <button
                 onClick={async () => {
                   const ok = await confirm({
-                    title: 'Delete this session?',
-                    description: 'The session record and its clone folder will be permanently deleted.',
-                    confirmText: 'Delete',
+                    title: isDraft ? 'Discard this draft?' : 'Delete this session?',
+                    description: isDraft
+                      ? 'The draft session will be discarded.'
+                      : 'The session record and its clone folder will be permanently deleted.',
+                    confirmText: isDraft ? 'Discard' : 'Delete',
                     destructive: true,
                   });
                   if (!ok) return;
@@ -232,7 +279,7 @@ export function SessionPanel({
                 disabled={deleteMutation.isPending}
                 className='btn-sm btn-danger'
               >
-                Delete
+                {isDraft ? 'Discard' : 'Delete'}
               </button>
             </Tooltip>
           )}
@@ -244,59 +291,73 @@ export function SessionPanel({
       {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700'>{prError}</div>}
 
       <TabsRoot
-        value={resolveTabValue(tab, { isJira, isNotes })}
+        value={resolveTabValue(tab, { isJira, isNotes, isDraft })}
         onValueChange={v => setTab(v as SessionPanelTab)}
         className='flex min-h-0 flex-1 flex-col'
       >
         <TabsList className='border-b'>
-          <TabsTab value='logs'>Logs</TabsTab>
-          {isNotes ? (
-            <TabsTab value='notes'>Notes</TabsTab>
-          ) : (
+          <TabsTab value='setup'>Setup</TabsTab>
+          {!isDraft && (
             <>
-              {!isJira && <TabsTab value='diff'>Diff</TabsTab>}
-              <TabsTab value='pr'>{isJira ? 'Ticket' : 'PR'}</TabsTab>
+              <TabsTab value='logs'>Logs</TabsTab>
+              {isNotes ? (
+                <TabsTab value='notes'>Notes</TabsTab>
+              ) : (
+                <>
+                  {!isJira && <TabsTab value='diff'>Diff</TabsTab>}
+                  <TabsTab value='pr'>{isJira ? 'Ticket' : 'PR'}</TabsTab>
+                </>
+              )}
             </>
           )}
         </TabsList>
-        <TabsPanel value='logs' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
-          <div ref={logRef} className='h-full overflow-auto bg-white p-4 font-mono text-xs text-gray-800'>
-            {logs ? (
-              <LogsView text={logs} />
-            ) : (
-              <span className='text-gray-500'>{active ? 'Waiting for output…' : '(no output)'}</span>
-            )}
-          </div>
+        <TabsPanel value='setup' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
+          <Suspense fallback={<p className='p-4 text-sm text-gray-500'>Loading prompts…</p>}>
+            <SetupTab session={session} />
+          </Suspense>
         </TabsPanel>
-        {isNotes ? (
-          <TabsPanel value='notes' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
-            <NotesView session={session} />
-          </TabsPanel>
-        ) : (
+        {!isDraft && (
           <>
-            {!isJira && (
-              <TabsPanel value='diff' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
-                <div className='h-full overflow-auto bg-white p-4'>
-                  <Suspense fallback={<p className='text-sm text-gray-500'>Loading diff…</p>}>
-                    <DiffView sessionId={sessionId} />
-                  </Suspense>
-                </div>
-              </TabsPanel>
-            )}
-            <TabsPanel value='pr' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
-              <div className='h-40 shrink-0 border-b'>
-                <TitleEditor sessionId={sessionId} session={session} isJira={isJira} />
-              </div>
-              <div className='min-h-0 flex-1'>
-                <DescriptionEditor
-                  sessionId={sessionId}
-                  session={session}
-                  isJira={isJira}
-                  mode={descriptionMode}
-                  setMode={setDescriptionMode}
-                />
+            <TabsPanel value='logs' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+              <div ref={logRef} className='h-full overflow-auto bg-white p-4 font-mono text-xs text-gray-800'>
+                {logs ? (
+                  <LogsView text={logs} />
+                ) : (
+                  <span className='text-gray-500'>{active ? 'Waiting for output…' : '(no output)'}</span>
+                )}
               </div>
             </TabsPanel>
+            {isNotes ? (
+              <TabsPanel value='notes' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+                <NotesView session={session} />
+              </TabsPanel>
+            ) : (
+              <>
+                {!isJira && (
+                  <TabsPanel value='diff' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+                    <div className='h-full overflow-auto bg-white p-4'>
+                      <Suspense fallback={<p className='text-sm text-gray-500'>Loading diff…</p>}>
+                        <DiffView sessionId={sessionId} />
+                      </Suspense>
+                    </div>
+                  </TabsPanel>
+                )}
+                <TabsPanel value='pr' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
+                  <div className='h-40 shrink-0 border-b'>
+                    <TitleEditor sessionId={sessionId} session={session} isJira={isJira} />
+                  </div>
+                  <div className='min-h-0 flex-1'>
+                    <DescriptionEditor
+                      sessionId={sessionId}
+                      session={session}
+                      isJira={isJira}
+                      mode={descriptionMode}
+                      setMode={setDescriptionMode}
+                    />
+                  </div>
+                </TabsPanel>
+              </>
+            )}
           </>
         )}
       </TabsRoot>
@@ -309,6 +370,204 @@ export function SessionPanel({
       />
     </aside>
   );
+}
+
+function SetupTab({ session }: { session: Session | null }) {
+  const qc = useQueryClient();
+  const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
+  const prompts = promptsQuery.data;
+  const sourcesQuery = useQuery({ queryKey: ['sources'], queryFn: api.listSources });
+  const sources = sourcesQuery.data ?? [];
+
+  const isDraft = session?.status === 'draft';
+  const isJira = session?.type === 'jira_issue';
+  const isNotes = session?.type === 'notes';
+  const allowEmptyRepo = isJira || isNotes;
+
+  const updateMutation = useMutation({
+    mutationFn: (patch: { prompt?: PromptId; targetRepo?: string; userContext?: string; sourceId?: number | null }) =>
+      session ? api.updateDraftSession(session.id, patch) : Promise.reject(new Error('no session')),
+    onSuccess: updated => {
+      qc.setQueryData(['session', updated.id], updated);
+    },
+  });
+
+  // Auto-bind a default source for fresh drafts so the prompt picker has something to filter against.
+  const sessionSourceId = session?.source_id ?? null;
+  useEffect(() => {
+    if (!isDraft) return;
+    if (sessionSourceId != null) return;
+    const first = sources[0];
+    if (first) updateMutation.mutate({ sourceId: first.id });
+  }, [isDraft, sessionSourceId, sources, updateMutation]);
+
+  const selectedSource = sources.find(s => s.id === sessionSourceId) ?? null;
+  const compatiblePrompts = selectedSource ? prompts.filter(p => p.applies_to === selectedSource.type) : prompts;
+
+  const sessionPrompt: PromptId = session?.prompt ?? DEFAULT_PROMPT_ID;
+  const effectivePromptId = compatiblePrompts.some(p => p.id === sessionPrompt)
+    ? sessionPrompt
+    : (compatiblePrompts[0]?.id ?? sessionPrompt);
+  const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
+
+  // If the current prompt isn't compatible with the chosen source, snap to the first compatible one.
+  useEffect(() => {
+    if (!isDraft) return;
+    if (effectivePromptId === sessionPrompt) return;
+    updateMutation.mutate({ prompt: effectivePromptId });
+  }, [isDraft, effectivePromptId, sessionPrompt, updateMutation]);
+
+  if (!session) return null;
+
+  const targetRepo = session.target_repo ?? '';
+  const needsContext = !!selectedPrompt?.content.includes('{{user_context}}');
+
+  return (
+    <div className='flex min-h-0 flex-1 flex-col'>
+      <section className='border-b px-4 py-3'>
+        <div className='mb-2'>
+          <SourcePicker
+            sources={sources}
+            value={sessionSourceId}
+            loading={sourcesQuery.isLoading}
+            readOnly={!isDraft}
+            onChange={id => updateMutation.mutate({ sourceId: id })}
+          />
+        </div>
+        <TargetRepoPicker
+          value={targetRepo}
+          onChange={v => {
+            if (!isDraft) return;
+            updateMutation.mutate({ targetRepo: v });
+          }}
+          allowEmpty={allowEmptyRepo}
+        />
+        {!isDraft && <p className='mt-2 text-xs text-gray-500'>Read-only — session already started.</p>}
+      </section>
+
+      <SetupPromptPicker
+        prompts={compatiblePrompts}
+        promptId={effectivePromptId}
+        readOnly={!isDraft}
+        onChange={p => updateMutation.mutate({ prompt: p })}
+      />
+
+      {needsContext && (
+        <UserContextSection
+          sessionId={session.id}
+          value={session.user_context ?? ''}
+          readOnly={!isDraft}
+          onChange={v => updateMutation.mutate({ userContext: v })}
+        />
+      )}
+
+      {selectedPrompt && <PromptTemplateEditor key={selectedPrompt.id} prompt={selectedPrompt} readOnly={!isDraft} />}
+    </div>
+  );
+}
+
+function SourcePicker({
+  sources,
+  value,
+  loading,
+  readOnly,
+  onChange,
+}: {
+  sources: Source[];
+  value: number | null;
+  loading: boolean;
+  readOnly: boolean;
+  onChange: (id: number) => void;
+}) {
+  const options: SelectOption<string>[] =
+    sources.length === 0
+      ? [{ value: '', label: loading ? '— loading —' : '— no sources —' }]
+      : sources.map(s => ({ value: String(s.id), label: `${SOURCE_TYPE_LABEL[s.type]}: ${s.external_id}` }));
+
+  return (
+    <label className='flex items-center gap-2 text-xs text-gray-600'>
+      <span className='shrink-0'>Source:</span>
+      <Select<string>
+        ariaLabel='Source'
+        value={value !== null ? String(value) : ''}
+        onChange={v => {
+          if (readOnly) return;
+          const n = Number(v);
+          if (Number.isFinite(n) && n > 0) onChange(n);
+        }}
+        options={options}
+        className='min-w-0 flex-1 text-xs'
+      />
+    </label>
+  );
+}
+
+const SOURCE_TYPE_LABEL: Record<ItemType, string> = {
+  sentry_issue: 'Sentry',
+  jira_issue: 'Jira',
+  github_pr: 'GitHub',
+  notes: 'Notes',
+};
+
+function UserContextSection({
+  sessionId,
+  value,
+  readOnly,
+  onChange,
+}: {
+  sessionId: number;
+  value: string;
+  readOnly: boolean;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <section key={sessionId} className='flex h-56 shrink-0 flex-col border-b bg-white'>
+      <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
+        <span className='text-gray-500'>What's this session about?</span>
+        {!readOnly && (
+          <InsertNoteButton
+            onInsert={({ title, body_md }) => {
+              const block = `### ${title}\n\n${body_md.trim()}`;
+              const next = value.trim().length === 0 ? block : `${value.trim()}\n\n${block}`;
+              onChange(next);
+            }}
+          />
+        )}
+      </div>
+      <textarea
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        disabled={readOnly}
+        spellCheck
+        placeholder='Describe the bug, feature, or chore. Include any relevant links, repro steps, affected users, deadlines, or constraints.'
+        className='min-h-0 flex-1 resize-none bg-white p-4 text-sm leading-relaxed text-gray-800 outline-none placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500'
+      />
+    </section>
+  );
+}
+
+function SetupPromptPicker({
+  prompts,
+  promptId,
+  readOnly,
+  onChange,
+}: {
+  prompts: Prompt[];
+  promptId: PromptId;
+  readOnly: boolean;
+  onChange: (p: PromptId) => void;
+}) {
+  if (readOnly) {
+    const active = prompts.find(p => p.id === promptId);
+    return (
+      <section className='border-b px-4 py-3 text-xs'>
+        <span className='text-gray-500'>Prompt:</span>{' '}
+        <span className='font-medium text-gray-800'>{active?.label ?? promptId}</span>
+        {active?.hint && <span className='ml-2 text-gray-500'>· {active.hint}</span>}
+      </section>
+    );
+  }
+  return <PromptPicker prompts={prompts} promptId={promptId} setPromptId={onChange} />;
 }
 
 function TitleEditor({ sessionId, session, isJira }: { sessionId: number; session: Session | null; isJira: boolean }) {
@@ -499,7 +758,12 @@ function DescriptionEditor({
   );
 }
 
-function resolveTabValue(tab: SessionPanelTab, kind: { isJira: boolean; isNotes: boolean }): SessionPanelTab {
+function resolveTabValue(
+  tab: SessionPanelTab,
+  kind: { isJira: boolean; isNotes: boolean; isDraft: boolean },
+): SessionPanelTab {
+  if (kind.isDraft) return 'setup';
+  if (tab === 'setup') return 'setup';
   if (kind.isNotes) return tab === 'logs' ? 'logs' : 'notes';
   if (kind.isJira && tab === 'diff') return 'pr';
   if (tab === 'notes') return 'logs';
@@ -564,6 +828,7 @@ function NotesView({ session }: { session: Session | null }) {
 
 function StatusBadge({ status }: { status: Session['status'] }) {
   const map: Record<Session['status'], string> = {
+    draft: 'status-secondary',
     queued: 'status-secondary',
     running: 'status-primary',
     succeeded: 'status-success',

@@ -158,7 +158,7 @@ export function itemCreationTime(item: Pick<Item, 'type' | 'raw' | 'created_at'>
   }
 }
 
-export type SessionStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'aborted';
+export type SessionStatus = 'draft' | 'queued' | 'running' | 'succeeded' | 'failed' | 'aborted';
 export type PromptId = string;
 export const DEFAULT_PROMPT_ID: PromptId = 'fix-sentry-issue';
 export const DEFAULT_JIRA_PROMPT_ID: PromptId = 'create-jira-issue';
@@ -166,6 +166,7 @@ export type Prompt = {
   id: PromptId;
   label: string;
   hint: string;
+  applies_to: ItemType | null;
   content: string;
   created_at: string;
 };
@@ -267,11 +268,33 @@ export const api = {
       body: JSON.stringify({ flowId }),
     }),
   syncSource: (sourceId: number) => req<{ synced: number }>(`/sources/${sourceId}/sync`, { method: 'POST' }),
-  runItems: (sourceId: number, itemIds: number[], prompt: PromptId, targetRepo: string) =>
-    req<{ enqueued: number; skipped: number }>(`/sources/${sourceId}/session-items`, {
+  createDraftSession: (input: {
+    itemId?: number;
+    flowId?: number;
+    sourceId?: number;
+    type?: ItemType;
+    prompt?: PromptId;
+    targetRepo?: string;
+  }) =>
+    req<Session>(`/sessions/draft`, {
       method: 'POST',
-      body: JSON.stringify({ itemIds, prompt, targetRepo }),
+      body: JSON.stringify(input),
     }),
+  updateDraftSession: (
+    sessionId: number,
+    patch: {
+      prompt?: PromptId;
+      targetRepo?: string;
+      type?: ItemType;
+      userContext?: string;
+      sourceId?: number | null;
+    },
+  ) =>
+    req<Session>(`/sessions/${sessionId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    }),
+  queueDraftSession: (sessionId: number) => req<Session>(`/sessions/${sessionId}/queue`, { method: 'POST' }),
   deleteItemSessions: (sourceId: number, itemIds: number[]) =>
     req<{ deleted: number; skipped_active: number; no_run: number; folder_errors: string[] }>(
       `/sources/${sourceId}/delete-sessions`,

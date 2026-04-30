@@ -7,7 +7,7 @@ import { useState } from 'react';
 
 type PromptEditorMode = 'edit' | 'preview';
 
-export function PromptTemplateEditor({ prompt }: { prompt: Prompt }) {
+export function PromptTemplateEditor({ prompt, readOnly = false }: { prompt: Prompt; readOnly?: boolean }) {
   const queryKey = ['prompt', prompt.id] as const;
   const tplQuery = useSuspenseQuery({
     queryKey,
@@ -19,31 +19,37 @@ export function PromptTemplateEditor({ prompt }: { prompt: Prompt }) {
     queryKey,
     loaded: tplQuery.data,
     save: (content: string) => api.updatePromptTemplate(prompt.id, content),
+    disabled: readOnly,
   });
 
   const [mode, setMode] = useState<PromptEditorMode>('preview');
+  const effectiveMode: PromptEditorMode = readOnly ? 'preview' : mode;
 
   return (
     <div className='flex min-h-0 flex-1 flex-col bg-white'>
       <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
         <div className='flex min-w-0 items-center gap-3'>
-          <TabsRoot value={mode} onValueChange={v => setMode(v as PromptEditorMode)}>
-            <PillTabsList>
-              <PillTabsTab value='preview' size='sm'>
-                Preview
-              </PillTabsTab>
-              <PillTabsTab value='edit' size='sm'>
-                Edit
-              </PillTabsTab>
-            </PillTabsList>
-          </TabsRoot>
+          {!readOnly && (
+            <TabsRoot value={mode} onValueChange={v => setMode(v as PromptEditorMode)}>
+              <PillTabsList>
+                <PillTabsTab value='preview' size='sm'>
+                  Preview
+                </PillTabsTab>
+                <PillTabsTab value='edit' size='sm'>
+                  Edit
+                </PillTabsTab>
+              </PillTabsList>
+            </TabsRoot>
+          )}
           <span className='min-w-0 truncate text-gray-500'>
             <code className='font-mono text-gray-700'>{prompt.id}</code>
             {prompt.hint && <span className='ml-2'>· {prompt.hint}</span>}
           </span>
         </div>
         <span className='shrink-0'>
-          {status === 'error' && error ? (
+          {readOnly ? (
+            <span className='text-gray-500'>Read-only</span>
+          ) : status === 'error' && error ? (
             <span className='text-rose-600'>Save failed: {error.message}</span>
           ) : status === 'saving' ? (
             <span className='text-gray-500'>Saving…</span>
@@ -54,7 +60,7 @@ export function PromptTemplateEditor({ prompt }: { prompt: Prompt }) {
           ) : null}
         </span>
       </div>
-      {mode === 'edit' ? (
+      {effectiveMode === 'edit' ? (
         <textarea
           value={draft}
           onChange={e => setDraft(e.target.value)}

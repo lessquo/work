@@ -5,10 +5,9 @@ import { NotebookPanel } from '@/components/panels/NotebookPanel';
 import { SessionPanel } from '@/components/panels/SessionPanel';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
-import { api, DEFAULT_PROMPT_ID, type PromptId } from '@/lib/api';
+import { api, type Item } from '@/lib/api';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsArrayOf, parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 export function ItemsPageSlot() {
@@ -26,16 +25,13 @@ export function ItemsPageSlot() {
   const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
-    parseAsStringLiteral(['logs', 'diff', 'pr', 'notes'] as const).withDefault('logs'),
+    parseAsStringLiteral(['setup', 'logs', 'diff', 'pr', 'notes'] as const).withDefault('logs'),
   );
   const [descriptionMode, setDescriptionMode] = useQueryState(
     'descriptionMode',
     parseAsStringLiteral(['edit', 'preview'] as const).withDefault('preview'),
   );
   const [jiraDraftOpen, setJiraDraftOpen] = useQueryState('jiraDraft', parseAsBoolean.withDefault(false));
-
-  const [promptId, setPromptId] = useState<PromptId>(DEFAULT_PROMPT_ID);
-  const [targetRepo, setTargetRepo] = useState('');
 
   const sourceQuery = useSuspenseQuery({ queryKey: ['source', sourceId], queryFn: () => api.getSource(sourceId) });
   const source = sourceQuery.data;
@@ -48,7 +44,6 @@ export function ItemsPageSlot() {
 
   const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
   const prompts = promptsQuery.data;
-  const effectivePromptId = prompts.some(p => p.id === promptId) ? promptId : (prompts[0]?.id ?? DEFAULT_PROMPT_ID);
 
   const selection = new Set<number>(selectedIds);
   if (itemIdNum !== null) selection.add(itemIdNum);
@@ -61,19 +56,30 @@ export function ItemsPageSlot() {
 
   const onMutationError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
-  const sessionMutation = useMutation({
-    mutationFn: (ids: number[]) => api.runItems(sourceId, ids, effectivePromptId, targetRepo),
-    onSuccess: res => {
-      const skippedNote = res.skipped > 0 ? ` (${res.skipped} skipped)` : '';
+  const createSessionsMutation = useMutation({
+    mutationFn: async (targetItems: Item[]) => {
+      const results = await Promise.allSettled(targetItems.map(it => api.createDraftSession({ itemId: it.id })));
+      return results;
+    },
+    onSuccess: results => {
+      const created = results.filter(r => r.status === 'fulfilled');
+      const skipped = results.length - created.length;
+      const skippedNote = skipped > 0 ? ` (${skipped} skipped)` : '';
       toast.add({
         title:
-          res.enqueued === 0
-            ? 'Nothing queued.'
-            : `Queued ${res.enqueued} session${res.enqueued === 1 ? '' : 's'}${skippedNote}.`,
+          created.length === 0
+            ? 'No drafts created.'
+            : `Created ${created.length} draft session${created.length === 1 ? '' : 's'}${skippedNote}.`,
       });
       clearSelection();
       qc.invalidateQueries({ queryKey: ['items', sourceId] });
       qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
+      qc.invalidateQueries({ queryKey: ['flows'] });
+      if (created.length === 1 && created[0].status === 'fulfilled') {
+        const sess = created[0].value;
+        setSessionTab('setup');
+        setSessionId(sess.id);
+      }
     },
     onError: onMutationError,
   });
@@ -122,21 +128,15 @@ export function ItemsPageSlot() {
     onError: onMutationError,
   });
 
-  const running = sessionMutation.isPending;
+  const creatingSessions = createSessionsMutation.isPending;
   const resolving = resolveItemsMutation.isPending;
   const deletingSessions = deleteSessionsMutation.isPending;
   const creatingFlows = createFlowsMutation.isPending;
 
-  async function runSelected() {
-    if (selection.size === 0 || !targetRepo) return;
-    const mode = prompts.find(p => p.id === effectivePromptId)?.label ?? effectivePromptId;
-    const ok = await confirm({
-      title: `Queue ${mode} sessions?`,
-      description: `Claude will be queued to ${mode.toLowerCase()} ${selection.size} selected item${selection.size === 1 ? '' : 's'} against ${targetRepo}.`,
-      confirmText: `Queue ${selection.size}`,
-    });
-    if (!ok) return;
-    sessionMutation.mutate(Array.from(selection));
+  function createSelected() {
+    if (selection.size === 0) return;
+    const targets = items.filter(i => selection.has(i.id));
+    createSessionsMutation.mutate(targets);
   }
 
   async function resolveSelected() {
@@ -195,16 +195,11 @@ export function ItemsPageSlot() {
       <BatchPanel
         filter={filter}
         selectedItems={items.filter(i => selection.has(i.id))}
-        prompts={prompts}
-        promptId={effectivePromptId}
-        setPromptId={setPromptId}
-        targetRepo={targetRepo}
-        setTargetRepo={setTargetRepo}
-        onRun={runSelected}
+        onCreateSessions={createSelected}
         onResolve={resolveSelected}
         onDeleteSessions={deleteSelectedSessions}
         onCreateFlows={() => createFlowsMutation.mutate(Array.from(selection))}
-        running={running}
+        creatingSessions={creatingSessions}
         resolving={resolving}
         deletingSessions={deletingSessions}
         creatingFlows={creatingFlows}

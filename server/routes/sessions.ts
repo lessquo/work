@@ -1,4 +1,4 @@
-import { createFlowForSession, db, type Item, type Session } from '@server/db.js';
+import { createFlowForSession, db, type Item, type ItemType, type Session } from '@server/db.js';
 import { externalIdForPr, parseGithubPrUrl, upsertGithubPr } from '@server/integrations/github.js';
 import { buildJiraIssueContext, createJiraIssue, updateJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
 import { abortSession, getSessionEmitter } from '@server/worker/events.js';
@@ -30,6 +30,133 @@ function activeSessionForItem(itemId: number): Session | undefined {
     .prepare(`SELECT * FROM sessions WHERE item_id = ? AND status IN ('queued','running') ORDER BY id DESC LIMIT 1`)
     .get(itemId) as Session | undefined;
 }
+
+const SESSION_TYPES: ItemType[] = ['sentry_issue', 'jira_issue', 'github_pr', 'notes'];
+
+// POST /api/sessions/draft — create a draft session (no clone, no run)
+sessions.post('/sessions/draft', async c => {
+  const body = await c.req
+    .json<{
+      itemId?: number;
+      flowId?: number;
+      sourceId?: number;
+      type?: ItemType;
+      prompt?: string;
+      targetRepo?: string;
+    }>()
+    .catch(() => ({}) as Record<string, never>);
+
+  const originalItemId = typeof body.itemId === 'number' ? body.itemId : null;
+  let sessionItemId: number | null = originalItemId;
+  let sourceId: number | null = typeof body.sourceId === 'number' ? body.sourceId : null;
+  let type: ItemType = body.type && SESSION_TYPES.includes(body.type) ? body.type : 'github_pr';
+  let userContext: string | null = null;
+
+  if (originalItemId !== null) {
+    const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(originalItemId) as Item | undefined;
+    if (!item) return c.json({ error: 'item not found' }, 404);
+    sourceId = item.source_id;
+    type = item.type;
+    if (item.type === 'jira_issue') {
+      userContext = buildJiraIssueContext(item);
+      sessionItemId = null;
+    } else {
+      const existing = db
+        .prepare(`SELECT 1 FROM sessions WHERE item_id = ? AND status IN ('draft','queued','running') LIMIT 1`)
+        .get(originalItemId);
+      if (existing) return c.json({ error: 'item already has an active or draft session' }, 409);
+    }
+  }
+
+  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_PROMPT_ID;
+  const targetRepo = (body.targetRepo ?? '').trim() || null;
+  const flowId = typeof body.flowId === 'number' ? body.flowId : null;
+
+  const res = db
+    .prepare(
+      `INSERT INTO sessions (item_id, source_id, flow_id, type, user_context, target_repo, status, prompt)
+       VALUES (?, ?, ?, ?, ?, ?, 'draft', ?)`,
+    )
+    .run(sessionItemId, sourceId, flowId, type, userContext, targetRepo, prompt);
+  const sessionId = Number(res.lastInsertRowid);
+
+  // If no explicit flow was supplied, auto-attach via the item's flow (matches runItems' behavior).
+  if (flowId == null && originalItemId !== null) {
+    createFlowForSession(sessionId, originalItemId);
+  }
+
+  return c.json(getSession(sessionId));
+});
+
+// PATCH /api/sessions/:id — edit a draft session's config (prompt, targetRepo, type)
+sessions.patch('/sessions/:id', async c => {
+  const sessionId = Number(c.req.param('id'));
+  const session = getSession(sessionId);
+  if (!session) return c.json({ error: 'not found' }, 404);
+  if (session.status !== 'draft') return c.json({ error: 'only drafts can be edited' }, 409);
+
+  const body = await c.req
+    .json<{
+      prompt?: string;
+      targetRepo?: string;
+      type?: ItemType;
+      userContext?: string;
+      sourceId?: number | null;
+    }>()
+    .catch(() => ({}) as Record<string, never>);
+
+  const updates: string[] = [];
+  const args: unknown[] = [];
+  if (typeof body.prompt === 'string') {
+    if (!isPromptId(body.prompt)) return c.json({ error: 'invalid prompt id' }, 400);
+    updates.push('prompt = ?');
+    args.push(body.prompt);
+  }
+  if (typeof body.targetRepo === 'string') {
+    updates.push('target_repo = ?');
+    args.push(body.targetRepo.trim() || null);
+  }
+  if (typeof body.type === 'string') {
+    if (!SESSION_TYPES.includes(body.type)) return c.json({ error: 'invalid session type' }, 400);
+    updates.push('type = ?');
+    args.push(body.type);
+  }
+  if (typeof body.userContext === 'string') {
+    updates.push('user_context = ?');
+    args.push(body.userContext.length > 0 ? body.userContext : null);
+  }
+  if (body.sourceId === null || typeof body.sourceId === 'number') {
+    if (typeof body.sourceId === 'number') {
+      const exists = db.prepare(`SELECT 1 FROM sources WHERE id = ?`).get(body.sourceId);
+      if (!exists) return c.json({ error: 'source not found' }, 400);
+    }
+    updates.push('source_id = ?');
+    args.push(body.sourceId);
+  }
+  if (updates.length === 0) return c.json(session);
+  args.push(sessionId);
+  db.prepare(`UPDATE sessions SET ${updates.join(', ')} WHERE id = ?`).run(...args);
+  return c.json(getSession(sessionId));
+});
+
+// POST /api/sessions/:id/queue — transition draft → queued and enqueue
+sessions.post('/sessions/:id/queue', c => {
+  const sessionId = Number(c.req.param('id'));
+  const session = getSession(sessionId);
+  if (!session) return c.json({ error: 'not found' }, 404);
+  if (session.status !== 'draft') return c.json({ error: 'session is not a draft' }, 409);
+  // PR-style sessions need a target repo; jira drafts and notes sessions don't.
+  if (session.type !== 'jira_issue' && session.type !== 'notes' && !session.target_repo) {
+    return c.json({ error: 'targetRepo is required' }, 400);
+  }
+  if (session.type === 'jira_issue' && !session.user_context) {
+    return c.json({ error: 'user_context is required for jira sessions' }, 400);
+  }
+
+  db.prepare(`UPDATE sessions SET status = 'queued' WHERE id = ?`).run(sessionId);
+  enqueueSession(sessionId);
+  return c.json(getSession(sessionId));
+});
 
 // POST /api/items/:id/sessions — start a single session
 sessions.post('/items/:id/sessions', async c => {

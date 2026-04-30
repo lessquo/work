@@ -27,6 +27,7 @@ prompts.get('/prompts', async c => {
           id,
           label: meta.label || id,
           hint: meta.hint,
+          applies_to: meta.applies_to,
           content,
           created_at: s.birthtime.toISOString(),
         };
@@ -40,14 +41,21 @@ prompts.get('/prompts', async c => {
   return c.json(valid);
 });
 
+const APPLIES_TO_VALUES = ['sentry_issue', 'jira_issue', 'github_pr', 'notes'] as const;
+type AppliesTo = (typeof APPLIES_TO_VALUES)[number];
+function asAppliesTo(v: unknown): AppliesTo | null {
+  return typeof v === 'string' && (APPLIES_TO_VALUES as readonly string[]).includes(v) ? (v as AppliesTo) : null;
+}
+
 prompts.post('/prompts', async c => {
   const body = await c.req
-    .json<{ id?: unknown; label?: unknown; hint?: unknown; content?: unknown }>()
-    .catch(() => ({}) as { id?: unknown; label?: unknown; hint?: unknown; content?: unknown });
+    .json<{ id?: unknown; label?: unknown; hint?: unknown; content?: unknown; applies_to?: unknown }>()
+    .catch(() => ({}) as { id?: unknown; label?: unknown; hint?: unknown; content?: unknown; applies_to?: unknown });
   const id = typeof body.id === 'string' ? body.id.trim() : '';
   const label = typeof body.label === 'string' ? body.label.trim() : '';
   const hint = typeof body.hint === 'string' ? body.hint : '';
   const content = typeof body.content === 'string' ? body.content : '';
+  const applies_to = asAppliesTo(body.applies_to);
 
   if (!id || !label) return c.json({ error: 'id and label are required' }, 400);
   if (!ID_REGEX.test(id)) {
@@ -56,7 +64,7 @@ prompts.post('/prompts', async c => {
 
   const path = promptPath(id);
   try {
-    await writeFile(path, serializePromptFile({ label, hint }, content), { flag: 'wx' });
+    await writeFile(path, serializePromptFile({ label, hint, applies_to }, content), { flag: 'wx' });
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === 'EEXIST') {
       return c.json({ error: `prompt with id "${id}" already exists` }, 409);
@@ -65,7 +73,7 @@ prompts.post('/prompts', async c => {
   }
 
   const s = await stat(path);
-  return c.json({ id, label, hint, content, created_at: s.birthtime.toISOString() }, 201);
+  return c.json({ id, label, hint, applies_to, content, created_at: s.birthtime.toISOString() }, 201);
 });
 
 prompts.delete('/prompts/:id', async c => {

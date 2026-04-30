@@ -1,6 +1,7 @@
 ---
 label: Implement Jira Issue
 hint: Implement the feature described in the Jira issue.
+applies_to: jira_issue
 ---
 
 ## Issue

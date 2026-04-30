@@ -1,14 +1,10 @@
-import { PromptPicker } from '@/components/panels/PromptPicker';
-import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
-import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { api, DEFAULT_PROMPT_ID, parseSentryRaw, type Item, type ItemWithSessions, type PromptId } from '@/lib/api';
+import { api, parseSentryRaw, type Item, type ItemWithSessions } from '@/lib/api';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Copy, Workflow } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
@@ -24,9 +20,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const [filter] = useQueryState('filter', parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'));
   const [sort] = useQueryState('sort', parseAsStringLiteral(['recency', 'title'] as const).withDefault('recency'));
   const [selectedIds, setSelectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
-
-  const [promptId, setPromptId] = useState<PromptId>(DEFAULT_PROMPT_ID);
-  const [targetRepo, setTargetRepo] = useState('');
+  const [, setSessionIdQs] = useQueryState('session', parseAsInteger);
 
   const sourceItemsQuery = useSuspenseQuery({
     queryKey: isFlowMode ? ['items-noop'] : ['items', sourceId, filter, sort],
@@ -37,9 +31,6 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     queryKey: isFlowMode && itemId !== null ? ['item', itemId] : ['item-noop'],
     queryFn: (): Promise<Item | null> => (isFlowMode && itemId !== null ? api.getItem(itemId) : Promise.resolve(null)),
   });
-  const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
-  const prompts = promptsQuery.data;
-  const effectivePromptId = prompts.some(p => p.id === promptId) ? promptId : (prompts[0]?.id ?? DEFAULT_PROMPT_ID);
 
   const ids = new Set<number>(selectedIds);
   if (itemId !== null) ids.add(itemId);
@@ -50,9 +41,6 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     : sourceItemsQuery.data.filter(i => ids.has(i.id));
   const count = selectedItems.length;
   const sid = isFlowMode ? (selectedItems[0]?.source_id ?? sourceId) : sourceId;
-  const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
-  const promptLabel = selectedPrompt?.label ?? 'Run';
-  const promptHint = selectedPrompt?.hint ?? '';
 
   function invalidateAfterMutation() {
     setSelectedIds(null);
@@ -64,17 +52,38 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     }
   }
 
-  const sessionMutation = useMutation({
-    mutationFn: (targetIds: number[]) => api.runItems(sid, targetIds, effectivePromptId, targetRepo),
-    onSuccess: res => {
-      const skippedNote = res.skipped > 0 ? ` (${res.skipped} skipped)` : '';
+  const createSessionsMutation = useMutation({
+    mutationFn: async (targetItems: Item[]) => {
+      const results = await Promise.allSettled(targetItems.map(it => api.createDraftSession({ itemId: it.id })));
+      return results;
+    },
+    onSuccess: results => {
+      const created = results.filter(r => r.status === 'fulfilled');
+      const skipped = results.length - created.length;
+      const skippedNote = skipped > 0 ? ` (${skipped} skipped)` : '';
       toast.add({
         title:
-          res.enqueued === 0
-            ? 'Nothing queued.'
-            : `Queued ${res.enqueued} session${res.enqueued === 1 ? '' : 's'}${skippedNote}.`,
+          created.length === 0
+            ? 'No drafts created.'
+            : `Created ${created.length} draft session${created.length === 1 ? '' : 's'}${skippedNote}.`,
       });
       invalidateAfterMutation();
+      qc.invalidateQueries({ queryKey: ['flows'] });
+      if (created.length === 1 && created[0].status === 'fulfilled') {
+        const sess = created[0].value;
+        if (isFlowMode) {
+          const params = new URLSearchParams(window.location.search);
+          params.set('session', String(sess.id));
+          params.delete('item');
+          params.set('sessionTab', 'setup');
+          navigate({
+            pathname: sess.flow_id ? `/flows/${sess.flow_id}` : window.location.pathname,
+            search: params.toString(),
+          });
+        } else {
+          setSessionIdQs(sess.id);
+        }
+      }
     },
   });
 
@@ -113,7 +122,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     },
   });
 
-  const running = sessionMutation.isPending;
+  const creatingSessions = createSessionsMutation.isPending;
   const resolving = resolveItemsMutation.isPending;
   const deletingSessions = deleteSessionsMutation.isPending;
   const creatingFlows = createFlowsMutation.isPending;
@@ -133,15 +142,9 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     }
   }
 
-  async function runSelected() {
-    if (count === 0 || !targetRepo) return;
-    const ok = await confirm({
-      title: `Queue ${promptLabel} sessions?`,
-      description: `Claude will be queued to ${promptLabel.toLowerCase()} ${count} selected item${count === 1 ? '' : 's'} against ${targetRepo}.`,
-      confirmText: `Queue ${count}`,
-    });
-    if (!ok) return;
-    sessionMutation.mutate(selectedItems.map(i => i.id));
+  function createSessions() {
+    if (count === 0) return;
+    createSessionsMutation.mutate(selectedItems);
   }
 
   async function resolveSelected() {
@@ -186,27 +189,16 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
       </header>
 
       <section className='border-b px-4 py-3'>
-        {filter === 'open' && (
-          <div className='mb-2'>
-            <TargetRepoPicker value={targetRepo} onChange={setTargetRepo} />
-          </div>
-        )}
         <div className='flex gap-2'>
           {filter === 'open' && (
             <>
-              <Tooltip
-                content={
-                  targetRepo
-                    ? `Queue ${promptLabel} sessions against ${targetRepo} — ${promptHint}`
-                    : 'Pick a target repo first'
-                }
-              >
+              <Tooltip content='Create a draft session per selected item — configure and run from the session panel'>
                 <button
-                  onClick={runSelected}
-                  disabled={running || count === 0 || !targetRepo}
+                  onClick={createSessions}
+                  disabled={creatingSessions || count === 0}
                   className='btn-sm btn-primary'
                 >
-                  {running ? 'Queuing…' : 'Run'}
+                  {creatingSessions ? 'Creating…' : count > 1 ? `Create ${count} sessions` : 'Create session'}
                 </button>
               </Tooltip>
               <Tooltip content='Mark the selected issues as resolved upstream'>
@@ -241,10 +233,6 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
           </Tooltip>
         </div>
       </section>
-
-      <PromptPicker prompts={prompts} promptId={effectivePromptId} setPromptId={setPromptId} />
-
-      {selectedPrompt && <PromptTemplateEditor key={selectedPrompt.id} prompt={selectedPrompt} />}
     </aside>
   );
 }

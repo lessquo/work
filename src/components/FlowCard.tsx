@@ -15,7 +15,7 @@ import {
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { Plus, Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
@@ -86,6 +86,25 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
       autoNameMutation.mutate();
     }
   }, [flow.name, hasContext, autoNameMutation]);
+
+  const addSessionMutation = useMutation({
+    mutationFn: () => api.createDraftSession({ flowId: wid }),
+    onSuccess: sess => {
+      qc.invalidateQueries({ queryKey: ['flows'] });
+      const params = new URLSearchParams(location.search);
+      params.set('session', String(sess.id));
+      params.delete('item');
+      params.set('sessionTab', 'setup');
+      navigate({ pathname: `/flows/${wid}`, search: params.toString() });
+    },
+    onError: e => {
+      toast.add({
+        title: 'Failed to add session',
+        description: e instanceof Error ? e.message : String(e),
+        type: 'error',
+      });
+    },
+  });
 
   const detachMutation = useMutation({
     mutationFn: (itemId: number) => api.setItemFlow(itemId, null),
@@ -171,6 +190,16 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
           >
             <Plus />
             Add item
+          </button>
+          <button
+            type='button'
+            onClick={() => addSessionMutation.mutate()}
+            disabled={addSessionMutation.isPending}
+            className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
+            title='Add a draft session to configure and run'
+          >
+            <SquarePlus />
+            {addSessionMutation.isPending ? 'Adding…' : 'Add session'}
           </button>
           <button
             type='button'
@@ -347,6 +376,7 @@ function firstLine(text: string): string {
 
 function StatusDot({ status }: { status: SessionStatus }) {
   const map: Record<SessionStatus, string> = {
+    draft: 'bg-gray-300',
     queued: 'bg-gray-400',
     running: 'bg-indigo-500',
     succeeded: 'bg-emerald-500',

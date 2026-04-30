@@ -1,6 +1,7 @@
 ---
 label: Write Notes
 hint: Draft one or more markdown notes from user-supplied context.
+applies_to: notes
 ---
 
 You are writing notes into a **notebook**. The current working directory is the session's workspace. Notes are stored in the `./.notes/` subdirectory — one `.md` file per note.

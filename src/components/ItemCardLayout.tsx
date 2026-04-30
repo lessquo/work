@@ -68,6 +68,7 @@ function SessionBadge({
   onOpenSession?: (sessionId: number) => void;
 }) {
   const tone: Record<SessionStatus, string> = {
+    draft: 'btn-secondary',
     queued: 'btn-secondary',
     running: 'btn-primary',
     succeeded: 'btn-success',

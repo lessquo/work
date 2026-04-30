@@ -1,6 +1,7 @@
 ---
 label: Fix Jira Issue
 hint: Make the minimal code change to fix the bug.
+applies_to: jira_issue
 ---
 
 ## Issue

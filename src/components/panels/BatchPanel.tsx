@@ -1,9 +1,6 @@
-import { PromptPicker } from '@/components/panels/PromptPicker';
-import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
-import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { parseSentryRaw, type Item, type Prompt, type PromptId } from '@/lib/api';
+import { parseSentryRaw, type Item } from '@/lib/api';
 import { Copy, Workflow } from 'lucide-react';
 
 type Filter = 'open' | 'resolved';
@@ -11,41 +8,28 @@ type Filter = 'open' | 'resolved';
 export function BatchPanel({
   filter,
   selectedItems,
-  prompts,
-  promptId,
-  setPromptId,
-  targetRepo,
-  setTargetRepo,
-  onRun,
+  onCreateSessions,
   onResolve,
   onDeleteSessions,
   onCreateFlows,
-  running,
+  creatingSessions,
   resolving,
   deletingSessions,
   creatingFlows,
 }: {
   filter: Filter;
   selectedItems: Item[];
-  prompts: Prompt[];
-  promptId: PromptId;
-  setPromptId: (p: PromptId) => void;
-  targetRepo: string;
-  setTargetRepo: (r: string) => void;
-  onRun: () => void;
+  onCreateSessions: () => void;
   onResolve: () => void;
   onDeleteSessions: () => void;
   onCreateFlows: () => void;
-  running: boolean;
+  creatingSessions: boolean;
   resolving: boolean;
   deletingSessions: boolean;
   creatingFlows: boolean;
 }) {
   const toast = useToast();
   const count = selectedItems.length;
-  const selectedPrompt = prompts.find(p => p.id === promptId);
-  const promptLabel = selectedPrompt?.label ?? 'Run';
-  const promptHint = selectedPrompt?.hint ?? '';
 
   async function copyLinksAsMarkdown() {
     const lines = selectedItems.map(item => {
@@ -80,23 +64,16 @@ export function BatchPanel({
       </header>
 
       <section className='border-b px-4 py-3'>
-        {filter === 'open' && (
-          <div className='mb-2'>
-            <TargetRepoPicker value={targetRepo} onChange={setTargetRepo} />
-          </div>
-        )}
         <div className='flex gap-2'>
           {filter === 'open' && (
             <>
-              <Tooltip
-                content={
-                  targetRepo
-                    ? `Queue ${promptLabel} sessions against ${targetRepo} — ${promptHint}`
-                    : 'Pick a target repo first'
-                }
-              >
-                <button onClick={onRun} disabled={running || count === 0 || !targetRepo} className='btn-sm btn-primary'>
-                  {running ? 'Queuing…' : 'Run'}
+              <Tooltip content='Create a draft session per selected item — configure and run from the session panel'>
+                <button
+                  onClick={onCreateSessions}
+                  disabled={creatingSessions || count === 0}
+                  className='btn-sm btn-primary'
+                >
+                  {creatingSessions ? 'Creating…' : `Create ${count} sessions`}
                 </button>
               </Tooltip>
               <Tooltip content='Mark the selected issues as resolved upstream'>
@@ -123,10 +100,6 @@ export function BatchPanel({
           </Tooltip>
         </div>
       </section>
-
-      <PromptPicker prompts={prompts} promptId={promptId} setPromptId={setPromptId} />
-
-      {selectedPrompt && <PromptTemplateEditor key={selectedPrompt.id} prompt={selectedPrompt} />}
     </aside>
   );
 }

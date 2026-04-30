@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   type TEXT NOT NULL DEFAULT 'github_pr',
   user_context TEXT,
   target_repo TEXT,
-  status TEXT NOT NULL CHECK (status IN ('queued','running','succeeded','failed','aborted')),
+  status TEXT NOT NULL,
   started_at TEXT,
   finished_at TEXT,
   branch TEXT,
@@ -226,7 +226,7 @@ export const syncNotesForItem = db.transaction(
 
 // ---------- sessions ----------
 
-export type SessionStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'aborted';
+export type SessionStatus = 'draft' | 'queued' | 'running' | 'succeeded' | 'failed' | 'aborted';
 
 export type Session = {
   id: number;

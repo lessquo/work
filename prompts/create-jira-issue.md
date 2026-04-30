@@ -1,6 +1,7 @@
 ---
 label: Create Jira Issue
 hint: Draft a Jira issue (title + description) from user-supplied context.
+applies_to: jira_issue
 ---
 
 You are drafting a new Jira ticket for project `{{project_key}}`. Read the user's context below, then produce a concise ticket draft. Do not attempt to implement anything — only produce the draft files.

@@ -1,0 +1,12 @@
+#!/usr/bin/env sh
+set -e
+
+# Format staged files with prettier and re-stage the result.
+# Note: this re-stages whole files, so unstaged edits to a partially-staged
+# file get pulled into the commit. Avoid `git add -p` workflows here.
+
+files=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$files" ] && exit 0
+
+echo "$files" | xargs npx --no-install prettier --write --ignore-unknown
+echo "$files" | xargs git add

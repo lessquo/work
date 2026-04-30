@@ -60,7 +60,7 @@ CREATE INDEX IF NOT EXISTS idx_notes_item ON notes(item_id);
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
-  source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
+  source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
   type TEXT NOT NULL DEFAULT 'github_pr',
   user_context TEXT,
@@ -231,7 +231,7 @@ export type SessionStatus = 'draft' | 'queued' | 'running' | 'succeeded' | 'fail
 export type Session = {
   id: number;
   item_id: number | null;
-  source_id: number | null;
+  source_id: number;
   flow_id: number | null;
   type: ItemType;
   user_context: string | null;

@@ -31,7 +31,7 @@ export type Flow = {
 export type FlowSessionChild = {
   id: number;
   item_id: number | null;
-  source_id: number | null;
+  source_id: number;
   flow_id: number | null;
   type: ItemType;
   status: SessionStatus;
@@ -174,7 +174,7 @@ export type Prompt = {
 export type Session = {
   id: number;
   item_id: number | null;
-  source_id: number | null;
+  source_id: number;
   flow_id: number | null;
   type: ItemType;
   user_context: string | null;
@@ -287,7 +287,7 @@ export const api = {
       targetRepo?: string;
       type?: ItemType;
       userContext?: string;
-      sourceId?: number | null;
+      sourceId?: number;
     },
   ) =>
     req<Session>(`/sessions/${sessionId}`, {

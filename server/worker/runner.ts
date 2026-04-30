@@ -294,14 +294,6 @@ async function runJob(sessionId: number): Promise<void> {
 }
 
 async function runJiraDraftJob(sessionId: number, session: Session): Promise<void> {
-  if (!session.source_id) {
-    db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
-      'source_id is required for jira draft sessions',
-      sessionId,
-    );
-    emitSessionEnd(sessionId);
-    return;
-  }
   const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(session.source_id) as
     | { external_id: string }
     | undefined;

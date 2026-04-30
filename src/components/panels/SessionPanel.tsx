@@ -385,22 +385,14 @@ function SetupTab({ session }: { session: Session | null }) {
   const allowEmptyRepo = isJira || isNotes;
 
   const updateMutation = useMutation({
-    mutationFn: (patch: { prompt?: PromptId; targetRepo?: string; userContext?: string; sourceId?: number | null }) =>
+    mutationFn: (patch: { prompt?: PromptId; targetRepo?: string; userContext?: string; sourceId?: number }) =>
       session ? api.updateDraftSession(session.id, patch) : Promise.reject(new Error('no session')),
     onSuccess: updated => {
       qc.setQueryData(['session', updated.id], updated);
     },
   });
 
-  // Auto-bind a default source for fresh drafts so the prompt picker has something to filter against.
   const sessionSourceId = session?.source_id ?? null;
-  useEffect(() => {
-    if (!isDraft) return;
-    if (sessionSourceId != null) return;
-    const first = sources[0];
-    if (first) updateMutation.mutate({ sourceId: first.id });
-  }, [isDraft, sessionSourceId, sources, updateMutation]);
-
   const selectedSource = sources.find(s => s.id === sessionSourceId) ?? null;
   const compatiblePrompts = selectedSource ? prompts.filter(p => p.applies_to === selectedSource.type) : prompts;
 

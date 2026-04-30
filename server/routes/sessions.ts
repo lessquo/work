@@ -68,6 +68,17 @@ sessions.post('/sessions/draft', async c => {
     }
   }
 
+  // Sessions require a source. When none was provided (e.g., FlowCard "Add session"
+  // with no item bound), fall back to whichever source was created first so the user
+  // can switch to the right one in the Setup tab afterwards.
+  if (sourceId == null) {
+    const firstSource = db.prepare(`SELECT id FROM sources ORDER BY id ASC LIMIT 1`).get() as
+      | { id: number }
+      | undefined;
+    if (!firstSource) return c.json({ error: 'no sources configured' }, 400);
+    sourceId = firstSource.id;
+  }
+
   const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_PROMPT_ID;
   const targetRepo = (body.targetRepo ?? '').trim() || null;
   const flowId = typeof body.flowId === 'number' ? body.flowId : null;
@@ -101,7 +112,7 @@ sessions.patch('/sessions/:id', async c => {
       targetRepo?: string;
       type?: ItemType;
       userContext?: string;
-      sourceId?: number | null;
+      sourceId?: number;
     }>()
     .catch(() => ({}) as Record<string, never>);
 
@@ -125,11 +136,9 @@ sessions.patch('/sessions/:id', async c => {
     updates.push('user_context = ?');
     args.push(body.userContext.length > 0 ? body.userContext : null);
   }
-  if (body.sourceId === null || typeof body.sourceId === 'number') {
-    if (typeof body.sourceId === 'number') {
-      const exists = db.prepare(`SELECT 1 FROM sources WHERE id = ?`).get(body.sourceId);
-      if (!exists) return c.json({ error: 'source not found' }, 400);
-    }
+  if (typeof body.sourceId === 'number') {
+    const exists = db.prepare(`SELECT 1 FROM sources WHERE id = ?`).get(body.sourceId);
+    if (!exists) return c.json({ error: 'source not found' }, 400);
     updates.push('source_id = ?');
     args.push(body.sourceId);
   }
@@ -357,7 +366,6 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
   if (!session) return c.json({ error: 'not found' }, 404);
   if (session.type !== 'jira_issue') return c.json({ error: 'session is not a Jira draft' }, 409);
   if (session.pr_url) return c.json({ error: 'Jira issue already created' }, 409);
-  if (!session.source_id) return c.json({ error: 'session has no source' }, 409);
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no workspace path' }, 409);
 
   const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(session.source_id) as
@@ -373,22 +381,20 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
     db.prepare(`UPDATE sessions SET pr_url = ? WHERE id = ?`).run(created.url, sessionId);
     // Best-effort: pull the new issue into the local items table so it appears in the Items list
     // immediately. Don't fail the response if this call hiccups — the issue has been created.
-    if (session.source_id) {
-      try {
-        await upsertJiraIssue(session.source_id, created.key);
-        if (session.flow_id) {
-          db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND external_id = ?`).run(
-            session.flow_id,
-            session.source_id,
-            created.key,
-          );
-        }
-        db.prepare(
-          `UPDATE sessions SET item_id = (SELECT id FROM items WHERE source_id = ? AND external_id = ?) WHERE id = ?`,
-        ).run(session.source_id, created.key, sessionId);
-      } catch (e) {
-        console.warn(`[jira] post-create upsert failed for ${created.key}:`, e);
+    try {
+      await upsertJiraIssue(session.source_id, created.key);
+      if (session.flow_id) {
+        db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND external_id = ?`).run(
+          session.flow_id,
+          session.source_id,
+          created.key,
+        );
       }
+      db.prepare(
+        `UPDATE sessions SET item_id = (SELECT id FROM items WHERE source_id = ? AND external_id = ?) WHERE id = ?`,
+      ).run(session.source_id, created.key, sessionId);
+    } catch (e) {
+      console.warn(`[jira] post-create upsert failed for ${created.key}:`, e);
     }
     return c.json(getSession(sessionId));
   } catch (e) {

@@ -1,5 +1,5 @@
-import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { TYPE_LOGO } from '@/components/typeLogo';
+import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { api, type Source } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -48,7 +48,7 @@ function SourceRow({ source }: { source: Source }) {
 
   return (
     <li className='group flex items-center border-b last:border-b-0 hover:bg-gray-50'>
-      <Link to={`/sources/${source.id}`} className='flex min-w-0 flex-1 items-center gap-3 px-4 py-3'>
+      <Link to={`/items?source=${source.id}`} className='flex min-w-0 flex-1 items-center gap-3 px-4 py-3'>
         <img src={logo.src} alt={logo.alt} className='size-5 shrink-0' />
         <span className='min-w-0 flex-1 truncate font-medium'>{source.external_id}</span>
         <span className='text-xs text-gray-500'>Added {timeAgo(source.created_at)}</span>
@@ -67,7 +67,7 @@ function SourceRow({ source }: { source: Source }) {
         }}
         disabled={deleteMutation.isPending}
         aria-label={`Delete ${source.external_id}`}
-        className='btn-md btn-ghost mr-2 text-rose-600 opacity-0 hover:bg-rose-50 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-100'
+        className='btn-md btn-ghost mr-2 text-rose-600 opacity-0 group-hover:opacity-100 hover:bg-rose-50 focus-visible:opacity-100 disabled:opacity-100'
       >
         <Trash2 />
       </button>

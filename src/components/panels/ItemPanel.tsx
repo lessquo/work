@@ -12,7 +12,8 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
-  const { sourceId, itemId: itemIdParam } = useParams();
+  const { itemId: itemIdParam } = useParams();
+  const [sourceId] = useQueryState('source', parseAsInteger);
   const itemId = itemIdProp ?? (itemIdParam ? Number(itemIdParam) : null);
   const isFlowMode = itemIdProp !== undefined;
   const qc = useQueryClient();
@@ -34,8 +35,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   });
   const flowItemQuery = useSuspenseQuery({
     queryKey: isFlowMode && itemId !== null ? ['item', itemId] : ['item-noop'],
-    queryFn: (): Promise<Item | null> =>
-      isFlowMode && itemId !== null ? api.getItem(itemId) : Promise.resolve(null),
+    queryFn: (): Promise<Item | null> => (isFlowMode && itemId !== null ? api.getItem(itemId) : Promise.resolve(null)),
   });
   const promptsQuery = useSuspenseQuery({ queryKey: ['prompts'], queryFn: api.listPrompts });
   const prompts = promptsQuery.data;
@@ -93,13 +93,10 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     mutationFn: (targetIds: number[]) => api.createFlowsForItems(sid, targetIds),
     onSuccess: res => {
       toast.add({
-        title:
-          res.created === 0
-            ? 'No flows created.'
-            : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
+        title: res.created === 0 ? 'No flows created.' : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
       });
       invalidateAfterMutation();
-      navigate(`/sources/${sid}/flows`);
+      navigate(`/flows`);
     },
   });
 
@@ -221,9 +218,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
           )}
           <Tooltip
             content={
-              count === 1
-                ? 'Create a flow with this item as a child'
-                : `Create ${count} flows, one per selected item`
+              count === 1 ? 'Create a flow with this item as a child' : `Create ${count} flows, one per selected item`
             }
           >
             <button

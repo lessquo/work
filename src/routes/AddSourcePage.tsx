@@ -41,7 +41,7 @@ export function AddSourcePage() {
     try {
       const s = await api.createSource(trimmed);
       qc.invalidateQueries({ queryKey: ['sources'] });
-      navigate(`/sources/${s.id}`);
+      navigate(`/items?source=${s.id}`);
     } catch (e) {
       setError('root', { message: e instanceof Error ? e.message : String(e) });
     }

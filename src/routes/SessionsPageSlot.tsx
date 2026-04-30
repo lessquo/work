@@ -3,7 +3,7 @@ import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useNavigate, useParams } from 'react-router';
 
 export function SessionsPageSlot() {
-  const { sourceId, sessionId } = useParams();
+  const { sessionId } = useParams();
   const navigate = useNavigate();
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
@@ -20,9 +20,7 @@ export function SessionsPageSlot() {
     <SessionPanel
       key={sessionId}
       sessionId={Number(sessionId)}
-      onClose={() =>
-        navigate({ pathname: `/sources/${sourceId}/sessions`, search: window.location.search })
-      }
+      onClose={() => navigate({ pathname: `/sessions`, search: window.location.search })}
       tab={sessionTab}
       setTab={setSessionTab}
       descriptionMode={descriptionMode}

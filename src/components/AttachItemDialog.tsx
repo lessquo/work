@@ -32,15 +32,7 @@ export function AttachItemDialog({
   );
 }
 
-function Body({
-  flowId,
-  sourceId,
-  onClose,
-}: {
-  flowId: number;
-  sourceId?: number;
-  onClose: () => void;
-}) {
+function Body({ flowId, sourceId, onClose }: { flowId: number; sourceId?: number; onClose: () => void }) {
   const qc = useQueryClient();
   const toast = useToast();
   const { data: allItems } = useSuspenseQuery({ queryKey: ['allItems'], queryFn: api.listAllItems });
@@ -86,7 +78,11 @@ function Body({
       onClose();
     },
     onError: e => {
-      toast.add({ title: 'Failed to attach item', description: e instanceof Error ? e.message : String(e), type: 'error' });
+      toast.add({
+        title: 'Failed to attach item',
+        description: e instanceof Error ? e.message : String(e),
+        type: 'error',
+      });
     },
   });
 

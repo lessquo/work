@@ -11,14 +11,15 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 
 export function ItemsPageSlot() {
-  const { sourceId, itemId } = useParams();
-  const id = Number(sourceId);
+  const { itemId } = useParams();
   const itemIdNum = itemId ? Number(itemId) : null;
   const navigate = useNavigate();
   const qc = useQueryClient();
   const confirm = useConfirm();
   const toast = useToast();
 
+  const [sourceParam] = useQueryState('source', parseAsInteger);
+  const id = sourceParam ?? 0;
   const [filter] = useQueryState('filter', parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'));
   const [sort] = useQueryState('sort', parseAsStringLiteral(['recency', 'title'] as const).withDefault('recency'));
   const [selectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
@@ -55,7 +56,7 @@ export function ItemsPageSlot() {
   function clearSelection() {
     const params = new URLSearchParams(window.location.search);
     params.delete('selected');
-    navigate({ pathname: `/sources/${sourceId}/items`, search: params.toString() });
+    navigate({ pathname: `/items`, search: params.toString() });
   }
 
   const onMutationError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
@@ -95,15 +96,12 @@ export function ItemsPageSlot() {
     mutationFn: (ids: number[]) => api.createFlowsForItems(id, ids),
     onSuccess: res => {
       toast.add({
-        title:
-          res.created === 0
-            ? 'No flows created.'
-            : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
+        title: res.created === 0 ? 'No flows created.' : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
       });
       clearSelection();
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['items', id] });
-      navigate(`/sources/${sourceId}/flows`);
+      navigate(`/flows`);
     },
     onError: onMutationError,
   });

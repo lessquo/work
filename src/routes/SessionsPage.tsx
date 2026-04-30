@@ -1,7 +1,9 @@
 import { SessionCard } from '@/components/SessionCard';
+import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, type ItemType, type SessionStatus, type SourceSession } from '@/lib/api';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useState } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router';
 
@@ -25,24 +27,42 @@ function isActive(status: SessionStatus): boolean {
 }
 
 export function SessionsPage() {
-  const { sourceId, sessionId } = useParams();
-  const id = Number(sourceId);
+  const [source] = useQueryState('source', parseAsInteger);
+
+  return (
+    <>
+      <title>Sessions · Work</title>
+
+      {source !== null ? (
+        <SessionsContent sourceId={source} />
+      ) : (
+        <div className='flex flex-1 flex-col items-center justify-center gap-3 text-sm text-gray-500'>
+          <SourceSwitcher />
+          Select a source to view sessions.
+        </div>
+      )}
+    </>
+  );
+}
+
+function SessionsContent({ sourceId }: { sourceId: number }) {
+  const { sessionId } = useParams();
   const openSessionId = sessionId ? Number(sessionId) : null;
   const navigate = useNavigate();
 
   function openSession(sid: number) {
-    navigate({ pathname: `/sources/${sourceId}/sessions/${sid}`, search: window.location.search });
+    navigate({ pathname: `/sessions/${sid}`, search: window.location.search });
   }
 
   const sourceQuery = useSuspenseQuery({
-    queryKey: ['source', id],
-    queryFn: () => api.getSource(id),
+    queryKey: ['source', sourceId],
+    queryFn: () => api.getSource(sourceId),
   });
   const source = sourceQuery.data;
 
   const sessionsQuery = useQuery({
-    queryKey: ['source', id, 'sessions'],
-    queryFn: () => api.listSourceSessions(id),
+    queryKey: ['source', sourceId, 'sessions'],
+    queryFn: () => api.listSourceSessions(sourceId),
     refetchInterval: 5000,
   });
   const sessions = useMemo<SourceSession[]>(() => sessionsQuery.data ?? [], [sessionsQuery.data]);
@@ -65,11 +85,8 @@ export function SessionsPage() {
     if (filtered.length === 0) return;
     if (openSessionId !== null) return;
     const params = new URLSearchParams(window.location.search);
-    navigate(
-      { pathname: `/sources/${sourceId}/sessions/${filtered[0].id}`, search: params.toString() },
-      { replace: true },
-    );
-  }, [filtered, openSessionId, sourceId, navigate]);
+    navigate({ pathname: `/sessions/${filtered[0].id}`, search: params.toString() }, { replace: true });
+  }, [filtered, openSessionId, navigate]);
 
   return (
     <>
@@ -79,6 +96,7 @@ export function SessionsPage() {
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex flex-wrap items-center gap-3'>
             <h1 className='text-lg font-semibold'>Sessions</h1>
+            <SourceSwitcher />
             <TabsRoot value={typeFilter} onValueChange={v => setTypeFilter(v as TypeFilter)}>
               <PillTabsList>
                 {TYPE_TABS.map(tab => (

@@ -321,15 +321,7 @@ function PlaceholderItemChip({ type }: { type: ItemType }) {
   );
 }
 
-function SessionChip({
-  session,
-  to,
-  selected,
-}: {
-  session: FlowSessionChild;
-  to: string;
-  selected?: boolean;
-}) {
+function SessionChip({ session, to, selected }: { session: FlowSessionChild; to: string; selected?: boolean }) {
   const heading = firstLine(`#${session.id} ${session.prompt}`);
   return (
     <li className='shrink-0'>

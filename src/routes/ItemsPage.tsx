@@ -1,4 +1,5 @@
 import { ItemCard } from '@/components/ItemCard';
+import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { SyncSetupDialog } from '@/components/SyncSetupDialog';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -45,8 +46,26 @@ const EMPTY_OPEN_SYNC: Record<ItemType, string> = {
 };
 
 export function ItemsPage() {
-  const { sourceId, itemId } = useParams();
-  const id = Number(sourceId);
+  const [source] = useQueryState('source', parseAsInteger);
+
+  return (
+    <>
+      <title>Items · Work</title>
+
+      {source !== null ? (
+        <ItemsContent sourceId={source} />
+      ) : (
+        <div className='flex flex-1 flex-col items-center justify-center gap-3 text-sm text-gray-500'>
+          <SourceSwitcher />
+          Select a source to view items.
+        </div>
+      )}
+    </>
+  );
+}
+
+function ItemsContent({ sourceId }: { sourceId: number }) {
+  const { itemId } = useParams();
   const itemIdNum = itemId ? Number(itemId) : null;
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -71,13 +90,14 @@ export function ItemsPage() {
       return;
     }
     const params = new URLSearchParams();
+    params.set('source', String(sourceId));
     if (filter !== 'open') params.set('filter', filter);
     if (sort !== 'recency') params.set('sort', sort);
     if (query) params.set('q', query);
     if (filtered.length > 0) params.set('selected', filtered.join(','));
     if (sessionId !== null) params.set('session', String(sessionId));
     if (jiraDraftOpen) params.set('jiraDraft', 'true');
-    const path = newAnchor !== null ? `/sources/${sourceId}/items/${newAnchor}` : `/sources/${sourceId}/items`;
+    const path = newAnchor !== null ? `/items/${newAnchor}` : `/items`;
     navigate({ pathname: path, search: params.toString() });
   }
 
@@ -86,14 +106,14 @@ export function ItemsPage() {
   }
 
   const sourceQuery = useSuspenseQuery({
-    queryKey: ['source', id],
-    queryFn: () => api.getSource(id),
+    queryKey: ['source', sourceId],
+    queryFn: () => api.getSource(sourceId),
   });
   const source = sourceQuery.data;
 
   const itemsQuery = useSuspenseQuery({
-    queryKey: ['items', id, filter, sort],
-    queryFn: () => api.listItems(id, filter, sort),
+    queryKey: ['items', sourceId, filter, sort],
+    queryFn: () => api.listItems(sourceId, filter, sort),
   });
   const allItems = itemsQuery.data;
 
@@ -127,8 +147,8 @@ export function ItemsPage() {
   }, [validSelectedIds, validItemIdNum]);
 
   const countsQuery = useQuery({
-    queryKey: ['itemCounts', id],
-    queryFn: () => api.getItemCounts(id),
+    queryKey: ['itemCounts', sourceId],
+    queryFn: () => api.getItemCounts(sourceId),
   });
   const counts = countsQuery.data ?? { open: 0, resolved: 0 };
 
@@ -141,14 +161,14 @@ export function ItemsPage() {
     if (items.length === 0) return;
     if (validItemIdNum !== null) return;
     const params = new URLSearchParams(window.location.search);
-    navigate({ pathname: `/sources/${sourceId}/items/${items[0].id}`, search: params.toString() }, { replace: true });
-  }, [items, validItemIdNum, sourceId, navigate]);
+    navigate({ pathname: `/items/${items[0].id}`, search: params.toString() }, { replace: true });
+  }, [items, validItemIdNum, navigate]);
 
   const syncMutation = useMutation({
-    mutationFn: () => api.syncSource(id),
+    mutationFn: () => api.syncSource(sourceId),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['items', id] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', id] });
+      qc.invalidateQueries({ queryKey: ['items', sourceId] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
     },
   });
 
@@ -213,6 +233,7 @@ export function ItemsPage() {
           <div className='mb-4 flex items-center justify-between'>
             <div className='flex items-center gap-3'>
               <h1 className='text-lg font-semibold'>Items</h1>
+              <SourceSwitcher />
               <FilterTabs sourceType={source.type} value={filter} onChange={onFilterChange} counts={counts} />
             </div>
             <div className='flex items-center gap-2'>

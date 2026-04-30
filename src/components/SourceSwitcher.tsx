@@ -4,12 +4,12 @@ import { cn } from '@/lib/cn';
 import { Menu } from '@base-ui/react/menu';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
-import { Link, useMatch } from 'react-router';
+import { parseAsInteger, useQueryState } from 'nuqs';
+import { Link } from 'react-router';
 
 export function SourceSwitcher() {
   const { data: sources } = useSuspenseQuery({ queryKey: ['sources'], queryFn: api.listSources });
-  const match = useMatch('/sources/:sourceId/*');
-  const currentSourceId = match ? Number(match.params.sourceId) : null;
+  const [currentSourceId, setCurrentSourceId] = useQueryState('source', parseAsInteger);
   const current = sources.find(s => s.id === currentSourceId) ?? null;
 
   return (
@@ -31,7 +31,7 @@ export function SourceSwitcher() {
               <Menu.Group>
                 <Menu.GroupLabel className='menu-group-label'>Sources</Menu.GroupLabel>
                 {sources.map(s => (
-                  <Menu.Item key={s.id} render={<Link to={`/sources/${s.id}`} />} className='menu-item justify-between'>
+                  <Menu.Item key={s.id} onClick={() => setCurrentSourceId(s.id)} className='menu-item justify-between'>
                     <SourceLabel type={s.type} externalId={s.external_id} />
                     {s.id === currentSourceId && <Check className='text-indigo-600' />}
                   </Menu.Item>

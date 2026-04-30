@@ -1,52 +1,30 @@
 import { TabsList, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { Box, Database, Settings, Terminal, Workflow } from 'lucide-react';
-import { useMatch, useNavigate } from 'react-router';
+import { useLocation, useMatch, useNavigate } from 'react-router';
+
+const TABS = [
+  { path: '/sources', icon: Database, label: 'Sources' },
+  { path: '/items', icon: Box, label: 'Items' },
+  { path: '/sessions', icon: Terminal, label: 'Sessions' },
+  { path: '/flows', icon: Workflow, label: 'Flows' },
+  { path: '/settings', icon: Settings, label: 'Settings' },
+];
 
 export function RootTabs() {
   const navigate = useNavigate();
-  const sourceMatch = useMatch('/sources/:sourceId/:tab/*');
-  const sourcesListMatch = useMatch('/sources-list');
-  const flowsMatch = useMatch('/flows/*');
-  const settingsMatch = useMatch('/settings');
-
-  const base = sourceMatch ? `/sources/${sourceMatch.params.sourceId}` : null;
-  const active = sourceMatch
-    ? `${base}/${sourceMatch.params.tab}`
-    : settingsMatch
-      ? '/settings'
-      : flowsMatch
-        ? '/flows'
-        : sourcesListMatch
-          ? '/sources-list'
-          : '';
+  const location = useLocation();
+  const match = useMatch('/:tab/*');
+  const active = match ? `/${match.params.tab}` : '';
 
   return (
-    <TabsRoot value={active} onValueChange={value => navigate(value as string)}>
+    <TabsRoot value={active} onValueChange={value => navigate({ pathname: value as string, search: location.search })}>
       <TabsList className='-mb-px'>
-        <TabsTab value='/sources-list'>
-          <Database />
-          Sources
-        </TabsTab>
-        {base && (
-          <>
-            <TabsTab value={`${base}/items`}>
-              <Box />
-              Items
-            </TabsTab>
-            <TabsTab value={`${base}/sessions`}>
-              <Terminal />
-              Sessions
-            </TabsTab>
-          </>
-        )}
-        <TabsTab value='/flows'>
-          <Workflow />
-          Flows
-        </TabsTab>
-        <TabsTab value='/settings'>
-          <Settings />
-          Settings
-        </TabsTab>
+        {TABS.map(({ path, icon: Icon, label }) => (
+          <TabsTab key={path} value={path}>
+            <Icon />
+            {label}
+          </TabsTab>
+        ))}
       </TabsList>
     </TabsRoot>
   );

@@ -2,22 +2,19 @@ import { InsertNoteButton } from '@/components/InsertNoteButton';
 import { PromptPicker } from '@/components/panels/PromptPicker';
 import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
 import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
+import { Select, type SelectOption } from '@/components/ui/Select';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { api, DEFAULT_JIRA_PROMPT_ID, type Prompt, type PromptId } from '@/lib/api';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { api, DEFAULT_JIRA_PROMPT_ID, type Prompt, type PromptId, type Source } from '@/lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { useState } from 'react';
 
 export function CreateJiraIssuePanel({
-  sourceId,
-  projectKey,
   prompts,
   onClose,
   onSessionStarted,
 }: {
-  sourceId: number;
-  projectKey: string;
   prompts: Prompt[];
   onClose: () => void;
   onSessionStarted: (sessionId: number) => void;
@@ -26,14 +23,27 @@ export function CreateJiraIssuePanel({
   const toast = useToast();
   const [context, setContext] = useState('');
   const [promptId, setPromptId] = useState<PromptId>(DEFAULT_JIRA_PROMPT_ID);
-  const [targetRepo, setTargetRepo] = useState('');
+  // Default to the first GitHub repo. `null` = untouched (use auto-default);
+  // any string (including '') = user's explicit choice.
+  const [userTargetRepo, setUserTargetRepo] = useState<string | null>(null);
+  // Same auto-default pattern for the Jira source.
+  const [userJiraSourceId, setUserJiraSourceId] = useState<number | null>(null);
+  const sourcesQuery = useQuery({ queryKey: ['sources'], queryFn: api.listSources });
+  const sources = sourcesQuery.data ?? [];
+  const jiraSources = sources.filter((s): s is Source => s.type === 'jira_issue');
+  const selectedJiraSource = jiraSources.find(s => s.id === userJiraSourceId) ?? jiraSources[0] ?? null;
+  const firstRepo = sources.find(s => s.type === 'github_pr')?.external_id ?? '';
+  const targetRepo = userTargetRepo ?? firstRepo;
   const effectivePromptId = prompts.some(p => p.id === promptId)
     ? promptId
     : (prompts[0]?.id ?? DEFAULT_JIRA_PROMPT_ID);
   const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
 
   const startMutation = useMutation({
-    mutationFn: () => api.startJiraDraft(sourceId, context.trim(), effectivePromptId, targetRepo),
+    mutationFn: () => {
+      if (!selectedJiraSource) throw new Error('No Jira project selected');
+      return api.startJiraDraft(selectedJiraSource.id, context.trim(), effectivePromptId, targetRepo);
+    },
     onSuccess: session => {
       toast.add({ title: `Jira draft session #${session.id} queued.` });
       qc.invalidateQueries({ queryKey: ['items'] });
@@ -41,7 +51,7 @@ export function CreateJiraIssuePanel({
     },
   });
 
-  const canStart = context.trim().length > 0 && !startMutation.isPending;
+  const canStart = !!selectedJiraSource && context.trim().length > 0 && !startMutation.isPending;
   const error = startMutation.error instanceof Error ? startMutation.error.message : null;
 
   function onContextKey(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -57,7 +67,6 @@ export function CreateJiraIssuePanel({
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2 text-sm'>
             <span className='font-semibold'>Create Jira issue</span>
-            <span className='text-gray-500'>· {projectKey}</span>
           </div>
         </div>
         <div className='flex shrink-0 items-center gap-2'>
@@ -71,14 +80,24 @@ export function CreateJiraIssuePanel({
 
       <section className='border-b px-4 py-3'>
         <div className='mb-2'>
-          <TargetRepoPicker value={targetRepo} onChange={setTargetRepo} allowEmpty />
+          <JiraProjectPicker
+            sources={jiraSources}
+            value={selectedJiraSource?.id ?? null}
+            onChange={setUserJiraSourceId}
+            loading={sourcesQuery.isLoading}
+          />
+        </div>
+        <div className='mb-2'>
+          <TargetRepoPicker value={targetRepo} onChange={setUserTargetRepo} allowEmpty />
         </div>
         <div className='flex gap-2'>
           <Tooltip
             content={
-              targetRepo
-                ? `Queue a Claude session that drafts a Jira issue — Claude can read ${targetRepo} to ground the draft`
-                : 'Queue a Claude session that drafts a Jira issue from this context (no repo cloned)'
+              !selectedJiraSource
+                ? 'Add a Jira source in Settings → Sources first'
+                : targetRepo
+                  ? `Queue a Claude session that drafts a Jira issue in ${selectedJiraSource.external_id} — Claude can read ${targetRepo} to ground the draft`
+                  : `Queue a Claude session that drafts a Jira issue in ${selectedJiraSource.external_id} from this context (no repo cloned)`
             }
           >
             <button onClick={() => startMutation.mutate()} disabled={!canStart} className='btn-sm btn-primary'>
@@ -119,5 +138,38 @@ export function CreateJiraIssuePanel({
 
       {selectedPrompt && <PromptTemplateEditor key={selectedPrompt.id} prompt={selectedPrompt} />}
     </aside>
+  );
+}
+
+function JiraProjectPicker({
+  sources,
+  value,
+  onChange,
+  loading,
+}: {
+  sources: Source[];
+  value: number | null;
+  onChange: (id: number) => void;
+  loading: boolean;
+}) {
+  const options: SelectOption<string>[] =
+    sources.length === 0
+      ? [{ value: '', label: loading ? '— loading —' : '— no Jira sources —' }]
+      : sources.map(s => ({ value: String(s.id), label: s.external_id }));
+
+  return (
+    <label className='flex items-center gap-2 text-xs text-gray-600'>
+      <span className='shrink-0'>Jira project:</span>
+      <Select<string>
+        ariaLabel='Jira project'
+        value={value !== null ? String(value) : ''}
+        onChange={v => {
+          const n = Number(v);
+          if (Number.isFinite(n) && n > 0) onChange(n);
+        }}
+        options={options}
+        className='min-w-0 flex-1 text-xs'
+      />
+    </label>
   );
 }

@@ -166,8 +166,6 @@ export function ItemsPageSlot() {
   if (jiraDraftOpen) {
     return (
       <CreateJiraIssuePanel
-        sourceId={sourceId}
-        projectKey={source.external_id}
         prompts={prompts}
         onClose={() => setJiraDraftOpen(false)}
         onSessionStarted={sessionId => {

@@ -1,5 +1,6 @@
 import { GithubPrCard } from '@/components/GithubPrCard';
 import { JiraIssueCard } from '@/components/JiraIssueCard';
+import { NotesItemCard } from '@/components/NotesItemCard';
 import { SentryIssueCard } from '@/components/SentryIssueCard';
 import type { ItemWithSessions } from '@/lib/api';
 
@@ -21,5 +22,7 @@ export function ItemCard({
       return <JiraIssueCard item={item} selected={selected} onSelect={onSelect} onOpenSession={onOpenSession} />;
     case 'github_pr':
       return <GithubPrCard item={item} selected={selected} onSelect={onSelect} onOpenSession={onOpenSession} />;
+    case 'notes':
+      return <NotesItemCard item={item} selected={selected} onSelect={onSelect} onOpenSession={onOpenSession} />;
   }
 }

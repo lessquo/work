@@ -1,4 +1,4 @@
-export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr';
+export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes';
 
 export type ItemStatus = 'open' | 'resolved';
 
@@ -55,6 +55,7 @@ export type ItemSessionSummary = { id: number; status: SessionStatus };
 
 export type ItemWithSessions = Item & {
   sessions: ItemSessionSummary[];
+  note_count?: number;
 };
 
 export type SentryRaw = {
@@ -121,6 +122,16 @@ export function parseJiraRaw(raw: string): JiraRaw {
   }
 }
 
+export type NotebookRaw = { name?: string };
+
+export function parseNotebookRaw(raw: string): NotebookRaw {
+  try {
+    return JSON.parse(raw) as NotebookRaw;
+  } catch {
+    return {};
+  }
+}
+
 export function itemTitle(item: Pick<Item, 'type' | 'raw' | 'external_id'>): string {
   switch (item.type) {
     case 'sentry_issue':
@@ -129,6 +140,8 @@ export function itemTitle(item: Pick<Item, 'type' | 'raw' | 'external_id'>): str
       return parseGithubPrRaw(item.raw).title ?? item.external_id;
     case 'jira_issue':
       return parseJiraRaw(item.raw).summary ?? item.external_id;
+    case 'notes':
+      return parseNotebookRaw(item.raw).name ?? 'Untitled notebook';
   }
 }
 
@@ -140,6 +153,8 @@ export function itemCreationTime(item: Pick<Item, 'type' | 'raw' | 'created_at'>
       return parseGithubPrRaw(item.raw).createdAt ?? item.created_at;
     case 'jira_issue':
       return parseJiraRaw(item.raw).created ?? item.created_at;
+    case 'notes':
+      return item.created_at;
   }
 }
 
@@ -183,6 +198,20 @@ export type SourceSession = Session & {
   item_url: string | null;
   item_raw: string | null;
 };
+
+export type Note = {
+  id: number;
+  item_id: number;
+  external_id: string;
+  title: string;
+  body_md: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Notebook = Item & { note_count: number };
+
+export type NotebookDetail = Item & { name: string; notes: Note[] };
 
 export type Settings = {
   max_parallel: number;
@@ -330,4 +359,19 @@ export const api = {
   listSentryProjects: () => req<SentryProject[]>('/sentry/projects'),
   listGithubRepos: () => req<GithubRepo[]>('/github/repos'),
   listJiraProjects: () => req<JiraProject[]>('/jira/projects'),
+  listNotebooks: () => req<Notebook[]>('/notes/notebooks'),
+  createNotebook: (name?: string) =>
+    req<Item>('/notes/notebooks', { method: 'POST', body: JSON.stringify({ name: name ?? '' }) }),
+  getNotebook: (id: number) => req<NotebookDetail>(`/notes/notebooks/${id}`),
+  renameNotebook: (id: number, name: string) =>
+    req<Item>(`/notes/notebooks/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  deleteNotebook: (id: number) => req<{ ok: true }>(`/notes/notebooks/${id}`, { method: 'DELETE' }),
+  startNotesSession: (notebookId: number, opts: { context?: string; targetRepo?: string } = {}) =>
+    req<Session>(`/notes/notebooks/${notebookId}/sessions`, {
+      method: 'POST',
+      body: JSON.stringify({ context: opts.context ?? '', targetRepo: opts.targetRepo ?? '' }),
+    }),
+  updateNote: (id: number, patch: { title?: string; body_md?: string }) =>
+    req<Note>(`/notes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteNote: (id: number) => req<{ ok: true }>(`/notes/${id}`, { method: 'DELETE' }),
 };

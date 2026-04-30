@@ -10,7 +10,7 @@ export function FlowsPageSlot() {
   const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
-    parseAsStringLiteral(['logs', 'diff', 'pr'] as const).withDefault('logs'),
+    parseAsStringLiteral(['logs', 'diff', 'pr', 'notes'] as const).withDefault('logs'),
   );
   const [descriptionMode, setDescriptionMode] = useQueryState(
     'descriptionMode',

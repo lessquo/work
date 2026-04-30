@@ -93,11 +93,12 @@ function TypeBadge({ type }: { type: SourceSession['type'] }) {
     github_pr: 'border-sky-300 bg-sky-50 text-sky-700',
     jira_issue: 'border-violet-300 bg-violet-50 text-violet-700',
     sentry_issue: 'border-amber-300 bg-amber-50 text-amber-700',
+    notes: 'border-rose-300 bg-rose-50 text-rose-700',
   } as const;
-  const label = type === 'github_pr' ? 'PR' : type === 'jira_issue' ? 'Jira' : 'Sentry';
+  const labelMap = { github_pr: 'PR', jira_issue: 'Jira', sentry_issue: 'Sentry', notes: 'Notes' } as const;
   return (
     <span className={cn('rounded border px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase', map[type])}>
-      {label}
+      {labelMap[type]}
     </span>
   );
 }

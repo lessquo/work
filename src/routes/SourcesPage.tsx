@@ -1,5 +1,6 @@
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { api, type Source } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -40,11 +41,34 @@ function SourceRow({ source }: { source: Source }) {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const logo = TYPE_LOGO[source.type];
+  const isNotes = source.type === 'notes';
 
   const deleteMutation = useMutation({
     mutationFn: () => api.deleteSource(source.id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['sources'] }),
   });
+
+  const deleteButton = (
+    <button
+      type='button'
+      onClick={async () => {
+        if (isNotes) return;
+        const ok = await confirm({
+          title: `Delete source "${source.external_id}"?`,
+          description: 'All items, sessions, and resources for this source will be deleted.',
+          confirmText: 'Delete source',
+          destructive: true,
+        });
+        if (!ok) return;
+        deleteMutation.mutate();
+      }}
+      disabled={isNotes || deleteMutation.isPending}
+      aria-label={`Delete ${source.external_id}`}
+      className='btn-md btn-ghost mr-2 text-rose-600 opacity-0 group-hover:opacity-100 hover:bg-rose-50 focus-visible:opacity-100 disabled:opacity-100'
+    >
+      <Trash2 />
+    </button>
+  );
 
   return (
     <li className='group flex items-center border-b last:border-b-0 hover:bg-gray-50'>
@@ -53,24 +77,11 @@ function SourceRow({ source }: { source: Source }) {
         <span className='min-w-0 flex-1 truncate font-medium'>{source.external_id}</span>
         <span className='text-xs text-gray-500'>Added {timeAgo(source.created_at)}</span>
       </Link>
-      <button
-        type='button'
-        onClick={async () => {
-          const ok = await confirm({
-            title: `Delete source "${source.external_id}"?`,
-            description: 'All items, sessions, and resources for this source will be deleted.',
-            confirmText: 'Delete source',
-            destructive: true,
-          });
-          if (!ok) return;
-          deleteMutation.mutate();
-        }}
-        disabled={deleteMutation.isPending}
-        aria-label={`Delete ${source.external_id}`}
-        className='btn-md btn-ghost mr-2 text-rose-600 opacity-0 group-hover:opacity-100 hover:bg-rose-50 focus-visible:opacity-100 disabled:opacity-100'
-      >
-        <Trash2 />
-      </button>
+      {isNotes ? (
+        <Tooltip content='The local notes source is built in and cannot be deleted.'>{deleteButton}</Tooltip>
+      ) : (
+        deleteButton
+      )}
     </li>
   );
 }

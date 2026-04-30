@@ -76,12 +76,13 @@ sources.get('/:id/items', c => {
          COALESCE((
            SELECT json_group_array(json_object('id', r.id, 'status', r.status))
            FROM (SELECT id, status FROM sessions WHERE item_id = i.id ORDER BY id DESC) r
-         ), '[]') AS sessions
+         ), '[]') AS sessions,
+         (SELECT COUNT(*) FROM notes WHERE item_id = i.id) AS note_count
        FROM items i
        WHERE i.source_id = ? ${statusClause}
        ORDER BY ${order}`,
     )
-    .all(id) as Array<Item & { sessions: string }>;
+    .all(id) as Array<Item & { sessions: string; note_count: number }>;
   return c.json(
     rows.map(r => ({
       ...r,
@@ -104,7 +105,7 @@ type Sort = 'recency' | 'title';
 // near-identical for every item in a sync batch (datetime('now') has 1s res).
 function buildOrderClause(type: ItemType, status: Status, sort: Sort): string {
   if (sort === 'title') {
-    const titleKey = type === 'jira_issue' ? '$.summary' : '$.title';
+    const titleKey = type === 'jira_issue' ? '$.summary' : type === 'notes' ? '$.name' : '$.title';
     return `json_extract(i.raw, '${titleKey}') COLLATE NOCASE ASC, i.id DESC`;
   }
   const expr = recencyExpr(type, status);
@@ -117,6 +118,9 @@ function recencyExpr(type: ItemType, status: Status): string {
   }
   if (type === 'jira_issue') {
     return `json_extract(i.raw, '$.updated')`;
+  }
+  if (type === 'notes') {
+    return `i.updated_at`;
   }
   // github_pr: closed tab prefers mergedAt (closed-not-merged falls back to updatedAt).
   if (status === 'resolved') {
@@ -142,6 +146,10 @@ function buildStatusClause(type: ItemType, status: Status): string | null {
     return status === 'open'
       ? `AND json_extract(i.raw, '$.status') = 'unresolved'`
       : `AND json_extract(i.raw, '$.status') = 'resolved'`;
+  }
+  if (type === 'notes') {
+    // Notebooks have no "open/resolved" state — show all rows on the open tab, none on resolved.
+    return status === 'open' ? '' : null;
   }
   return '';
 }
@@ -408,5 +416,8 @@ function runSync(source: Source): Promise<number> {
       return syncGithubSource(source, limit);
     case 'jira_issue':
       return syncJiraSource(source, limit);
+    case 'notes':
+      // Notes are user-authored locally; no upstream to sync.
+      return Promise.resolve(0);
   }
 }

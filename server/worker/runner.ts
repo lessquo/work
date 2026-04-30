@@ -1,12 +1,12 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import { db, type Item, type Session } from '@server/db.js';
+import { db, listNotes, syncNotesForItem, type Item, type Session } from '@server/db.js';
 import { getSecret } from '@server/secrets.js';
 import { getMaxParallel } from '@server/settings.js';
 import { emitSessionEnd, emitSessionLog, registerSessionAbort, unregisterSessionAbort } from '@server/worker/events.js';
 import { checkoutNewBranch, hasChanges, intentToAddAll, prepareClone } from '@server/worker/git.js';
 import { renderPrompt } from '@server/worker/prompt.js';
 import { existsSync, mkdirSync } from 'node:fs';
-import { appendFile, rm, writeFile } from 'node:fs/promises';
+import { appendFile, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import PQueue from 'p-queue';
 
@@ -103,6 +103,7 @@ async function runSDKTurn(opts: {
   skipGit?: boolean;
   setRunning: () => void;
   preflight: (log: Logger) => Promise<string>;
+  postSuccess?: (log: Logger) => Promise<void>;
 }): Promise<void> {
   const {
     sessionId,
@@ -113,6 +114,7 @@ async function runSDKTurn(opts: {
     skipGit = false,
     setRunning,
     preflight,
+    postSuccess,
   } = opts;
 
   const log: Logger = async chunk => {
@@ -181,6 +183,16 @@ async function runSDKTurn(opts: {
       }
     }
 
+    if (postSuccess) {
+      try {
+        await postSuccess(log);
+      } catch (e) {
+        await log(
+          `[${new Date().toISOString()}] post-run hook failed: ${e instanceof Error ? e.message : String(e)}\n`,
+        );
+      }
+    }
+
     db.prepare(
       `UPDATE sessions
          SET status = 'succeeded', finished_at = datetime('now'), exit_code = 0, claude_session_id = ?
@@ -206,6 +218,11 @@ async function runJob(sessionId: number): Promise<void> {
 
   if (session.type === 'jira_issue') {
     await runJiraDraftJob(sessionId, session);
+    return;
+  }
+
+  if (session.type === 'notes') {
+    await runNotesJob(sessionId, session);
     return;
   }
 
@@ -347,6 +364,134 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
   });
 }
 
+const NOTES_DIRNAME = '.notes';
+
+function noteIdFromFilename(filename: string): string {
+  return filename.replace(/\.md$/i, '');
+}
+
+function parseNoteFile(content: string, externalId: string): { title: string; body_md: string } {
+  const trimmed = content.replace(/^\uFEFF/, '');
+  const lines = trimmed.split(/\r?\n/);
+  let title = externalId;
+  let bodyStart = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i].trim();
+    if (ln === '') continue;
+    const m = ln.match(/^#\s+(.+)$/);
+    if (m) {
+      title = m[1].trim();
+      bodyStart = i + 1;
+    }
+    break;
+  }
+  const body = lines.slice(bodyStart).join('\n').replace(/^\s+/, '');
+  return { title, body_md: body };
+}
+
+function noteFileContent(title: string, body: string): string {
+  return `# ${title}\n\n${body.trim()}\n`;
+}
+
+async function materializeNotesIntoDir(itemId: number, notesDir: string): Promise<number> {
+  mkdirSync(notesDir, { recursive: true });
+  const rows = listNotes(itemId);
+  for (const r of rows) {
+    await writeFile(resolve(notesDir, `${r.external_id}.md`), noteFileContent(r.title, r.body_md), 'utf8');
+  }
+  return rows.length;
+}
+
+async function syncNotesWorkspace(itemId: number, workspace: string): Promise<number> {
+  const notesDir = resolve(workspace, NOTES_DIRNAME);
+  if (!existsSync(notesDir)) {
+    syncNotesForItem(itemId, []);
+    return 0;
+  }
+  const entries = await readdir(notesDir, { withFileTypes: true });
+  const rows: Array<{ external_id: string; title: string; body_md: string }> = [];
+  for (const e of entries) {
+    if (!e.isFile()) continue;
+    if (!e.name.toLowerCase().endsWith('.md')) continue;
+    const content = await readFile(resolve(notesDir, e.name), 'utf8').catch(() => '');
+    const externalId = noteIdFromFilename(e.name);
+    rows.push({ external_id: externalId, ...parseNoteFile(content, externalId) });
+  }
+  syncNotesForItem(itemId, rows);
+  return rows.length;
+}
+
+async function runNotesJob(sessionId: number, session: Session): Promise<void> {
+  if (!session.item_id) {
+    db.prepare(`UPDATE sessions SET status = 'failed', error = ?, finished_at = datetime('now') WHERE id = ?`).run(
+      'item_id is required for notes sessions',
+      sessionId,
+    );
+    emitSessionEnd(sessionId);
+    return;
+  }
+  const itemId = session.item_id;
+
+  mkdirSync(CLONES_ROOT, { recursive: true });
+  mkdirSync(LOGS_ROOT, { recursive: true });
+
+  const workspace = clonePathFor(sessionId);
+  const notesDir = resolve(workspace, NOTES_DIRNAME);
+  const logPath = logPathFor(sessionId);
+
+  await writeFile(logPath, '');
+
+  await runSDKTurn({
+    sessionId,
+    cwd: workspace,
+    logPath,
+    skipGit: true,
+    setRunning: () => {
+      db.prepare(
+        `UPDATE sessions
+           SET status = 'running', started_at = datetime('now'), clone_path = ?, log_path = ?
+         WHERE id = ?`,
+      ).run(workspace, logPath, sessionId);
+    },
+    preflight: async log => {
+      // Fresh workspace per session — matches the Jira/PR pattern.
+      if (existsSync(workspace)) {
+        await rm(workspace, { recursive: true, force: true });
+      }
+
+      let repoNote = 'No repo cloned — base your notes on the user context alone.';
+      if (session.target_repo) {
+        await log(`[${new Date().toISOString()}] cloning ${session.target_repo} into ${workspace}\n`);
+        const { defaultBranch } = await prepareClone(workspace, session.target_repo);
+        await log(`[${new Date().toISOString()}] cloned (default branch ${defaultBranch}) — read-only investigation\n`);
+        repoNote = `Repo \`${session.target_repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground your notes — but do NOT modify any files in the cloned repo.`;
+      } else {
+        mkdirSync(workspace, { recursive: true });
+        await log(`[${new Date().toISOString()}] workspace ${workspace} (no repo)\n`);
+      }
+
+      const existingCount = await materializeNotesIntoDir(itemId, notesDir);
+      await log(
+        `[${new Date().toISOString()}] materialized ${existingCount} existing note(s) into ./${NOTES_DIRNAME}/\n`,
+      );
+
+      const promptText = await renderPrompt(
+        {
+          user_context: session.user_context ?? '',
+          repo_note: repoNote,
+        },
+        session.prompt,
+      );
+      await log(`[${new Date().toISOString()}] prompt: ${session.prompt}\n---\n${promptText}\n---\n`);
+      return promptText;
+    },
+    postSuccess: async log => {
+      const count = await syncNotesWorkspace(itemId, workspace);
+      await log(`[${new Date().toISOString()}] synced ${count} note(s) into the notebook\n`);
+    },
+  });
+}
+
 async function runFollowupJob(sessionId: number, message: string): Promise<void> {
   const session = db.prepare(`SELECT * FROM sessions WHERE id = ?`).get(sessionId) as Session | undefined;
   if (!session) return;
@@ -369,12 +514,17 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     return;
   }
 
+  const isNotes = session.type === 'notes' && session.item_id !== null;
+  const notesItemId = isNotes ? session.item_id! : null;
+  const workspace = session.clone_path;
+
   await runSDKTurn({
     sessionId,
-    cwd: session.clone_path,
+    cwd: workspace,
     logPath: session.log_path ?? logPathFor(sessionId),
     resume: session.claude_session_id,
     initialClaudeSessionId: session.claude_session_id,
+    skipGit: isNotes,
     setRunning: () => {
       db.prepare(
         `UPDATE sessions SET status = 'running', finished_at = NULL, exit_code = NULL, error = NULL WHERE id = ?`,
@@ -384,6 +534,12 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
       await log(`\n[${new Date().toISOString()}] follow-up: ${message}\n`);
       return message;
     },
+    postSuccess: notesItemId
+      ? async log => {
+          const count = await syncNotesWorkspace(notesItemId, workspace);
+          await log(`[${new Date().toISOString()}] synced ${count} note(s) into the notebook\n`);
+        }
+      : undefined,
   });
 }
 

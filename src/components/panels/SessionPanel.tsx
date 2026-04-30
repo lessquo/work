@@ -12,7 +12,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tansta
 import { Copy, X } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
-export type SessionPanelTab = 'logs' | 'diff' | 'pr';
+export type SessionPanelTab = 'logs' | 'diff' | 'pr' | 'notes';
 export type DescriptionMode = 'edit' | 'preview';
 
 export function SessionPanel({
@@ -136,6 +136,7 @@ export function SessionPanel({
 
   const active = session?.status === 'queued' || session?.status === 'running';
   const isJira = session?.type === 'jira_issue';
+  const isNotes = session?.type === 'notes';
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
     (createJiraMutation.error instanceof Error ? createJiraMutation.error.message : null) ??
@@ -173,6 +174,7 @@ export function SessionPanel({
             </a>
           )}
           {session?.status === 'succeeded' &&
+            !isNotes &&
             (isJira ? (
               session.pr_url ? (
                 <button
@@ -242,14 +244,20 @@ export function SessionPanel({
       {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700'>{prError}</div>}
 
       <TabsRoot
-        value={isJira && tab === 'diff' ? 'pr' : tab}
+        value={resolveTabValue(tab, { isJira, isNotes })}
         onValueChange={v => setTab(v as SessionPanelTab)}
         className='flex min-h-0 flex-1 flex-col'
       >
         <TabsList className='border-b'>
           <TabsTab value='logs'>Logs</TabsTab>
-          {!isJira && <TabsTab value='diff'>Diff</TabsTab>}
-          <TabsTab value='pr'>{isJira ? 'Ticket' : 'PR'}</TabsTab>
+          {isNotes ? (
+            <TabsTab value='notes'>Notes</TabsTab>
+          ) : (
+            <>
+              {!isJira && <TabsTab value='diff'>Diff</TabsTab>}
+              <TabsTab value='pr'>{isJira ? 'Ticket' : 'PR'}</TabsTab>
+            </>
+          )}
         </TabsList>
         <TabsPanel value='logs' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
           <div ref={logRef} className='h-full overflow-auto bg-white p-4 font-mono text-xs text-gray-800'>
@@ -260,29 +268,37 @@ export function SessionPanel({
             )}
           </div>
         </TabsPanel>
-        {!isJira && (
-          <TabsPanel value='diff' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
-            <div className='h-full overflow-auto bg-white p-4'>
-              <Suspense fallback={<p className='text-sm text-gray-500'>Loading diff…</p>}>
-                <DiffView sessionId={sessionId} />
-              </Suspense>
-            </div>
+        {isNotes ? (
+          <TabsPanel value='notes' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+            <NotesView session={session} />
           </TabsPanel>
+        ) : (
+          <>
+            {!isJira && (
+              <TabsPanel value='diff' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+                <div className='h-full overflow-auto bg-white p-4'>
+                  <Suspense fallback={<p className='text-sm text-gray-500'>Loading diff…</p>}>
+                    <DiffView sessionId={sessionId} />
+                  </Suspense>
+                </div>
+              </TabsPanel>
+            )}
+            <TabsPanel value='pr' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
+              <div className='h-40 shrink-0 border-b'>
+                <TitleEditor sessionId={sessionId} session={session} isJira={isJira} />
+              </div>
+              <div className='min-h-0 flex-1'>
+                <DescriptionEditor
+                  sessionId={sessionId}
+                  session={session}
+                  isJira={isJira}
+                  mode={descriptionMode}
+                  setMode={setDescriptionMode}
+                />
+              </div>
+            </TabsPanel>
+          </>
         )}
-        <TabsPanel value='pr' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
-          <div className='h-40 shrink-0 border-b'>
-            <TitleEditor sessionId={sessionId} session={session} isJira={isJira} />
-          </div>
-          <div className='min-h-0 flex-1'>
-            <DescriptionEditor
-              sessionId={sessionId}
-              session={session}
-              isJira={isJira}
-              mode={descriptionMode}
-              setMode={setDescriptionMode}
-            />
-          </div>
-        </TabsPanel>
       </TabsRoot>
       <FollowupComposer
         session={session}
@@ -478,6 +494,69 @@ function DescriptionEditor({
         <div className='min-h-0 flex-1 overflow-auto bg-white p-4 text-sm text-gray-800'>
           {draft.trim() ? <Markdown>{draft}</Markdown> : <p className='text-gray-400'>(empty)</p>}
         </div>
+      )}
+    </div>
+  );
+}
+
+function resolveTabValue(tab: SessionPanelTab, kind: { isJira: boolean; isNotes: boolean }): SessionPanelTab {
+  if (kind.isNotes) return tab === 'logs' ? 'logs' : 'notes';
+  if (kind.isJira && tab === 'diff') return 'pr';
+  if (tab === 'notes') return 'logs';
+  return tab;
+}
+
+function NotesView({ session }: { session: Session | null }) {
+  const notebookId = session?.item_id ?? null;
+  const notebookQuery = useQuery({
+    queryKey: notebookId !== null ? ['notebook', notebookId] : ['notebook-noop'],
+    queryFn: () => (notebookId !== null ? api.getNotebook(notebookId) : Promise.resolve(null)),
+    enabled: notebookId !== null,
+  });
+
+  if (notebookId === null) {
+    return <div className='p-4 text-sm text-gray-500'>This notes session is not bound to a notebook.</div>;
+  }
+  if (notebookQuery.isPending) {
+    return <div className='p-4 text-sm text-gray-500'>Loading notes…</div>;
+  }
+  if (notebookQuery.isError || !notebookQuery.data) {
+    return (
+      <div className='p-4 text-sm text-rose-600'>
+        Failed to load notes
+        {notebookQuery.error instanceof Error ? `: ${notebookQuery.error.message}` : '.'}
+      </div>
+    );
+  }
+
+  const notebook = notebookQuery.data;
+  const active = session?.status === 'queued' || session?.status === 'running';
+
+  return (
+    <div className='h-full overflow-auto bg-white p-4'>
+      <div className='mb-3 flex items-center justify-between text-xs text-gray-500'>
+        <span>
+          Notebook: <span className='font-medium text-gray-700'>{notebook.name}</span>
+        </span>
+        <span>
+          {notebook.notes.length} note{notebook.notes.length === 1 ? '' : 's'}
+        </span>
+      </div>
+      {notebook.notes.length === 0 ? (
+        <p className='text-sm text-gray-500'>
+          {active ? 'Waiting for the session to produce notes…' : 'No notes were produced in this notebook yet.'}
+        </p>
+      ) : (
+        <ul className='flex flex-col gap-3'>
+          {notebook.notes.map(note => (
+            <li key={note.id} className='rounded-md border border-gray-200 bg-white p-3'>
+              <h4 className='text-sm font-semibold'>{note.title}</h4>
+              <div className='prose prose-sm mt-2 max-w-none text-sm text-gray-700'>
+                <Markdown>{note.body_md}</Markdown>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

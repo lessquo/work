@@ -10,12 +10,9 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 db.exec(`
-CREATE TABLE IF NOT EXISTS sources (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  type TEXT NOT NULL CHECK (type IN ('github_pr','jira_issue','sentry_issue')),
-  external_id TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE(type, external_id)
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS flows (
@@ -25,11 +22,19 @@ CREATE TABLE IF NOT EXISTS flows (
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+CREATE TABLE IF NOT EXISTS sources (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  type TEXT NOT NULL,
+  external_id TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(type, external_id)
+);
+
 CREATE TABLE IF NOT EXISTS items (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
-  type TEXT NOT NULL CHECK (type IN ('github_pr','jira_issue','sentry_issue')),
+  type TEXT NOT NULL,
   external_id TEXT NOT NULL,
   url TEXT NOT NULL,
   raw TEXT NOT NULL,
@@ -38,18 +43,26 @@ CREATE TABLE IF NOT EXISTS items (
   UNIQUE(type, external_id)
 );
 CREATE INDEX IF NOT EXISTS idx_items_source_type ON items(source_id, type);
+CREATE INDEX IF NOT EXISTS idx_items_flow ON items(flow_id);
 
-CREATE TABLE IF NOT EXISTS settings (
-  key TEXT PRIMARY KEY,
-  value TEXT NOT NULL
+CREATE TABLE IF NOT EXISTS notes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  external_id TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body_md TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(item_id, external_id)
 );
+CREATE INDEX IF NOT EXISTS idx_notes_item ON notes(item_id);
 
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
   source_id INTEGER REFERENCES sources(id) ON DELETE CASCADE,
   flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
-  type TEXT NOT NULL DEFAULT 'github_pr' CHECK (type IN ('github_pr','jira_issue','sentry_issue')),
+  type TEXT NOT NULL DEFAULT 'github_pr',
   user_context TEXT,
   target_repo TEXT,
   status TEXT NOT NULL CHECK (status IN ('queued','running','succeeded','failed','aborted')),
@@ -68,32 +81,21 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_status ON sessions(status);
 CREATE INDEX IF NOT EXISTS idx_sessions_item ON sessions(item_id);
-CREATE INDEX IF NOT EXISTS idx_items_flow ON items(flow_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_flow ON sessions(flow_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_source ON sessions(source_id);
 `);
 
 db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES ('max_parallel', '2')`).run();
+db.prepare(`INSERT OR IGNORE INTO sources (type, external_id) VALUES ('notes', 'local')`).run();
 
-export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr';
+// ---------- flows ----------
 
-const upsertItemStmt = db.prepare(`
-  INSERT INTO items (source_id, type, external_id, url, raw, updated_at)
-  VALUES (@source_id, @type, @external_id, @url, @raw, datetime('now'))
-  ON CONFLICT(type, external_id) DO UPDATE SET
-    source_id = excluded.source_id,
-    url = excluded.url,
-    raw = excluded.raw,
-    updated_at = datetime('now')
-`);
-
-export const upsertItems = db.transaction(
-  (type: ItemType, sourceId: number, rows: Array<{ external_id: string; url: string; raw: string }>) => {
-    for (const r of rows) {
-      upsertItemStmt.run({ source_id: sourceId, type, external_id: r.external_id, url: r.url, raw: r.raw });
-    }
-  },
-);
+export type Flow = {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+};
 
 const insertFlowStmt = db.prepare(`INSERT INTO flows (name) VALUES (?)`);
 const setSessionFlowStmt = db.prepare(`UPDATE sessions SET flow_id = ? WHERE id = ?`);
@@ -129,12 +131,26 @@ export const createFlowForItem = db.transaction((itemId: number, name: string | 
   return flowId;
 });
 
+// ---------- sources ----------
+
+export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes';
+
 export type Source = {
   id: number;
   type: ItemType;
   external_id: string;
   created_at: string;
 };
+
+export function getLocalNotesSourceId(): number {
+  const row = db.prepare(`SELECT id FROM sources WHERE type = 'notes' AND external_id = 'local'`).get() as
+    | { id: number }
+    | undefined;
+  if (!row) throw new Error('local notes source missing');
+  return row.id;
+}
+
+// ---------- items ----------
 
 export type Item = {
   id: number;
@@ -148,12 +164,67 @@ export type Item = {
   updated_at: string;
 };
 
-export type Flow = {
+const upsertItemStmt = db.prepare(`
+  INSERT INTO items (source_id, type, external_id, url, raw, updated_at)
+  VALUES (@source_id, @type, @external_id, @url, @raw, datetime('now'))
+  ON CONFLICT(type, external_id) DO UPDATE SET
+    source_id = excluded.source_id,
+    url = excluded.url,
+    raw = excluded.raw,
+    updated_at = datetime('now')
+`);
+
+export const upsertItems = db.transaction(
+  (type: ItemType, sourceId: number, rows: Array<{ external_id: string; url: string; raw: string }>) => {
+    for (const r of rows) {
+      upsertItemStmt.run({ source_id: sourceId, type, external_id: r.external_id, url: r.url, raw: r.raw });
+    }
+  },
+);
+
+// ---------- notes ----------
+
+export type Note = {
   id: number;
-  name: string;
+  item_id: number;
+  external_id: string;
+  title: string;
+  body_md: string;
   created_at: string;
   updated_at: string;
 };
+
+export function listNotes(itemId: number): Note[] {
+  return db.prepare(`SELECT * FROM notes WHERE item_id = ? ORDER BY id ASC`).all(itemId) as Note[];
+}
+
+const upsertNoteStmt = db.prepare(`
+  INSERT INTO notes (item_id, external_id, title, body_md, updated_at)
+  VALUES (@item_id, @external_id, @title, @body_md, datetime('now'))
+  ON CONFLICT(item_id, external_id) DO UPDATE SET
+    title = excluded.title,
+    body_md = excluded.body_md,
+    updated_at = datetime('now')
+`);
+
+const deleteNoteByExtStmt = db.prepare(`DELETE FROM notes WHERE item_id = ? AND external_id = ?`);
+
+export const syncNotesForItem = db.transaction(
+  (itemId: number, rows: Array<{ external_id: string; title: string; body_md: string }>) => {
+    const keep = new Set(rows.map(r => r.external_id));
+    for (const r of rows) {
+      upsertNoteStmt.run({ item_id: itemId, external_id: r.external_id, title: r.title, body_md: r.body_md });
+    }
+    const existing = db.prepare(`SELECT external_id FROM notes WHERE item_id = ?`).all(itemId) as Array<{
+      external_id: string;
+    }>;
+    for (const e of existing) {
+      if (!keep.has(e.external_id)) deleteNoteByExtStmt.run(itemId, e.external_id);
+    }
+  },
+);
+
+// ---------- sessions ----------
 
 export type SessionStatus = 'queued' | 'running' | 'succeeded' | 'failed' | 'aborted';
 

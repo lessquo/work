@@ -1,3 +1,4 @@
+import { InsertNoteButton } from '@/components/InsertNoteButton';
 import { PromptPicker } from '@/components/panels/PromptPicker';
 import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
 import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
@@ -90,7 +91,15 @@ export function CreateJiraIssuePanel({
       <section className='flex min-h-0 flex-1 flex-col bg-white'>
         <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
           <span className='text-gray-500'>What's this issue about?</span>
-          <span className='text-gray-400'>⌘↵ to start</span>
+          <div className='flex items-center gap-2'>
+            <InsertNoteButton
+              onInsert={({ title, body_md }) => {
+                const block = `### ${title}\n\n${body_md.trim()}`;
+                setContext(prev => (prev.trim().length === 0 ? block : `${prev.trim()}\n\n${block}`));
+              }}
+            />
+            <span className='text-gray-400'>⌘↵ to start</span>
+          </div>
         </div>
         <textarea
           value={context}

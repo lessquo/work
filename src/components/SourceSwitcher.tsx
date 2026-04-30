@@ -54,10 +54,11 @@ export function SourceSwitcher() {
 
 function SourceLabel({ type, externalId }: { type: ItemType; externalId: string }) {
   const logo = TYPE_LOGO[type];
+  const label = type === 'notes' ? 'Notes' : externalId;
   return (
     <span className='flex min-w-0 items-center gap-2'>
       <img src={logo.src} alt={logo.alt} className='size-4 shrink-0' />
-      <span className='truncate'>{externalId}</span>
+      <span className='truncate'>{label}</span>
     </span>
   );
 }

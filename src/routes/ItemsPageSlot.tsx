@@ -1,6 +1,7 @@
 import { BatchPanel } from '@/components/panels/BatchPanel';
 import { CreateJiraIssuePanel } from '@/components/panels/CreateJiraIssuePanel';
 import { ItemPanel } from '@/components/panels/ItemPanel';
+import { NotebookPanel } from '@/components/panels/NotebookPanel';
 import { SessionPanel } from '@/components/panels/SessionPanel';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
@@ -25,7 +26,7 @@ export function ItemsPageSlot() {
   const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
-    parseAsStringLiteral(['logs', 'diff', 'pr'] as const).withDefault('logs'),
+    parseAsStringLiteral(['logs', 'diff', 'pr', 'notes'] as const).withDefault('logs'),
   );
   const [descriptionMode, setDescriptionMode] = useQueryState(
     'descriptionMode',
@@ -214,13 +215,22 @@ export function ItemsPageSlot() {
   }
 
   if (selection.size === 1) {
+    if (source.type === 'notes') return <NotebookPanel />;
     return <ItemPanel />;
   }
 
   return (
     <div className='flex h-full flex-1 items-center justify-center bg-gray-50 text-sm text-gray-500'>
       <p>
-        No items yet. Click <b>Sync</b> to fetch.
+        {source.type === 'notes' ? (
+          <>
+            No notebooks yet. Click <b>New notebook</b> to create one.
+          </>
+        ) : (
+          <>
+            No items yet. Click <b>Sync</b> to fetch.
+          </>
+        )}
       </p>
     </div>
   );

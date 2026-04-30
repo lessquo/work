@@ -37,12 +37,14 @@ const FILTER_TABS: Record<ItemType, FilterTab[]> = {
     { value: 'open', label: 'Open', recencyLabel: 'Updated' },
     { value: 'resolved', label: 'Done', recencyLabel: 'Done' },
   ],
+  notes: [{ value: 'open', label: 'Notebooks', recencyLabel: 'Updated' }],
 };
 
 const EMPTY_OPEN_SYNC: Record<ItemType, string> = {
   sentry_issue: 'fetch from Sentry',
   github_pr: 'fetch from GitHub',
   jira_issue: 'fetch from Jira',
+  notes: 'create your first notebook',
 };
 
 export function ItemsPage() {
@@ -172,6 +174,16 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
     },
   });
 
+  const createNotebookMutation = useMutation({
+    mutationFn: () => api.createNotebook(),
+    onSuccess: notebook => {
+      qc.invalidateQueries({ queryKey: ['items', sourceId] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
+      const params = new URLSearchParams(window.location.search);
+      navigate({ pathname: `/items/${notebook.id}`, search: params.toString() });
+    },
+  });
+
   const error =
     (itemsQuery.error instanceof Error ? itemsQuery.error.message : null) ??
     (syncMutation.error instanceof Error ? syncMutation.error.message : null);
@@ -249,9 +261,19 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
                   Create Jira issue
                 </button>
               )}
-              <button onClick={() => setSyncDialogOpen(true)} disabled={syncing} className='btn-md btn-secondary'>
-                {syncing ? 'Syncing…' : 'Sync'}
-              </button>
+              {source.type === 'notes' ? (
+                <button
+                  onClick={() => createNotebookMutation.mutate()}
+                  disabled={createNotebookMutation.isPending}
+                  className='btn-md btn-primary'
+                >
+                  {createNotebookMutation.isPending ? 'Creating…' : 'New notebook'}
+                </button>
+              ) : (
+                <button onClick={() => setSyncDialogOpen(true)} disabled={syncing} className='btn-md btn-secondary'>
+                  {syncing ? 'Syncing…' : 'Sync'}
+                </button>
+              )}
             </div>
             <SyncSetupDialog
               open={syncDialogOpen}

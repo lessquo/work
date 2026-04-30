@@ -4,6 +4,7 @@ import { flows } from '@server/routes/flows.js';
 import { githubRoute } from '@server/routes/github.js';
 import { items } from '@server/routes/items.js';
 import { jiraRoute } from '@server/routes/jira.js';
+import { notes } from '@server/routes/notes.js';
 import { prompts } from '@server/routes/prompts.js';
 import { secrets } from '@server/routes/secrets.js';
 import { sentryRoute } from '@server/routes/sentry.js';
@@ -43,6 +44,7 @@ app.route('/api/sentry', sentryRoute);
 app.route('/api/github', githubRoute);
 app.route('/api/jira', jiraRoute);
 app.route('/api/flows', flows);
+app.route('/api/notes', notes);
 
 const port = Number(process.env.API_PORT ?? 3011);
 serve({ fetch: app.fetch, port }, info => {

@@ -14,9 +14,9 @@ import {
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Sparkles, Trash2, X } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 type ItemColumn = { item: Item; sessions: WorkflowSessionChild[] };
@@ -63,6 +63,29 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
     if (!ok) return;
     deleteMutation.mutate();
   }
+
+  const autoNameMutation = useMutation({
+    mutationFn: () => api.autoNameWorkflow(wid),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['workflows'] });
+    },
+    onError: e => {
+      toast.add({
+        title: 'Failed to auto-name workflow',
+        description: e instanceof Error ? e.message : String(e),
+        type: 'error',
+      });
+    },
+  });
+
+  const autoNamedRef = useRef(false);
+  const hasContext = workflow.items.length > 0 || workflow.sessions.length > 0;
+  useEffect(() => {
+    if (workflow.name == null && hasContext && !autoNamedRef.current && !autoNameMutation.isPending) {
+      autoNamedRef.current = true;
+      autoNameMutation.mutate();
+    }
+  }, [workflow.name, hasContext, autoNameMutation]);
 
   const detachMutation = useMutation({
     mutationFn: (itemId: number) => api.setItemWorkflow(itemId, null),
@@ -128,14 +151,15 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
     return { columns: cols, orphanSessions: orphans };
   }, [workflow.items, workflow.sessions]);
 
-  const title = workflow.name ?? `Workflow #${workflow.id}`;
+  const title = workflow.name ?? '';
 
   return (
     <li className='rounded-lg border bg-white p-3'>
       <div className='mb-2 flex items-center justify-between gap-2'>
         <div className='flex min-w-0 items-baseline gap-2'>
-          <h2 className='truncate text-sm font-medium' title={title}>
-            {title}
+          <h2 className='flex items-baseline gap-2 text-sm' title={title}>
+            <span className='truncate font-light text-gray-500'>{workflow.id}</span>
+            <span className='font-medium'>{workflow.name}</span>
           </h2>
           <span className='shrink-0 text-[11px] text-gray-500'>{timeAgo(workflow.created_at)}</span>
         </div>
@@ -148,6 +172,16 @@ export function WorkflowCard({ workflow }: { workflow: WorkflowWithChildren }) {
           >
             <Plus />
             Add item
+          </button>
+          <button
+            type='button'
+            onClick={() => autoNameMutation.mutate()}
+            disabled={!hasContext || autoNameMutation.isPending}
+            className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
+            title='Auto-rename via Claude'
+            aria-label='Auto-rename workflow'
+          >
+            <Sparkles />
           </button>
           <button
             type='button'

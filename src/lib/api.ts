@@ -286,6 +286,8 @@ export const api = {
   listWorkflows: () => req<WorkflowWithChildren[]>(`/workflows`),
   createWorkflow: () => req<Workflow>(`/workflows`, { method: 'POST' }),
   deleteWorkflow: (id: number) => req<{ ok: true }>(`/workflows/${id}`, { method: 'DELETE' }),
+  autoNameWorkflow: (id: number) =>
+    req<{ ok: true; name: string }>(`/workflows/${id}/auto-name`, { method: 'POST' }),
   createWorkflowsForItems: (sourceId: number, itemIds: number[]) =>
     req<{ created: number; workflowIds: number[] }>(`/sources/${sourceId}/workflows-from-items`, {
       method: 'POST',

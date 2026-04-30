@@ -15,11 +15,11 @@ export function FlowPanel() {
     queryFn: api.listFlows,
   });
   const flow = wid !== null ? flowsQuery.data.find(w => w.id === wid) : undefined;
-  const latestSession = flow?.sessions.reduce<typeof flow.sessions[number] | null>(
+  const latestSession = flow?.sessions.reduce<(typeof flow.sessions)[number] | null>(
     (acc, s) => (acc === null || s.created_at > acc.created_at ? s : acc),
     null,
   );
-  const latestItem = flow?.items.reduce<typeof flow.items[number] | null>(
+  const latestItem = flow?.items.reduce<(typeof flow.items)[number] | null>(
     (acc, it) => (acc === null || itemCreationTime(it) > itemCreationTime(acc) ? it : acc),
     null,
   );

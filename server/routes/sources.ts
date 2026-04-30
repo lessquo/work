@@ -359,9 +359,7 @@ async function resolveItemUpstream(source: Source, item: Item, assignTo: string 
   if (source.type === 'sentry_issue') {
     const prUrls = item.flow_id
       ? (db
-          .prepare(
-            `SELECT url FROM items WHERE flow_id = ? AND type = 'github_pr' AND id != ?`,
-          )
+          .prepare(`SELECT url FROM items WHERE flow_id = ? AND type = 'github_pr' AND id != ?`)
           .all(item.flow_id, item.id) as Array<{ url: string }>)
       : [];
     if (prUrls.length > 0) {

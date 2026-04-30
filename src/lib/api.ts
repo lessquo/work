@@ -276,18 +276,14 @@ export const api = {
     req<Session>(`/sessions/${sessionId}/followup`, { method: 'POST', body: JSON.stringify({ message }) }),
   deleteSession: (sessionId: number) =>
     req<{ ok: true; folder_deleted: boolean }>(`/sessions/${sessionId}`, { method: 'DELETE' }),
-  createGithubPr: (sessionId: number) =>
-    req<Session>(`/sessions/${sessionId}/create-github-pr`, { method: 'POST' }),
-  createJiraIssue: (sessionId: number) =>
-    req<Session>(`/sessions/${sessionId}/create-jira-issue`, { method: 'POST' }),
-  updateJiraIssue: (sessionId: number) =>
-    req<Session>(`/sessions/${sessionId}/update-jira-issue`, { method: 'POST' }),
+  createGithubPr: (sessionId: number) => req<Session>(`/sessions/${sessionId}/create-github-pr`, { method: 'POST' }),
+  createJiraIssue: (sessionId: number) => req<Session>(`/sessions/${sessionId}/create-jira-issue`, { method: 'POST' }),
+  updateJiraIssue: (sessionId: number) => req<Session>(`/sessions/${sessionId}/update-jira-issue`, { method: 'POST' }),
   listSourceSessions: (sourceId: number) => req<SourceSession[]>(`/sources/${sourceId}/sessions`),
   listFlows: () => req<FlowWithChildren[]>(`/flows`),
   createFlow: () => req<Flow>(`/flows`, { method: 'POST' }),
   deleteFlow: (id: number) => req<{ ok: true }>(`/flows/${id}`, { method: 'DELETE' }),
-  autoNameFlow: (id: number) =>
-    req<{ ok: true; name: string }>(`/flows/${id}/auto-name`, { method: 'POST' }),
+  autoNameFlow: (id: number) => req<{ ok: true; name: string }>(`/flows/${id}/auto-name`, { method: 'POST' }),
   createFlowsForItems: (sourceId: number, itemIds: number[]) =>
     req<{ created: number; flowIds: number[] }>(`/sources/${sourceId}/flows-from-items`, {
       method: 'POST',

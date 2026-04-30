@@ -78,4 +78,3 @@ const LEVEL_COLOR: Record<string, string> = {
   info: 'bg-sky-100 text-sky-700',
   debug: 'bg-gray-100 text-gray-600',
 };
-

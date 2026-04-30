@@ -108,16 +108,10 @@ export function BatchPanel({
           )}
           <Tooltip
             content={
-              count === 1
-                ? 'Create a flow with this item as a child'
-                : `Create ${count} flows, one per selected item`
+              count === 1 ? 'Create a flow with this item as a child' : `Create ${count} flows, one per selected item`
             }
           >
-            <button
-              onClick={onCreateFlows}
-              disabled={creatingFlows || count === 0}
-              className='btn-sm btn-secondary'
-            >
+            <button onClick={onCreateFlows} disabled={creatingFlows || count === 0} className='btn-sm btn-secondary'>
               <Workflow />
               {creatingFlows ? 'Creating…' : count > 1 ? `Create ${count} flows` : 'Create flow'}
             </button>
@@ -136,4 +130,3 @@ export function BatchPanel({
     </aside>
   );
 }
-

@@ -26,7 +26,9 @@ export function CreateJiraIssuePanel({
   const [context, setContext] = useState('');
   const [promptId, setPromptId] = useState<PromptId>(DEFAULT_JIRA_PROMPT_ID);
   const [targetRepo, setTargetRepo] = useState('');
-  const effectivePromptId = prompts.some(p => p.id === promptId) ? promptId : (prompts[0]?.id ?? DEFAULT_JIRA_PROMPT_ID);
+  const effectivePromptId = prompts.some(p => p.id === promptId)
+    ? promptId
+    : (prompts[0]?.id ?? DEFAULT_JIRA_PROMPT_ID);
   const selectedPrompt = prompts.find(p => p.id === effectivePromptId);
 
   const startMutation = useMutation({
@@ -100,7 +102,7 @@ export function CreateJiraIssuePanel({
             'Describe the bug, feature, or chore. Include any relevant links, repro steps, ' +
             'affected users, deadlines, or constraints. Claude will turn this into a clean Jira draft.'
           }
-          className='min-h-0 flex-1 resize-none bg-white p-4 text-sm leading-relaxed text-gray-800 placeholder:text-gray-400 outline-none'
+          className='min-h-0 flex-1 resize-none bg-white p-4 text-sm leading-relaxed text-gray-800 outline-none placeholder:text-gray-400'
         />
       </section>
 

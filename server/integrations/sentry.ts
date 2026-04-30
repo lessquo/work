@@ -148,4 +148,3 @@ export async function commentOnSentryIssue(sentryId: string, text: string): Prom
     throw new Error(`Sentry comment ${res.status}: ${msg}`);
   }
 }
-

@@ -39,9 +39,11 @@ flows.post('/:id/auto-name', async c => {
   const flow = db.prepare(`SELECT * FROM flows WHERE id = ?`).get(id) as Flow | undefined;
   if (!flow) return c.json({ error: 'not found' }, 404);
 
-  const items = db
-    .prepare(`SELECT type, raw, external_id FROM items WHERE flow_id = ?`)
-    .all(id) as Array<{ type: ItemType; raw: string; external_id: string }>;
+  const items = db.prepare(`SELECT type, raw, external_id FROM items WHERE flow_id = ?`).all(id) as Array<{
+    type: ItemType;
+    raw: string;
+    external_id: string;
+  }>;
   const sessions = db
     .prepare(`SELECT prompt, status FROM sessions WHERE flow_id = ? ORDER BY id ASC`)
     .all(id) as Array<{ prompt: string; status: string }>;
@@ -128,7 +130,14 @@ flows.get('/', c => {
        FROM flows f
        ORDER BY f.created_at DESC, f.id DESC`,
     )
-    .all() as Array<{ id: number; name: string | null; created_at: string; updated_at: string; items: string; sessions: string }>;
+    .all() as Array<{
+    id: number;
+    name: string | null;
+    created_at: string;
+    updated_at: string;
+    items: string;
+    sessions: string;
+  }>;
 
   return c.json(
     rows.map(r => ({

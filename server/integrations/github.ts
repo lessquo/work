@@ -128,4 +128,3 @@ export async function syncGithubSource(source: Source, limit: number): Promise<n
   );
   return remote.length;
 }
-

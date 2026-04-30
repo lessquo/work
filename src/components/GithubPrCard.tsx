@@ -84,4 +84,3 @@ const STATUS_COLOR: Record<PrStatus, string> = {
   merged: 'bg-violet-100 text-violet-700',
   closed: 'bg-rose-100 text-rose-700',
 };
-

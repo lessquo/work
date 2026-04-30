@@ -25,7 +25,7 @@ curl -s -u "$JIRA_EMAIL:$JIRA_TOKEN" -H "Accept: application/json" "https://<hos
    ```md
    ### Jira link
 
-   [<issue_key>](<issue_url>)
+   [<issue_key>](issue_url)
 
    ### Summary
 

@@ -2,6 +2,7 @@
 label: Observe Sentry Issue
 hint: Add logging/context — do not change behavior.
 ---
+
 ## Issue
 
 Fetch Sentry issue and the latest event (with full stacktrace, breadcrumbs, request/user context) before investigating. `SENTRY_TOKEN` is in env.

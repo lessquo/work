@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { db } from '@server/db.js';
+import { flows } from '@server/routes/flows.js';
 import { githubRoute } from '@server/routes/github.js';
 import { items } from '@server/routes/items.js';
 import { jiraRoute } from '@server/routes/jira.js';
@@ -9,7 +10,6 @@ import { sentryRoute } from '@server/routes/sentry.js';
 import { sessions } from '@server/routes/sessions.js';
 import { settingsRoute } from '@server/routes/settings.js';
 import { sources } from '@server/routes/sources.js';
-import { flows } from '@server/routes/flows.js';
 import 'dotenv/config';
 import { Hono } from 'hono';
 import { logger } from 'hono/logger';

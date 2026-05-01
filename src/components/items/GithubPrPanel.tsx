@@ -1,4 +1,4 @@
-import { Field, FieldList, ItemPanelLayout } from '@/components/panels/ItemPanelLayout';
+import { Field, FieldList, ItemPanelLayout } from '@/components/items/ItemPanelLayout';
 import { parseGithubPrRaw, type GithubPrRaw, type Item } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { GitBranch } from 'lucide-react';

@@ -1,5 +1,5 @@
-import { BatchPanel } from '@/components/panels/BatchPanel';
-import { ItemPanel } from '@/components/panels/ItemPanel';
+import { BatchPanel } from '@/components/items/BatchPanel';
+import { ItemPanel } from '@/components/items/ItemPanel';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item } from '@/lib/api';

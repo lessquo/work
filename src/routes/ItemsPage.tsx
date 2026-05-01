@@ -1,6 +1,6 @@
-import { ItemCard } from '@/components/ItemCard';
-import { SourceSwitcher } from '@/components/SourceSwitcher';
+import { ItemCard } from '@/components/items/ItemCard';
 import { SyncItemsButton } from '@/components/items/SyncItemsButton';
+import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';

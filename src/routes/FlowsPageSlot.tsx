@@ -1,6 +1,6 @@
-import { FlowPanel } from '@/components/panels/FlowPanel';
-import { ItemPanel } from '@/components/panels/ItemPanel';
-import { SessionPanel } from '@/components/panels/SessionPanel';
+import { FlowPanel } from '@/components/flows/FlowPanel';
+import { ItemPanel } from '@/components/items/ItemPanel';
+import { SessionPanel } from '@/components/sessions/SessionPanel';
 import { parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useParams } from 'react-router';
 

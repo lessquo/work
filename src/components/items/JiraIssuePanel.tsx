@@ -1,4 +1,4 @@
-import { Field, FieldList, ItemPanelLayout } from '@/components/panels/ItemPanelLayout';
+import { Field, FieldList, ItemPanelLayout } from '@/components/items/ItemPanelLayout';
 import { parseJiraRaw, type Item, type JiraStatusCategory } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 

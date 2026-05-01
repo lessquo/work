@@ -1,6 +1,6 @@
 import { HighlightMatch } from '@/components/HighlightMatch';
-import type { ItemCardProps } from '@/components/ItemCard';
-import { ItemCardLayout } from '@/components/ItemCardLayout';
+import type { ItemCardProps } from '@/components/items/ItemCard';
+import { ItemCardLayout } from '@/components/items/ItemCardLayout';
 import { MetaRow } from '@/components/MetaRow';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { parseJiraRaw, type JiraRaw, type JiraStatusCategory } from '@/lib/api';

@@ -1,7 +1,7 @@
-import { GithubPrPanel } from '@/components/panels/GithubPrPanel';
-import { JiraIssuePanel } from '@/components/panels/JiraIssuePanel';
-import { NotebookPanel } from '@/components/panels/NotebookPanel';
-import { SentryIssuePanel } from '@/components/panels/SentryIssuePanel';
+import { GithubPrPanel } from '@/components/items/GithubPrPanel';
+import { JiraIssuePanel } from '@/components/items/JiraIssuePanel';
+import { NotebookPanel } from '@/components/items/NotebookPanel';
+import { SentryIssuePanel } from '@/components/items/SentryIssuePanel';
 import { api, type Item } from '@/lib/api';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsArrayOf, parseAsInteger, useQueryState } from 'nuqs';

@@ -1,7 +1,7 @@
-import { GithubPrCard } from '@/components/GithubPrCard';
-import { JiraIssueCard } from '@/components/JiraIssueCard';
-import { NotesItemCard } from '@/components/NotesItemCard';
-import { SentryIssueCard } from '@/components/SentryIssueCard';
+import { GithubPrCard } from '@/components/items/GithubPrCard';
+import { JiraIssueCard } from '@/components/items/JiraIssueCard';
+import { NotesItemCard } from '@/components/items/NotesItemCard';
+import { SentryIssueCard } from '@/components/items/SentryIssueCard';
 import type { ItemWithSessions } from '@/lib/api';
 import type { FuseResultMatch } from 'fuse.js';
 

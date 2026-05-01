@@ -1,6 +1,6 @@
 import { ConfirmDialogContext, type ConfirmFn, type ConfirmOptions } from '@/components/ui/ConfirmDialog.lib';
 import { cn } from '@/lib/cn';
-import { AlertDialog as Base } from '@base-ui/react/alert-dialog';
+import { Dialog as Base } from '@base-ui/react/dialog';
 import { useCallback, useRef, useState } from 'react';
 
 type State = { opts: ConfirmOptions; resolve: (v: boolean) => void };

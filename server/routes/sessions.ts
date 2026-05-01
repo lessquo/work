@@ -1,5 +1,5 @@
 import { createFlowForSession, db, sessionColumns, sessionFrom, type Item, type Session } from '@server/db.js';
-import { externalIdForPr, parseGithubPrUrl, upsertGithubPr } from '@server/integrations/github.js';
+import { parseGithubPrUrl, upsertGithubPr } from '@server/integrations/github.js';
 import { buildJiraIssueContext, createJiraIssue, updateJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
 import { abortSession, getSessionEmitter } from '@server/worker/events.js';
 import {
@@ -482,7 +482,7 @@ sessions.post('/sessions/:id/create-github-pr', async c => {
             .get(`${parsed.owner}/${parsed.repo}`) as { id: number } | undefined;
           if (ghSource) {
             await upsertGithubPr(ghSource.id, parsed.owner, parsed.repo, parsed.number);
-            const prKey = externalIdForPr(parsed.owner, parsed.repo, parsed.number);
+            const prKey = String(parsed.number);
             if (session.flow_id) {
               db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND key = ?`).run(
                 session.flow_id,

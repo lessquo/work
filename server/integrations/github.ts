@@ -10,10 +10,6 @@ export function canonicalGithubPrUrl(owner: string, repo: string, number: number
   return `https://github.com/${owner}/${repo}/pull/${number}`;
 }
 
-export function externalIdForPr(owner: string, repo: string, number: number): string {
-  return `${owner}/${repo}#${number}`;
-}
-
 async function runGh(args: string[], label: string): Promise<string> {
   try {
     const { stdout } = await execFileP('gh', args, { maxBuffer: 10 * 1024 * 1024 });
@@ -101,7 +97,7 @@ export async function upsertGithubPr(
   upsertItems('github_pr', sourceId, [
     {
       external_id: pr.id,
-      key: externalIdForPr(owner, repo, number),
+      key: String(number),
       url: pr.url || canonicalGithubPrUrl(owner, repo, number),
       raw: JSON.stringify(pr),
     },
@@ -124,7 +120,7 @@ export async function syncGithubSource(source: Source, limit: number): Promise<n
     source.id,
     remote.map(pr => ({
       external_id: pr.id,
-      key: externalIdForPr(owner, repo, pr.number),
+      key: String(pr.number),
       url: pr.url || canonicalGithubPrUrl(owner, repo, pr.number),
       raw: JSON.stringify(pr),
     })),

@@ -361,10 +361,8 @@ function headerExternalId(item: Item): string | null {
     case 'sentry_issue':
     case 'jira_issue':
       return item.key;
-    case 'github_pr': {
-      const n = parseGithubPrRaw(item.raw).number;
-      return n ? `#${n}` : null;
-    }
+    case 'github_pr':
+      return `#${item.key}`;
     case 'notes':
       return null;
   }

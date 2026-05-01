@@ -79,9 +79,12 @@
   .status-danger {
     @apply border border-rose-200 bg-rose-50/50 text-rose-700;
   }
-  /* Selected */
-  .selected-primary {
-    @apply border-indigo-200 bg-indigo-50/50;
+  /* Selectable */
+  .selectable {
+    @apply cursor-pointer border border-gray-200 bg-white text-gray-700 not-[.selected,:disabled]:hover:bg-gray-50 disabled:opacity-50;
+  }
+  .selected {
+    @apply bg-gray-100;
   }
   /* Base UI */
   .root {

@@ -14,17 +14,14 @@ export function PromptPicker({
     <section className='border-b px-4 py-3'>
       <div className='flex flex-wrap items-center gap-1.5'>
         {prompts.map(p => {
-          const active = promptId === p.id;
+          const selected = promptId === p.id;
           return (
             <button
               key={p.id}
               type='button'
               onClick={() => setPromptId(p.id)}
               title={p.hint || undefined}
-              className={cn(
-                'rounded-md border px-2.5 py-1 text-xs font-medium',
-                active ? 'selected-primary' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50',
-              )}
+              className={cn('btn-sm selectable', selected && 'selected')}
             >
               {p.label}
             </button>

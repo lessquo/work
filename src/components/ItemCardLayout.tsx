@@ -26,10 +26,7 @@ export function ItemCardLayout({
     <li
       onClick={handleCardClick}
       aria-pressed={selected}
-      className={cn(
-        'cursor-pointer rounded-lg border p-3 select-none',
-        selected ? 'selected-primary' : 'bg-white hover:border-gray-300 hover:shadow-sm',
-      )}
+      className={cn('selectable rounded-lg p-3 select-none', selected && 'selected')}
     >
       <div className='flex items-start justify-between gap-4'>
         <div className='min-w-0 flex-1'>{body}</div>

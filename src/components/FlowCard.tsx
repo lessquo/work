@@ -291,10 +291,7 @@ function ItemChip({
       <Link
         to={to}
         title={title}
-        className={cn(
-          'block w-44 rounded-md border p-2 text-left',
-          selected ? 'selected-primary' : 'border-gray-200 bg-gray-50 hover:border-gray-300 hover:bg-gray-100',
-        )}
+        className={cn('selectable block w-44 rounded-md p-2 text-left', selected && 'selected')}
       >
         <div className='flex items-center gap-1.5'>
           <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
@@ -347,8 +344,8 @@ function SessionChip({ session, to, selected }: { session: FlowSessionChild; to:
         to={to}
         title={`${heading} · #${session.id} · ${timeAgo(session.created_at)}`}
         className={cn(
-          'flex w-44 items-center gap-1.5 rounded-md border px-2 py-1.5',
-          selected ? 'selected-primary' : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50',
+          'selectable flex w-44 items-center gap-1.5 rounded-md border px-2 py-1.5',
+          selected && 'selected',
         )}
       >
         <StatusDot status={session.status} />

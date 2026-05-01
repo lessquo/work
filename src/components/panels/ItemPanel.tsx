@@ -12,7 +12,6 @@ import {
   type GithubPrRaw,
   type Item,
   type ItemType,
-  type ItemWithSessions,
   type JiraStatusCategory,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -24,8 +23,8 @@ import { useNavigate, useParams } from 'react-router';
 
 export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const { itemId: itemIdParam } = useParams();
-  const [sourceId] = useQueryState('source', parseAsInteger.withDefault(0));
-  const itemId = itemIdProp ?? (itemIdParam ? Number(itemIdParam) : null);
+  const [selectedIds, setSelectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
+  const itemId = itemIdProp ?? (itemIdParam ? Number(itemIdParam) : (selectedIds[0] ?? null));
   const isFlowMode = itemIdProp !== undefined;
   const qc = useQueryClient();
   const confirm = useConfirm();
@@ -33,78 +32,55 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
   const navigate = useNavigate();
 
   const [filter] = useQueryState('filter', parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'));
-  const [sort] = useQueryState('sort', parseAsStringLiteral(['recency', 'title'] as const).withDefault('recency'));
-  const [selectedIds, setSelectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
   const [, setSessionIdQs] = useQueryState('session', parseAsInteger);
 
-  const sourceItemsQuery = useSuspenseQuery({
-    queryKey: isFlowMode ? ['items-noop'] : ['items', sourceId, filter, sort],
-    queryFn: (): Promise<ItemWithSessions[]> =>
-      isFlowMode ? Promise.resolve([]) : api.listItems(sourceId, filter, sort),
+  const itemQuery = useSuspenseQuery({
+    queryKey: itemId !== null ? ['item', itemId] : ['item-noop'],
+    queryFn: (): Promise<Item | null> => (itemId !== null ? api.getItem(itemId) : Promise.resolve(null)),
   });
-  const flowItemQuery = useSuspenseQuery({
-    queryKey: isFlowMode && itemId !== null ? ['item', itemId] : ['item-noop'],
-    queryFn: (): Promise<Item | null> => (isFlowMode && itemId !== null ? api.getItem(itemId) : Promise.resolve(null)),
-  });
-
-  const ids = new Set<number>(selectedIds);
-  if (itemId !== null) ids.add(itemId);
-  const selectedItems: Item[] = isFlowMode
-    ? flowItemQuery.data
-      ? [flowItemQuery.data]
-      : []
-    : sourceItemsQuery.data.filter(i => ids.has(i.id));
-  const count = selectedItems.length;
-  const sid = isFlowMode ? (selectedItems[0]?.source_id ?? sourceId) : sourceId;
-  const single = count === 1 ? selectedItems[0]! : null;
+  const item = itemQuery.data;
 
   function invalidateAfterMutation() {
     setSelectedIds(null);
-    qc.invalidateQueries({ queryKey: ['items', sid] });
-    qc.invalidateQueries({ queryKey: ['itemCounts', sid] });
+    if (item) {
+      qc.invalidateQueries({ queryKey: ['items', item.source_id] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', item.source_id] });
+    }
     if (isFlowMode) {
       qc.invalidateQueries({ queryKey: ['flows'] });
-      if (itemId !== null) qc.invalidateQueries({ queryKey: ['item', itemId] });
+      if (item) qc.invalidateQueries({ queryKey: ['item', item.id] });
     }
   }
 
-  const createSessionsMutation = useMutation({
-    mutationFn: async (targetItems: Item[]) => {
-      const results = await Promise.allSettled(targetItems.map(it => api.createDraftSession({ itemId: it.id })));
-      return results;
+  const createSessionMutation = useMutation({
+    mutationFn: () => {
+      if (!item) throw new Error('no item');
+      return api.createDraftSession({ itemId: item.id });
     },
-    onSuccess: results => {
-      const created = results.filter(r => r.status === 'fulfilled');
-      const skipped = results.length - created.length;
-      const skippedNote = skipped > 0 ? ` (${skipped} skipped)` : '';
-      toast.add({
-        title:
-          created.length === 0
-            ? 'No drafts created.'
-            : `Created ${created.length} draft session${created.length === 1 ? '' : 's'}${skippedNote}.`,
-      });
+    onSuccess: sess => {
+      toast.add({ title: 'Created draft session.' });
       invalidateAfterMutation();
       qc.invalidateQueries({ queryKey: ['flows'] });
-      if (created.length === 1 && created[0].status === 'fulfilled') {
-        const sess = created[0].value;
-        if (isFlowMode) {
-          const params = new URLSearchParams(window.location.search);
-          params.set('session', String(sess.id));
-          params.delete('item');
-          params.set('sessionTab', 'setup');
-          navigate({
-            pathname: sess.flow_id ? `/flows/${sess.flow_id}` : window.location.pathname,
-            search: params.toString(),
-          });
-        } else {
-          setSessionIdQs(sess.id);
-        }
+      if (isFlowMode) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('session', String(sess.id));
+        params.delete('item');
+        params.set('sessionTab', 'setup');
+        navigate({
+          pathname: sess.flow_id ? `/flows/${sess.flow_id}` : window.location.pathname,
+          search: params.toString(),
+        });
+      } else {
+        setSessionIdQs(sess.id);
       }
     },
   });
 
-  const resolveItemsMutation = useMutation({
-    mutationFn: (targetIds: number[]) => api.resolveItems(sid, targetIds),
+  const resolveMutation = useMutation({
+    mutationFn: () => {
+      if (!item) throw new Error('no item');
+      return api.resolveItems(item.source_id, [item.id]);
+    },
     onSuccess: res => {
       const parts: string[] = [`Resolved ${res.resolved} item${res.resolved === 1 ? '' : 's'}`];
       if (res.skipped > 0) parts.push(`${res.skipped} skipped`);
@@ -114,8 +90,11 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     },
   });
 
-  const createFlowsMutation = useMutation({
-    mutationFn: (targetIds: number[]) => api.createFlowsForItems(sid, targetIds),
+  const createFlowMutation = useMutation({
+    mutationFn: () => {
+      if (!item) throw new Error('no item');
+      return api.createFlowsForItems(item.source_id, [item.id]);
+    },
     onSuccess: res => {
       toast.add({
         title: res.created === 0 ? 'No flows created.' : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
@@ -125,8 +104,11 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     },
   });
 
-  const deleteSessionsMutation = useMutation({
-    mutationFn: (targetIds: number[]) => api.deleteItemSessions(sid, targetIds),
+  const deleteSessionMutation = useMutation({
+    mutationFn: () => {
+      if (!item) throw new Error('no item');
+      return api.deleteItemSessions(item.source_id, [item.id]);
+    },
     onSuccess: res => {
       const parts: string[] = [`Deleted ${res.deleted} session${res.deleted === 1 ? '' : 's'}`];
       if (res.skipped_active > 0) parts.push(`${res.skipped_active} skipped (active)`);
@@ -138,130 +120,100 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     },
   });
 
-  const creatingSessions = createSessionsMutation.isPending;
-  const resolving = resolveItemsMutation.isPending;
-  const deletingSessions = deleteSessionsMutation.isPending;
-  const creatingFlows = createFlowsMutation.isPending;
-
-  async function copyLinksAsMarkdown() {
-    const lines = selectedItems.map(item => {
-      const label =
-        item.type === 'sentry_issue' ? (parseSentryRaw(item.raw).shortId ?? `#${item.id}`) : item.external_id;
-      return `[${label}](${item.url})`;
-    });
-    const text = lines.length === 1 ? lines[0] : lines.map(l => `- ${l}`).join('\n');
+  async function copyLink() {
+    if (!item) return;
+    const label = item.type === 'sentry_issue' ? (parseSentryRaw(item.raw).shortId ?? `#${item.id}`) : item.external_id;
+    const text = `[${label}](${item.url})`;
     try {
       await navigator.clipboard.writeText(text);
-      toast.add({ title: count === 1 ? 'Copied link.' : `Copied ${count} links.` });
+      toast.add({ title: 'Copied link.' });
     } catch (e) {
       toast.add({ title: `Copy failed: ${e instanceof Error ? e.message : String(e)}` });
     }
   }
 
-  function createSessions() {
-    if (count === 0) return;
-    createSessionsMutation.mutate(selectedItems);
-  }
-
-  async function resolveSelected() {
-    if (count === 0) return;
+  async function handleResolve() {
     const ok = await confirm({
-      title: `Resolve ${count} item${count === 1 ? '' : 's'}?`,
-      description: 'The selected items will be marked as resolved upstream.',
+      title: 'Resolve this item?',
+      description: 'This item will be marked as resolved upstream.',
       confirmText: 'Resolve',
     });
     if (!ok) return;
-    resolveItemsMutation.mutate(selectedItems.map(i => i.id));
+    resolveMutation.mutate();
   }
 
-  async function deleteSelectedSessions() {
-    if (count === 0) return;
+  async function handleDeleteSession() {
     const ok = await confirm({
-      title: `Delete sessions for ${count} item${count === 1 ? '' : 's'}?`,
+      title: 'Delete sessions for this item?',
       description:
-        'The latest session for each selected item will be deleted along with its clone folder. Active (queued/running) sessions will be skipped.',
+        'The latest session for this item will be deleted along with its clone folder. Active (queued/running) sessions will be skipped.',
       confirmText: 'Delete sessions',
       destructive: true,
     });
     if (!ok) return;
-    deleteSessionsMutation.mutate(selectedItems.map(i => i.id));
+    deleteSessionMutation.mutate();
   }
+
+  if (!item) return null;
 
   return (
     <aside className='flex h-full flex-col border-l bg-white'>
       <header className='flex h-12 items-center gap-2 border-b bg-gray-50 px-4'>
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2 text-sm'>
-            {single ? (
-              <ItemHeading item={single} />
-            ) : (
-              <span className='font-semibold'>
-                {count} item{count === 1 ? '' : 's'} selected
-              </span>
-            )}
-            <Tooltip content={count === 1 ? 'Copy link as Markdown' : `Copy ${count} links as Markdown`}>
-              <button
-                onClick={copyLinksAsMarkdown}
-                disabled={count === 0}
-                className='btn-sm btn-ghost'
-                aria-label='copy links'
-              >
+            <ItemHeading item={item} />
+            <Tooltip content='Copy link as Markdown'>
+              <button onClick={copyLink} className='btn-sm btn-ghost' aria-label='copy link'>
                 <Copy />
               </button>
             </Tooltip>
           </div>
         </div>
         <div className='flex shrink-0 items-center gap-2'>
-          {single && (
-            <a href={single.url} target='_blank' rel='noreferrer' className='btn-sm btn-success'>
-              {externalLinkLabel(single.type)}
-            </a>
-          )}
+          <a href={item.url} target='_blank' rel='noreferrer' className='btn-sm btn-success'>
+            {externalLinkLabel(item.type)}
+          </a>
           {filter === 'open' && (
             <>
-              <Tooltip content='Create a draft session per selected item — configure and run from the session panel'>
+              <Tooltip content='Create a draft session — configure and run from the session panel'>
                 <button
-                  onClick={createSessions}
-                  disabled={creatingSessions || count === 0}
+                  onClick={() => createSessionMutation.mutate()}
+                  disabled={createSessionMutation.isPending}
                   className='btn-sm btn-primary'
                 >
-                  {creatingSessions ? 'Creating…' : count > 1 ? `Create ${count} sessions` : 'Create session'}
+                  {createSessionMutation.isPending ? 'Creating…' : 'Create session'}
                 </button>
               </Tooltip>
-              <Tooltip content='Mark the selected issues as resolved upstream'>
-                <button onClick={resolveSelected} disabled={resolving || count === 0} className='btn-sm btn-secondary'>
-                  {resolving ? 'Resolving…' : 'Resolve'}
+              <Tooltip content='Mark this issue as resolved upstream'>
+                <button onClick={handleResolve} disabled={resolveMutation.isPending} className='btn-sm btn-secondary'>
+                  {resolveMutation.isPending ? 'Resolving…' : 'Resolve'}
                 </button>
               </Tooltip>
             </>
           )}
-          <Tooltip
-            content={
-              count === 1 ? 'Create a flow with this item as a child' : `Create ${count} flows, one per selected item`
-            }
-          >
+          <Tooltip content='Create a flow with this item as a child'>
             <button
-              onClick={() => createFlowsMutation.mutate(selectedItems.map(i => i.id))}
-              disabled={creatingFlows || count === 0}
+              onClick={() => createFlowMutation.mutate()}
+              disabled={createFlowMutation.isPending}
               className='btn-sm btn-secondary'
             >
               <Workflow />
-              {creatingFlows ? 'Creating…' : count > 1 ? `Create ${count} flows` : 'Create flow'}
+              {createFlowMutation.isPending ? 'Creating…' : 'Create flow'}
             </button>
           </Tooltip>
-          <Tooltip content='Delete the latest session for each selected issue (active sessions skipped)'>
+          <Tooltip content='Delete the latest session for this issue (active sessions skipped)'>
             <button
-              onClick={deleteSelectedSessions}
-              disabled={deletingSessions || count === 0}
+              onClick={handleDeleteSession}
+              disabled={deleteSessionMutation.isPending}
               className='btn-sm btn-danger'
             >
-              {deletingSessions ? 'Deleting…' : 'Delete sessions'}
+              {deleteSessionMutation.isPending ? 'Deleting…' : 'Delete sessions'}
             </button>
           </Tooltip>
         </div>
       </header>
       <div className='min-h-0 flex-1 overflow-auto'>
-        {single ? <ItemBody item={single} /> : count > 1 ? <SelectionList items={selectedItems} /> : null}
+        <ItemBody item={item} />
       </div>
     </aside>
   );
@@ -378,29 +330,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <dt className='w-24 shrink-0 text-xs text-gray-500'>{label}</dt>
       <dd className='min-w-0 flex-1 text-sm text-gray-800'>{children}</dd>
     </div>
-  );
-}
-
-function SelectionList({ items }: { items: Item[] }) {
-  return (
-    <ul className='flex flex-col divide-y'>
-      {items.map(item => {
-        const logo = TYPE_LOGO[item.type];
-        return (
-          <li key={item.id} className='flex items-center gap-2 px-4 py-2 text-sm'>
-            <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-            <a
-              href={item.url}
-              target='_blank'
-              rel='noreferrer'
-              className='min-w-0 truncate text-gray-800 hover:underline'
-            >
-              {itemTitle(item)}
-            </a>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
 

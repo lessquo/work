@@ -4,9 +4,9 @@ import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import { useFuzzySearch } from '@/lib/fuse';
 import { Popover } from '@base-ui/react/popover';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import Fuse from 'fuse.js';
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
@@ -21,24 +21,7 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
 
   const candidates = useMemo(() => allItems.filter(it => it.flow_id !== flowId), [allItems, flowId]);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(candidates, {
-        keys: [
-          { name: 'key', weight: 2 },
-          { name: 'title', weight: 2 },
-        ],
-        threshold: 0.4,
-        ignoreLocation: true,
-      }),
-    [candidates],
-  );
-
-  const results = useMemo(() => {
-    const q = query.trim();
-    if (q.length === 0) return candidates;
-    return fuse.search(q).map(r => r.item);
-  }, [candidates, fuse, query]);
+  const results = useFuzzySearch(candidates, query);
 
   const attachMutation = useMutation({
     mutationFn: (itemId: number) => api.setItemFlow(itemId, flowId),

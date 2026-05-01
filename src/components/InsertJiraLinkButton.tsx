@@ -2,9 +2,9 @@ import { TYPE_LOGO } from '@/components/typeLogo';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import { useFuzzySearch } from '@/lib/fuse';
 import { Popover } from '@base-ui/react/popover';
 import { useQueries, useQuery } from '@tanstack/react-query';
-import Fuse from 'fuse.js';
 import { useMemo, useState } from 'react';
 
 type Row = { id: number; key: string; title: string; url: string };
@@ -31,26 +31,9 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
     return out;
   }, [itemsQueries]);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(rows, {
-        keys: [
-          { name: 'key', weight: 2 },
-          { name: 'title', weight: 2 },
-        ],
-        threshold: 0.4,
-        ignoreLocation: true,
-      }),
-    [rows],
-  );
-
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
-  const results = useMemo(() => {
-    const q = query.trim();
-    if (q.length === 0) return rows;
-    return fuse.search(q).map(r => r.item);
-  }, [rows, fuse, query]);
+  const results = useFuzzySearch(rows, query);
 
   const logo = TYPE_LOGO.jira_issue;
 

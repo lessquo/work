@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, type ItemStatus, type ItemType } from '@/lib/api';
+import { useFuzzySearch } from '@/lib/fuse';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import Fuse from 'fuse.js';
 import { Search } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useEffect, useMemo } from 'react';
@@ -109,25 +109,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
   });
   const allItems = itemsQuery.data;
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(allItems, {
-        keys: [
-          { name: 'title', weight: 2 },
-          { name: 'key', weight: 1 },
-        ],
-        threshold: 0.4,
-        ignoreLocation: true,
-        includeScore: false,
-      }),
-    [allItems],
-  );
-
-  const items = useMemo(() => {
-    const q = query.trim();
-    if (q.length === 0) return allItems;
-    return fuse.search(q).map(r => r.item);
-  }, [allItems, fuse, query]);
+  const items = useFuzzySearch(allItems, query);
 
   const visibleIds = useMemo(() => new Set(items.map(i => i.id)), [items]);
   const validSelectedIds = useMemo(() => selectedIds.filter(eid => visibleIds.has(eid)), [selectedIds, visibleIds]);

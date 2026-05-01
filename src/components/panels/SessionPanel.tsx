@@ -16,7 +16,7 @@ import { api, DEFAULT_PROMPT_ID, type Prompt, type PromptId, type Session, type 
 import { cn } from '@/lib/cn';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Copy, X } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
 export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'notes';
@@ -279,9 +279,6 @@ export function SessionPanel({
               </button>
             </Tooltip>
           )}
-          <button onClick={onClose} className='btn-sm btn-ghost' aria-label='close'>
-            <X />
-          </button>
         </div>
       </header>
       {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700'>{prError}</div>}

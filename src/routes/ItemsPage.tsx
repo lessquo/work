@@ -114,7 +114,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
       new Fuse(allItems, {
         keys: [
           { name: 'title', weight: 2, getFn: itemTitle },
-          { name: 'externalId', weight: 1, getFn: it => it.external_id },
+          { name: 'key', weight: 1, getFn: it => it.key },
         ],
         threshold: 0.4,
         ignoreLocation: true,

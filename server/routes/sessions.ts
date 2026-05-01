@@ -417,8 +417,8 @@ sessions.post('/sessions/:id/update-jira-issue', async c => {
   if (!session.item_id) return c.json({ error: 'session not linked to Jira item' }, 409);
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no workspace path' }, 409);
 
-  const item = db.prepare(`SELECT external_id, source_id FROM items WHERE id = ?`).get(session.item_id) as
-    | { external_id: string; source_id: number }
+  const item = db.prepare(`SELECT ext_id, source_id FROM items WHERE id = ?`).get(session.item_id) as
+    | { ext_id: string; source_id: number }
     | undefined;
   if (!item) return c.json({ error: 'item not found' }, 404);
 
@@ -426,11 +426,11 @@ sessions.post('/sessions/:id/update-jira-issue', async c => {
     const summary = (await readMetaFile(session, 'JIRA_TITLE.txt')).trim();
     const description = (await readMetaFile(session, 'JIRA_DESCRIPTION.md')).trim();
     if (!summary) return c.json({ error: 'JIRA_TITLE.txt is empty' }, 400);
-    await updateJiraIssue(item.external_id, summary, description);
+    await updateJiraIssue(item.ext_id, summary, description);
     try {
-      await upsertJiraIssue(item.source_id, item.external_id);
+      await upsertJiraIssue(item.source_id, item.ext_id);
     } catch (e) {
-      console.warn(`[jira] post-update refresh failed for ${item.external_id}:`, e);
+      console.warn(`[jira] post-update refresh failed for ${item.ext_id}:`, e);
     }
     return c.json(getSession(sessionId));
   } catch (e) {

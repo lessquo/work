@@ -81,7 +81,7 @@ export async function syncSentrySource(source: Source, limit: number): Promise<n
   upsertItems(
     'sentry_issue',
     source.id,
-    remote.map(i => ({ external_id: i.id, key: i.shortId, url: i.permalink, raw: JSON.stringify(i) })),
+    remote.map(i => ({ ext_id: i.id, key: i.shortId, url: i.permalink, raw: JSON.stringify(i) })),
   );
   return remote.length;
 }

@@ -66,7 +66,7 @@ async function buildPrompt(item: Item, promptId: string): Promise<string> {
     {
       sentry_url: item.url,
       shortId: item.key,
-      issueId: item.external_id,
+      issueId: item.ext_id,
     },
     promptId,
   );

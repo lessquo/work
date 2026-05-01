@@ -35,13 +35,13 @@ CREATE TABLE IF NOT EXISTS items (
   source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
   type TEXT NOT NULL,
-  external_id TEXT NOT NULL,
+  ext_id TEXT NOT NULL,
   key TEXT NOT NULL,
   url TEXT NOT NULL,
   raw TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE(type, external_id)
+  UNIQUE(type, ext_id)
 );
 CREATE INDEX IF NOT EXISTS idx_items_source_type ON items(source_id, type);
 CREATE INDEX IF NOT EXISTS idx_items_flow ON items(flow_id);
@@ -153,7 +153,7 @@ export type Item = {
   source_id: number;
   flow_id: number | null;
   type: ItemType;
-  external_id: string;
+  ext_id: string;
   key: string;
   url: string;
   raw: string;
@@ -162,9 +162,9 @@ export type Item = {
 };
 
 const upsertItemStmt = db.prepare(`
-  INSERT INTO items (source_id, type, external_id, key, url, raw, updated_at)
-  VALUES (@source_id, @type, @external_id, @key, @url, @raw, datetime('now'))
-  ON CONFLICT(type, external_id) DO UPDATE SET
+  INSERT INTO items (source_id, type, ext_id, key, url, raw, updated_at)
+  VALUES (@source_id, @type, @ext_id, @key, @url, @raw, datetime('now'))
+  ON CONFLICT(type, ext_id) DO UPDATE SET
     source_id = excluded.source_id,
     key = excluded.key,
     url = excluded.url,
@@ -173,12 +173,12 @@ const upsertItemStmt = db.prepare(`
 `);
 
 export const upsertItems = db.transaction(
-  (type: ItemType, sourceId: number, rows: Array<{ external_id: string; key: string; url: string; raw: string }>) => {
+  (type: ItemType, sourceId: number, rows: Array<{ ext_id: string; key: string; url: string; raw: string }>) => {
     for (const r of rows) {
       upsertItemStmt.run({
         source_id: sourceId,
         type,
-        external_id: r.external_id,
+        ext_id: r.ext_id,
         key: r.key,
         url: r.url,
         raw: r.raw,

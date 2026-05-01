@@ -14,7 +14,7 @@ export type Item = {
   source_id: number;
   flow_id: number | null;
   type: ItemType;
-  external_id: string;
+  ext_id: string;
   key: string;
   url: string;
   raw: string;
@@ -40,7 +40,7 @@ export type FlowSessionChild = {
   pr_url: string | null;
   user_context: string | null;
   created_at: string;
-  item_external_id: string | null;
+  item_ext_id: string | null;
   item_key: string | null;
   item_type: ItemType | null;
   item_url: string | null;
@@ -191,7 +191,7 @@ export type Session = {
 };
 
 export type SourceSession = Session & {
-  item_external_id: string | null;
+  item_ext_id: string | null;
   item_key: string | null;
   item_type: ItemType | null;
   item_url: string | null;

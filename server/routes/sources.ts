@@ -208,7 +208,7 @@ sources.post('/:id/resolve-items', async c => {
       if (ok) resolved++;
       else skipped++;
     } catch (e) {
-      errors.push(`${item.external_id}: ${e instanceof Error ? e.message : String(e)}`);
+      errors.push(`${item.ext_id}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 
@@ -287,11 +287,11 @@ sources.get('/:id/sessions', c => {
   const rows = db
     .prepare(
       `SELECT ${sessionColumns},
-              i.external_id AS item_external_id,
-              i.key         AS item_key,
-              i.type        AS item_type,
-              i.url         AS item_url,
-              i.raw         AS item_raw
+              i.ext_id AS item_ext_id,
+              i.key    AS item_key,
+              i.type   AS item_type,
+              i.url    AS item_url,
+              i.raw    AS item_raw
          FROM ${sessionFrom}
          LEFT JOIN items i ON i.id = s.item_id
         WHERE s.source_id = ? OR i.source_id = ?
@@ -354,9 +354,9 @@ async function resolveItemUpstream(source: Source, item: Item, assignTo: string 
         prUrls.length === 1
           ? `Resolved by ${prUrls[0].url}`
           : 'Resolved by:\n' + prUrls.map(p => `- ${p.url}`).join('\n');
-      await commentOnSentryIssue(item.external_id, text);
+      await commentOnSentryIssue(item.ext_id, text);
     }
-    await resolveSentryIssue(item.external_id, { assignTo });
+    await resolveSentryIssue(item.ext_id, { assignTo });
     const raw = safeParse(item.raw);
     raw.status = 'resolved';
     db.prepare(`UPDATE items SET raw = ?, updated_at = datetime('now') WHERE id = ?`).run(JSON.stringify(raw), item.id);

@@ -1,4 +1,4 @@
-import { AttachItemDialog } from '@/components/AttachItemDialog';
+import { AttachItemButton } from '@/components/AttachItemButton';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
@@ -15,9 +15,9 @@ import {
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
+import { Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router';
 
 type ItemColumn = { item: Item; sessions: FlowSessionChild[] };
@@ -29,7 +29,6 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   const wid = flow.id;
   const [openItemId] = useQueryState('item', parseAsInteger);
   const [openSessionId] = useQueryState('session', parseAsInteger);
-  const [attachOpen, setAttachOpen] = useState(false);
   const confirm = useConfirm();
   const toast = useToast();
   const qc = useQueryClient();
@@ -182,15 +181,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
           <span className='shrink-0 text-[11px] text-gray-500'>{timeAgo(flow.created_at)}</span>
         </div>
         <div className='flex shrink-0 items-center gap-2'>
-          <button
-            type='button'
-            onClick={() => setAttachOpen(true)}
-            className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
-            title='Attach item'
-          >
-            <Plus />
-            Add item
-          </button>
+          <AttachItemButton flowId={wid} />
           <button
             type='button'
             onClick={() => addSessionMutation.mutate()}
@@ -277,7 +268,6 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
           </ol>
         </div>
       )}
-      <AttachItemDialog open={attachOpen} onOpenChange={setAttachOpen} flowId={wid} />
     </li>
   );
 }

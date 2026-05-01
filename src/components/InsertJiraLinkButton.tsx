@@ -74,7 +74,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
                 type='search'
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder='Search by key or summary…'
+                placeholder='Search by title or key…'
                 className='w-full'
                 autoFocus
               />

@@ -1,3 +1,4 @@
+import { InsertJiraLinkButton } from '@/components/InsertJiraLinkButton';
 import { InsertNoteButton } from '@/components/InsertNoteButton';
 import { DiffView } from '@/components/panels/DiffView';
 import { LogsView } from '@/components/panels/LogsView';
@@ -514,13 +515,21 @@ function UserContextSection({
       <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
         <span className='text-gray-500'>What's this session about?</span>
         {!readOnly && (
-          <InsertNoteButton
-            onInsert={({ title, body_md }) => {
-              const block = `### ${title}\n\n${body_md.trim()}`;
-              const next = value.trim().length === 0 ? block : `${value.trim()}\n\n${block}`;
-              onChange(next);
-            }}
-          />
+          <div className='flex items-center gap-2'>
+            <InsertJiraLinkButton
+              onInsert={url => {
+                const next = value.trim().length === 0 ? url : `${value.trim()}\n\n${url}`;
+                onChange(next);
+              }}
+            />
+            <InsertNoteButton
+              onInsert={({ title, body_md }) => {
+                const block = `### ${title}\n\n${body_md.trim()}`;
+                const next = value.trim().length === 0 ? block : `${value.trim()}\n\n${block}`;
+                onChange(next);
+              }}
+            />
+          </div>
         )}
       </div>
       <textarea

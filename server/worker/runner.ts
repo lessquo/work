@@ -80,12 +80,16 @@ async function buildPrompt(item: Item, promptId: string): Promise<string> {
   );
 }
 
-// Orphan Jira PR sessions store `[KEY](URL)` as the first line of user_context.
-// We pull KEY back out for the branch name so the PR has a readable slug.
+// Orphan Jira PR sessions carry the issue reference in user_context — either as
+// `[KEY](URL)` (written by buildJiraIssueContext) or as a raw `.../browse/KEY`
+// URL pasted by the user. We pull KEY back out for the branch name so the PR
+// has a readable slug.
 function extractJiraKey(userContext: string | null): string | null {
   if (!userContext) return null;
-  const m = userContext.match(/^\[([A-Z][A-Z0-9_]*-\d+)\]/);
-  return m?.[1] ?? null;
+  const md = userContext.match(/\[([A-Z][A-Z0-9_]*-\d+)\]/);
+  if (md) return md[1];
+  const url = userContext.match(/\/browse\/([A-Z][A-Z0-9_]*-\d+)/);
+  return url?.[1] ?? null;
 }
 
 type Logger = (chunk: string) => Promise<void>;

@@ -4,7 +4,7 @@ This is a personal local only app. Keep clean code and prefer refactoring.
 
 ## Dependencies
 
-- `@base-ui/react`: Basic UI components.
+- `@base-ui/react`: [Basic UI](https://base-ui.com/llms.txt)
 - `@tanstack/react-pacer`: Debouncing.
 - `@tanstack/react-query`: Data fetching. Prefer `useSuspenseQuery` over `useQuery`.
 - `fuse.js`: Fuzzy search.

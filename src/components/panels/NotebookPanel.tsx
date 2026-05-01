@@ -34,7 +34,7 @@ export function NotebookPanel() {
   const onError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
   const renameMutation = useMutation({
-    mutationFn: (name: string) => api.renameNotebook(itemIdNum!, name),
+    mutationFn: (title: string) => api.renameNotebook(itemIdNum!, title),
     onSuccess: () => {
       setRenaming(false);
       qc.invalidateQueries({ queryKey: ['notebook', itemIdNum] });
@@ -99,7 +99,7 @@ export function NotebookPanel() {
                 autoFocus
                 value={renameValue}
                 onChange={e => setRenameValue(e.target.value)}
-                placeholder='Notebook name'
+                placeholder='Notebook title'
                 className='flex-1 text-sm'
               />
               <button type='submit' className='btn-sm btn-primary' disabled={renameMutation.isPending}>
@@ -126,7 +126,6 @@ export function NotebookPanel() {
           )}
         </div>
         <button onClick={onDeleteNotebook} className='btn-sm btn-danger' disabled={deleteNotebookMutation.isPending}>
-          <Trash2 />
           Delete
         </button>
       </header>

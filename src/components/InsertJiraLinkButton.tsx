@@ -7,7 +7,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
 import { useMemo, useState } from 'react';
 
-type Row = { id: number; externalId: string; title: string; url: string };
+type Row = { id: number; key: string; title: string; url: string };
 
 export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => void }) {
   const sourcesQuery = useQuery({ queryKey: ['sources'], queryFn: api.listSources });
@@ -25,7 +25,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
     for (const q of itemsQueries) {
       if (!q.data) continue;
       for (const it of q.data) {
-        out.push({ id: it.id, externalId: it.key, title: it.title, url: it.url });
+        out.push({ id: it.id, key: it.key, title: it.title, url: it.url });
       }
     }
     return out;
@@ -35,7 +35,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
     () =>
       new Fuse(rows, {
         keys: [
-          { name: 'externalId', weight: 2 },
+          { name: 'key', weight: 2 },
           { name: 'title', weight: 2 },
         ],
         threshold: 0.4,
@@ -97,7 +97,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
                     }}
                     className='flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50'
                   >
-                    <span className='shrink-0 font-mono text-[11px] text-gray-500'>{row.externalId}</span>
+                    <span className='shrink-0 font-mono text-[11px] text-gray-500'>{row.key}</span>
                     <span className='truncate'>{row.title}</span>
                   </button>
                 ))

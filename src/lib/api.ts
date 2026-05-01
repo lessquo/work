@@ -356,11 +356,11 @@ export const api = {
   listGithubRepos: () => req<GithubRepo[]>('/github/repos'),
   listJiraProjects: () => req<JiraProject[]>('/jira/projects'),
   listNotebooks: () => req<Notebook[]>('/notes/notebooks'),
-  createNotebook: (name?: string) =>
-    req<Item>('/notes/notebooks', { method: 'POST', body: JSON.stringify({ name: name ?? '' }) }),
+  createNotebook: (title?: string) =>
+    req<Item>('/notes/notebooks', { method: 'POST', body: JSON.stringify({ title: title ?? '' }) }),
   getNotebook: (id: number) => req<NotebookDetail>(`/notes/notebooks/${id}`),
-  renameNotebook: (id: number, name: string) =>
-    req<Item>(`/notes/notebooks/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  renameNotebook: (id: number, title: string) =>
+    req<Item>(`/notes/notebooks/${id}`, { method: 'PATCH', body: JSON.stringify({ title }) }),
   deleteNotebook: (id: number) => req<{ ok: true }>(`/notes/notebooks/${id}`, { method: 'DELETE' }),
   startNotesSession: (notebookId: number, opts: { context?: string; repo?: string } = {}) =>
     req<Session>(`/notes/notebooks/${notebookId}/sessions`, {

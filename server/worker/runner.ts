@@ -349,10 +349,10 @@ function noteIdFromFilename(filename: string): string {
   return filename.replace(/\.md$/i, '');
 }
 
-function parseNoteFile(content: string, externalId: string): { title: string; body_md: string } {
+function parseNoteFile(content: string, extId: string): { title: string; body_md: string } {
   const trimmed = content.replace(/^\uFEFF/, '');
   const lines = trimmed.split(/\r?\n/);
-  let title = externalId;
+  let title = extId;
   let bodyStart = 0;
   for (let i = 0; i < lines.length; i++) {
     const ln = lines[i].trim();

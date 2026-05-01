@@ -215,7 +215,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
 function ItemHeading({ item }: { item: Item }) {
   const logo = TYPE_LOGO[item.type];
   const badge = getBadge(item);
-  const externalId = headerExternalId(item);
+  const key = headerKey(item);
   return (
     <>
       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
@@ -232,7 +232,7 @@ function ItemHeading({ item }: { item: Item }) {
       <a href={item.url} target='_blank' rel='noreferrer' className='min-w-0 truncate font-semibold hover:underline'>
         {item.title}
       </a>
-      {externalId && <span className='shrink-0 text-xs text-gray-400'>{externalId}</span>}
+      {key && <span className='shrink-0 text-xs text-gray-400'>{key}</span>}
     </>
   );
 }
@@ -353,7 +353,7 @@ function getBadge(item: Item): { label: string; color: string } | null {
   }
 }
 
-function headerExternalId(item: Item): string | null {
+function headerKey(item: Item): string | null {
   switch (item.type) {
     case 'sentry_issue':
     case 'jira_issue':

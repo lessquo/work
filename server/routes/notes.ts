@@ -17,7 +17,7 @@ export const notes = new Hono();
 
 const NOTES_PROMPT_ID = 'write-notes';
 
-function generateNotebookExternalId(): string {
+function generateNotebookExtId(): string {
   return `nb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -41,14 +41,14 @@ notes.get('/notebooks', c => {
 
 // POST /api/notes/notebooks — create an empty notebook
 notes.post('/notebooks', async c => {
-  const body = await c.req.json<{ name?: string }>().catch(() => ({}) as { name?: string });
-  const name = (body.name ?? '').trim() || 'Untitled notebook';
+  const body = await c.req.json<{ title?: string }>().catch(() => ({}) as { title?: string });
+  const title = (body.title ?? '').trim() || 'Untitled notebook';
   const sourceId = getLocalNotesSourceId();
-  const externalId = generateNotebookExternalId();
-  const raw = JSON.stringify({ name });
+  const extId = generateNotebookExtId();
+  const raw = JSON.stringify({ title });
   const res = db
     .prepare(`INSERT INTO items (source_id, type, ext_id, key, title, url, raw) VALUES (?, 'notes', ?, ?, ?, '', ?)`)
-    .run(sourceId, externalId, externalId, name, raw);
+    .run(sourceId, extId, extId, title, raw);
   const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(res.lastInsertRowid) as Item;
   return c.json(item, 201);
 });
@@ -66,11 +66,11 @@ notes.patch('/notebooks/:id', async c => {
   const id = Number(c.req.param('id'));
   const item = getNotebook(id);
   if (!item) return c.json({ error: 'notebook not found' }, 404);
-  const body = await c.req.json<{ name?: string }>().catch(() => ({}) as { name?: string });
-  const name = (body.name ?? '').trim();
-  if (!name) return c.json({ error: 'name is required' }, 400);
-  const raw = JSON.stringify({ name });
-  db.prepare(`UPDATE items SET raw = ?, title = ?, updated_at = datetime('now') WHERE id = ?`).run(raw, name, id);
+  const body = await c.req.json<{ title?: string }>().catch(() => ({}) as { title?: string });
+  const title = (body.title ?? '').trim();
+  if (!title) return c.json({ error: 'title is required' }, 400);
+  const raw = JSON.stringify({ title });
+  db.prepare(`UPDATE items SET raw = ?, title = ?, updated_at = datetime('now') WHERE id = ?`).run(raw, title, id);
   const updated = db.prepare(`SELECT * FROM items WHERE id = ?`).get(id) as Item;
   return c.json(updated);
 });

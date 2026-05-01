@@ -121,8 +121,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
 
   async function copyLink() {
     if (!item) return;
-    const label = item.type === 'sentry_issue' ? (parseSentryRaw(item.raw).shortId ?? `#${item.id}`) : item.external_id;
-    const text = `[${label}](${item.url})`;
+    const text = `[${item.key}](${item.url})`;
     try {
       await navigator.clipboard.writeText(text);
       toast.add({ title: 'Copied link.' });
@@ -360,13 +359,12 @@ function getBadge(item: Item): { label: string; color: string } | null {
 function headerExternalId(item: Item): string | null {
   switch (item.type) {
     case 'sentry_issue':
-      return parseSentryRaw(item.raw).shortId ?? null;
+    case 'jira_issue':
+      return item.key;
     case 'github_pr': {
       const n = parseGithubPrRaw(item.raw).number;
       return n ? `#${n}` : null;
     }
-    case 'jira_issue':
-      return item.external_id;
     case 'notes':
       return null;
   }

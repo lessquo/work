@@ -15,6 +15,7 @@ export type Item = {
   flow_id: number | null;
   type: ItemType;
   external_id: string;
+  key: string;
   url: string;
   raw: string;
   created_at: string;
@@ -40,6 +41,7 @@ export type FlowSessionChild = {
   user_context: string | null;
   created_at: string;
   item_external_id: string | null;
+  item_key: string | null;
   item_type: ItemType | null;
   item_url: string | null;
   item_raw: string | null;
@@ -131,14 +133,14 @@ export function parseNotebookRaw(raw: string): NotebookRaw {
   }
 }
 
-export function itemTitle(item: Pick<Item, 'type' | 'raw' | 'external_id'>): string {
+export function itemTitle(item: Pick<Item, 'type' | 'raw' | 'key'>): string {
   switch (item.type) {
     case 'sentry_issue':
-      return parseSentryRaw(item.raw).title ?? item.external_id;
+      return parseSentryRaw(item.raw).title ?? item.key;
     case 'github_pr':
-      return parseGithubPrRaw(item.raw).title ?? item.external_id;
+      return parseGithubPrRaw(item.raw).title ?? item.key;
     case 'jira_issue':
-      return parseJiraRaw(item.raw).summary ?? item.external_id;
+      return parseJiraRaw(item.raw).summary ?? item.key;
     case 'notes':
       return parseNotebookRaw(item.raw).name ?? 'Untitled notebook';
   }
@@ -190,6 +192,7 @@ export type Session = {
 
 export type SourceSession = Session & {
   item_external_id: string | null;
+  item_key: string | null;
   item_type: ItemType | null;
   item_url: string | null;
   item_raw: string | null;

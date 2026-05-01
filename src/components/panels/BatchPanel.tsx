@@ -1,6 +1,6 @@
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { parseSentryRaw, type Item } from '@/lib/api';
+import { type Item } from '@/lib/api';
 import { Copy, Workflow } from 'lucide-react';
 
 type Filter = 'open' | 'resolved';
@@ -33,9 +33,7 @@ export function BatchPanel({
 
   async function copyLinksAsMarkdown() {
     const lines = selectedItems.map(item => {
-      const label =
-        item.type === 'sentry_issue' ? (parseSentryRaw(item.raw).shortId ?? `#${item.id}`) : item.external_id;
-      return `[${label}](${item.url})`;
+      return `[${item.key}](${item.url})`;
     });
     const text = lines.length === 1 ? lines[0] : lines.map(l => `- ${l}`).join('\n');
     try {

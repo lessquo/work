@@ -389,14 +389,14 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
     try {
       await upsertJiraIssue(session.source_id, created.key);
       if (session.flow_id) {
-        db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND external_id = ?`).run(
+        db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND key = ?`).run(
           session.flow_id,
           session.source_id,
           created.key,
         );
       }
       db.prepare(
-        `UPDATE sessions SET item_id = (SELECT id FROM items WHERE source_id = ? AND external_id = ?) WHERE id = ?`,
+        `UPDATE sessions SET item_id = (SELECT id FROM items WHERE source_id = ? AND key = ?) WHERE id = ?`,
       ).run(session.source_id, created.key, sessionId);
     } catch (e) {
       console.warn(`[jira] post-create upsert failed for ${created.key}:`, e);
@@ -482,17 +482,17 @@ sessions.post('/sessions/:id/create-github-pr', async c => {
             .get(`${parsed.owner}/${parsed.repo}`) as { id: number } | undefined;
           if (ghSource) {
             await upsertGithubPr(ghSource.id, parsed.owner, parsed.repo, parsed.number);
-            const prExternalId = externalIdForPr(parsed.owner, parsed.repo, parsed.number);
+            const prKey = externalIdForPr(parsed.owner, parsed.repo, parsed.number);
             if (session.flow_id) {
-              db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND external_id = ?`).run(
+              db.prepare(`UPDATE items SET flow_id = ? WHERE source_id = ? AND key = ?`).run(
                 session.flow_id,
                 ghSource.id,
-                prExternalId,
+                prKey,
               );
             }
             db.prepare(
-              `UPDATE sessions SET item_id = (SELECT id FROM items WHERE source_id = ? AND external_id = ?) WHERE id = ?`,
-            ).run(ghSource.id, prExternalId, sessionId);
+              `UPDATE sessions SET item_id = (SELECT id FROM items WHERE source_id = ? AND key = ?) WHERE id = ?`,
+            ).run(ghSource.id, prKey, sessionId);
           }
         } catch (e) {
           console.warn(`[github] post-create upsert failed for ${url}:`, e);

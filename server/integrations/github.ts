@@ -37,6 +37,7 @@ function parseOwnerRepo(externalId: string): { owner: string; repo: string } {
 }
 
 type GithubPrListEntry = {
+  id: string;
   number: number;
   title: string;
   url: string;
@@ -72,7 +73,7 @@ export async function fetchGithubRepos(): Promise<GithubRepo[]> {
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-const PR_JSON_FIELDS = 'number,title,url,state,isDraft,headRefName,author,createdAt,updatedAt,mergedAt';
+const PR_JSON_FIELDS = 'id,number,title,url,state,isDraft,headRefName,author,createdAt,updatedAt,mergedAt';
 
 async function fetchPrs(owner: string, repo: string, limit: number): Promise<GithubPrListEntry[]> {
   const stdout = await runGh(
@@ -99,7 +100,8 @@ export async function upsertGithubPr(
   const pr = await fetchGithubPr(owner, repo, number);
   upsertItems('github_pr', sourceId, [
     {
-      external_id: externalIdForPr(owner, repo, number),
+      external_id: pr.id,
+      key: externalIdForPr(owner, repo, number),
       url: pr.url || canonicalGithubPrUrl(owner, repo, number),
       raw: JSON.stringify(pr),
     },
@@ -121,7 +123,8 @@ export async function syncGithubSource(source: Source, limit: number): Promise<n
     'github_pr',
     source.id,
     remote.map(pr => ({
-      external_id: externalIdForPr(owner, repo, pr.number),
+      external_id: pr.id,
+      key: externalIdForPr(owner, repo, pr.number),
       url: pr.url || canonicalGithubPrUrl(owner, repo, pr.number),
       raw: JSON.stringify(pr),
     })),

@@ -302,7 +302,7 @@ function ItemChip({
           <span className='truncate pr-4 text-xs font-medium text-gray-800'>{title}</span>
         </div>
         <div className='mt-1 flex items-center gap-1 text-[10px] text-gray-500'>
-          <span className='truncate'>{item.external_id}</span>
+          <span className='truncate'>{item.key}</span>
           <span>·</span>
           <span className='shrink-0'>{timeAgo(at)}</span>
         </div>

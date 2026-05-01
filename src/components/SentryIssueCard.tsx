@@ -37,7 +37,7 @@ export function SentryIssueCard({
               rel='noreferrer'
               className='truncate text-sm font-medium hover:underline'
             >
-              {sentry.title ?? item.external_id}
+              {sentry.title ?? item.key}
             </a>
           </div>
           {sentry.culprit && <div className='mt-0.5 truncate text-xs text-gray-500'>{sentry.culprit}</div>}

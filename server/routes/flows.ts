@@ -4,7 +4,7 @@ import { Hono } from 'hono';
 
 export const flows = new Hono();
 
-function extractItemTitle(type: ItemType, raw: string, externalId: string): string {
+function extractItemTitle(type: ItemType, raw: string, key: string): string {
   try {
     const parsed = JSON.parse(raw) as Record<string, unknown>;
     if (type === 'sentry_issue' && typeof parsed.title === 'string') return parsed.title;
@@ -13,7 +13,7 @@ function extractItemTitle(type: ItemType, raw: string, externalId: string): stri
   } catch {
     /* fall through */
   }
-  return externalId;
+  return key;
 }
 
 function sanitizeName(s: string): string {
@@ -39,10 +39,10 @@ flows.post('/:id/auto-name', async c => {
   const flow = db.prepare(`SELECT * FROM flows WHERE id = ?`).get(id) as Flow | undefined;
   if (!flow) return c.json({ error: 'not found' }, 404);
 
-  const items = db.prepare(`SELECT type, raw, external_id FROM items WHERE flow_id = ?`).all(id) as Array<{
+  const items = db.prepare(`SELECT type, raw, key FROM items WHERE flow_id = ?`).all(id) as Array<{
     type: ItemType;
     raw: string;
-    external_id: string;
+    key: string;
   }>;
   const sessions = db
     .prepare(`SELECT prompt, status FROM sessions WHERE flow_id = ? ORDER BY id ASC`)
@@ -62,7 +62,7 @@ flows.post('/:id/auto-name', async c => {
   lines.push('');
   if (items.length) {
     lines.push('Items:');
-    for (const i of items) lines.push(`- [${i.type}] ${extractItemTitle(i.type, i.raw, i.external_id)}`);
+    for (const i of items) lines.push(`- [${i.type}] ${extractItemTitle(i.type, i.raw, i.key)}`);
   }
   if (sessions.length) {
     lines.push('Sessions:');
@@ -98,6 +98,7 @@ flows.get('/', c => {
              'flow_id',     i.flow_id,
              'type',        i.type,
              'external_id', i.external_id,
+             'key',         i.key,
              'url',         i.url,
              'raw',         i.raw,
              'created_at',  i.created_at,
@@ -118,6 +119,7 @@ flows.get('/', c => {
              'user_context', s.user_context,
              'created_at',   s.created_at,
              'item_external_id', si.external_id,
+             'item_key',         si.key,
              'item_type',        si.type,
              'item_url',         si.url,
              'item_raw',         si.raw

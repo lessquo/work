@@ -25,7 +25,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
     for (const q of itemsQueries) {
       if (!q.data) continue;
       for (const it of q.data) {
-        out.push({ id: it.id, externalId: it.external_id, title: itemTitle(it), url: it.url });
+        out.push({ id: it.id, externalId: it.key, title: itemTitle(it), url: it.url });
       }
     }
     return out;

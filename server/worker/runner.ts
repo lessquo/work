@@ -62,18 +62,10 @@ function safeBranchSlug(s: string): string {
 }
 
 async function buildPrompt(item: Item, promptId: string): Promise<string> {
-  const raw = (() => {
-    try {
-      return JSON.parse(item.raw) as Record<string, unknown>;
-    } catch {
-      return {};
-    }
-  })();
-
   return renderPrompt(
     {
       sentry_url: item.url,
-      shortId: typeof raw.shortId === 'string' ? raw.shortId : item.external_id,
+      shortId: item.key,
       issueId: item.external_id,
     },
     promptId,
@@ -247,7 +239,7 @@ async function runJob(sessionId: number): Promise<void> {
       emitSessionEnd(sessionId);
       return;
     }
-    branch = `${safeBranchSlug(item.external_id)}-${sessionId}`;
+    branch = `${safeBranchSlug(item.key)}-${sessionId}`;
     buildPromptText = () => buildPrompt(item, session.prompt);
   } else {
     const issueKey = extractJiraKey(session.user_context);

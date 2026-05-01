@@ -25,6 +25,7 @@ function assertConfig() {
 }
 
 type JiraSearchIssue = {
+  id: string;
   key: string;
   fields?: {
     summary?: string;
@@ -38,6 +39,7 @@ type JiraSearchIssue = {
 };
 
 type JiraRaw = {
+  id: string;
   key: string;
   summary?: string;
   status_name?: string;
@@ -89,6 +91,7 @@ async function searchIssues(jql: string, limit: number): Promise<JiraSearchIssue
 
 function toRaw(issue: JiraSearchIssue): JiraRaw {
   return {
+    id: issue.id,
     key: issue.key,
     summary: issue.fields?.summary,
     status_name: issue.fields?.status?.name,
@@ -275,8 +278,8 @@ export async function updateJiraIssue(key: string, summary: string, descriptionM
   }
 }
 
-export function buildJiraIssueContext(item: { external_id: string; url: string }): string {
-  return `[${item.external_id}](${item.url})`;
+export function buildJiraIssueContext(item: { key: string; url: string }): string {
+  return `[${item.key}](${item.url})`;
 }
 
 export async function fetchJiraIssue(key: string): Promise<JiraRaw> {
@@ -294,7 +297,9 @@ export async function fetchJiraIssue(key: string): Promise<JiraRaw> {
 
 export async function upsertJiraIssue(sourceId: number, key: string): Promise<JiraRaw> {
   const raw = await fetchJiraIssue(key);
-  upsertItems('jira_issue', sourceId, [{ external_id: key, url: canonicalJiraUrl(key), raw: JSON.stringify(raw) }]);
+  upsertItems('jira_issue', sourceId, [
+    { external_id: raw.id, key: raw.key, url: canonicalJiraUrl(raw.key), raw: JSON.stringify(raw) },
+  ]);
   return raw;
 }
 
@@ -308,7 +313,8 @@ export async function syncJiraSource(source: Source, limit: number): Promise<num
     'jira_issue',
     source.id,
     remote.map(issue => ({
-      external_id: issue.key,
+      external_id: issue.id,
+      key: issue.key,
       url: canonicalJiraUrl(issue.key),
       raw: JSON.stringify(toRaw(issue)),
     })),

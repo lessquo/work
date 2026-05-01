@@ -21,7 +21,7 @@ export function GithubPrCard({
   const logo = TYPE_LOGO.github_pr;
   const status = displayStatus(pr);
   const statusColor = STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600';
-  const title = pr.title ?? item.external_id;
+  const title = pr.title ?? item.key;
 
   return (
     <ItemCardLayout

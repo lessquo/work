@@ -56,8 +56,8 @@ notes.post('/notebooks', async c => {
   const externalId = generateNotebookExternalId();
   const raw = JSON.stringify({ name });
   const res = db
-    .prepare(`INSERT INTO items (source_id, type, external_id, url, raw) VALUES (?, 'notes', ?, '', ?)`)
-    .run(sourceId, externalId, raw);
+    .prepare(`INSERT INTO items (source_id, type, external_id, key, url, raw) VALUES (?, 'notes', ?, ?, '', ?)`)
+    .run(sourceId, externalId, externalId, raw);
   const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(res.lastInsertRowid) as Item;
   return c.json(item, 201);
 });

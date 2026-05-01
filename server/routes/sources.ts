@@ -288,6 +288,7 @@ sources.get('/:id/sessions', c => {
     .prepare(
       `SELECT ${sessionColumns},
               i.external_id AS item_external_id,
+              i.key         AS item_key,
               i.type        AS item_type,
               i.url         AS item_url,
               i.raw         AS item_raw

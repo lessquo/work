@@ -20,7 +20,7 @@ export function JiraIssueCard({
   const logo = TYPE_LOGO.jira_issue;
   const statusName = jira.status_name ?? 'unknown';
   const statusColor = CATEGORY_COLOR[jira.status_category ?? ''] ?? 'bg-gray-100 text-gray-600';
-  const title = jira.summary ?? item.external_id;
+  const title = jira.summary ?? item.key;
 
   return (
     <ItemCardLayout
@@ -28,7 +28,7 @@ export function JiraIssueCard({
       selected={selected}
       onSelect={onSelect}
       onOpenSession={onOpenSession}
-      rightMeta={<div className='text-[11px] text-gray-400'>{item.external_id}</div>}
+      rightMeta={<div className='text-[11px] text-gray-400'>{item.key}</div>}
       body={
         <>
           <div className='flex items-center gap-2'>

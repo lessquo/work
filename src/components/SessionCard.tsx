@@ -14,9 +14,9 @@ export function SessionCard({
 }) {
   const isJira = session.source_type === 'jira_issue';
   const item =
-    session.item_external_id && session.item_type
+    session.item_key && session.item_type
       ? {
-          external_id: session.item_external_id,
+          key: session.item_key,
           type: session.item_type,
           raw: session.item_raw ?? '',
         }
@@ -55,10 +55,10 @@ export function SessionCard({
                 <span>{session.repo}</span>
               </>
             )}
-            {item?.external_id && (
+            {item?.key && (
               <>
                 <span>·</span>
-                <span>{item.external_id}</span>
+                <span>{item.key}</span>
               </>
             )}
             <span>·</span>

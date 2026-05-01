@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS items (
   flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
   type TEXT NOT NULL,
   external_id TEXT NOT NULL,
+  key TEXT NOT NULL,
   url TEXT NOT NULL,
   raw TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -153,6 +154,7 @@ export type Item = {
   flow_id: number | null;
   type: ItemType;
   external_id: string;
+  key: string;
   url: string;
   raw: string;
   created_at: string;
@@ -160,19 +162,27 @@ export type Item = {
 };
 
 const upsertItemStmt = db.prepare(`
-  INSERT INTO items (source_id, type, external_id, url, raw, updated_at)
-  VALUES (@source_id, @type, @external_id, @url, @raw, datetime('now'))
+  INSERT INTO items (source_id, type, external_id, key, url, raw, updated_at)
+  VALUES (@source_id, @type, @external_id, @key, @url, @raw, datetime('now'))
   ON CONFLICT(type, external_id) DO UPDATE SET
     source_id = excluded.source_id,
+    key = excluded.key,
     url = excluded.url,
     raw = excluded.raw,
     updated_at = datetime('now')
 `);
 
 export const upsertItems = db.transaction(
-  (type: ItemType, sourceId: number, rows: Array<{ external_id: string; url: string; raw: string }>) => {
+  (type: ItemType, sourceId: number, rows: Array<{ external_id: string; key: string; url: string; raw: string }>) => {
     for (const r of rows) {
-      upsertItemStmt.run({ source_id: sourceId, type, external_id: r.external_id, url: r.url, raw: r.raw });
+      upsertItemStmt.run({
+        source_id: sourceId,
+        type,
+        external_id: r.external_id,
+        key: r.key,
+        url: r.url,
+        raw: r.raw,
+      });
     }
   },
 );

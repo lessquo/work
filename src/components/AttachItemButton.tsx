@@ -25,7 +25,7 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
     () =>
       new Fuse(candidates, {
         keys: [
-          { name: 'externalId', weight: 2, getFn: it => it.external_id },
+          { name: 'key', weight: 2, getFn: it => it.key },
           { name: 'title', weight: 2, getFn: itemTitle },
         ],
         threshold: 0.4,
@@ -114,7 +114,7 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
                       className='flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50'
                     >
                       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-                      <span className='shrink-0 font-mono text-[11px] text-gray-500'>{item.external_id}</span>
+                      <span className='shrink-0 font-mono text-[11px] text-gray-500'>{item.key}</span>
                       <span className='truncate'>{itemTitle(item)}</span>
                       {item.flow_id != null && (
                         <span className='ml-auto shrink-0 rounded bg-amber-100 px-1 text-[10px] text-amber-800'>

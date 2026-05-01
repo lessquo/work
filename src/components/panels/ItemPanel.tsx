@@ -1,9 +1,24 @@
+import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { api, parseSentryRaw, type Item, type ItemWithSessions } from '@/lib/api';
+import {
+  api,
+  itemTitle,
+  parseGithubPrRaw,
+  parseJiraRaw,
+  parseNotebookRaw,
+  parseSentryRaw,
+  type GithubPrRaw,
+  type Item,
+  type ItemType,
+  type ItemWithSessions,
+  type JiraStatusCategory,
+} from '@/lib/api';
+import { cn } from '@/lib/cn';
+import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Copy, Workflow } from 'lucide-react';
+import { Copy, GitBranch, Workflow } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useNavigate, useParams } from 'react-router';
 
@@ -41,6 +56,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
     : sourceItemsQuery.data.filter(i => ids.has(i.id));
   const count = selectedItems.length;
   const sid = isFlowMode ? (selectedItems[0]?.source_id ?? sourceId) : sourceId;
+  const single = count === 1 ? selectedItems[0]! : null;
 
   function invalidateAfterMutation() {
     setSelectedIds(null);
@@ -173,23 +189,34 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
 
   return (
     <aside className='flex h-full flex-col border-l bg-white'>
-      <header className='h-header flex items-center gap-2 border-b bg-gray-50 px-4'>
+      <header className='flex h-12 items-center gap-2 border-b bg-gray-50 px-4'>
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2 text-sm'>
-            <span className='font-semibold'>
-              {count} item{count === 1 ? '' : 's'} selected
-            </span>
+            {single ? (
+              <ItemHeading item={single} />
+            ) : (
+              <span className='font-semibold'>
+                {count} item{count === 1 ? '' : 's'} selected
+              </span>
+            )}
             <Tooltip content={count === 1 ? 'Copy link as Markdown' : `Copy ${count} links as Markdown`}>
-              <button onClick={copyLinksAsMarkdown} className='btn-sm btn-ghost' aria-label='copy links'>
+              <button
+                onClick={copyLinksAsMarkdown}
+                disabled={count === 0}
+                className='btn-sm btn-ghost'
+                aria-label='copy links'
+              >
                 <Copy />
               </button>
             </Tooltip>
           </div>
         </div>
-      </header>
-
-      <section className='border-b px-4 py-3'>
-        <div className='flex gap-2'>
+        <div className='flex shrink-0 items-center gap-2'>
+          {single && (
+            <a href={single.url} target='_blank' rel='noreferrer' className='btn-sm btn-success'>
+              {externalLinkLabel(single.type)}
+            </a>
+          )}
           {filter === 'open' && (
             <>
               <Tooltip content='Create a draft session per selected item — configure and run from the session panel'>
@@ -232,7 +259,242 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
             </button>
           </Tooltip>
         </div>
-      </section>
+      </header>
+      <div className='min-h-0 flex-1 overflow-auto'>
+        {single ? <ItemBody item={single} /> : count > 1 ? <SelectionList items={selectedItems} /> : null}
+      </div>
     </aside>
   );
 }
+
+function ItemHeading({ item }: { item: Item }) {
+  const logo = TYPE_LOGO[item.type];
+  const badge = getBadge(item);
+  const externalId = headerExternalId(item);
+  return (
+    <>
+      <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
+      {badge && (
+        <span
+          className={cn(
+            'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase',
+            badge.color,
+          )}
+        >
+          {badge.label}
+        </span>
+      )}
+      <span className='min-w-0 truncate font-semibold'>{itemTitle(item)}</span>
+      {externalId && <span className='shrink-0 text-xs text-gray-400'>{externalId}</span>}
+    </>
+  );
+}
+
+function ItemBody({ item }: { item: Item }) {
+  switch (item.type) {
+    case 'jira_issue':
+      return <JiraBody item={item} />;
+    case 'github_pr':
+      return <GithubPrBody item={item} />;
+    case 'sentry_issue':
+      return <SentryBody item={item} />;
+    case 'notes':
+      return <NotesBody item={item} />;
+  }
+}
+
+function JiraBody({ item }: { item: Item }) {
+  const j = parseJiraRaw(item.raw);
+  return (
+    <FieldList>
+      <Field label='Type'>{j.issuetype ?? '—'}</Field>
+      <Field label='Assignee'>{j.assignee ?? '—'}</Field>
+      <Field label='Priority'>{j.priority ?? '—'}</Field>
+      <Field label='Created'>{j.created ? timeAgo(j.created) : '—'}</Field>
+      <Field label='Updated'>{j.updated ? timeAgo(j.updated) : '—'}</Field>
+    </FieldList>
+  );
+}
+
+function GithubPrBody({ item }: { item: Item }) {
+  const pr = parseGithubPrRaw(item.raw);
+  return (
+    <FieldList>
+      <Field label='Branch'>
+        {pr.headRefName ? (
+          <span className='inline-flex items-center gap-1 font-mono text-xs'>
+            <GitBranch className='size-3.5' />
+            {pr.headRefName}
+          </span>
+        ) : (
+          '—'
+        )}
+      </Field>
+      <Field label='Author'>{pr.author?.login ? `@${pr.author.login}` : '—'}</Field>
+      <Field label='Created'>{pr.createdAt ? timeAgo(pr.createdAt) : '—'}</Field>
+      <Field label='Updated'>{pr.updatedAt ? timeAgo(pr.updatedAt) : '—'}</Field>
+      {pr.mergedAt && <Field label='Merged'>{timeAgo(pr.mergedAt)}</Field>}
+    </FieldList>
+  );
+}
+
+function SentryBody({ item }: { item: Item }) {
+  const s = parseSentryRaw(item.raw);
+  const events = toInt(s.count);
+  const users = toInt(s.userCount);
+  return (
+    <FieldList>
+      {s.culprit && (
+        <Field label='Culprit'>
+          <code className='text-xs break-all'>{s.culprit}</code>
+        </Field>
+      )}
+      <Field label='Events'>{events !== null ? formatCount(events) : '—'}</Field>
+      <Field label='Users'>{users !== null ? formatCount(users) : '—'}</Field>
+      <Field label='First seen'>{s.firstSeen ? timeAgo(s.firstSeen) : '—'}</Field>
+      <Field label='Last seen'>{s.lastSeen ? timeAgo(s.lastSeen) : '—'}</Field>
+    </FieldList>
+  );
+}
+
+function NotesBody({ item }: { item: Item }) {
+  const n = parseNotebookRaw(item.raw);
+  return (
+    <FieldList>
+      <Field label='Name'>{n.name ?? '—'}</Field>
+      <Field label='Created'>{timeAgo(item.created_at)}</Field>
+      <Field label='Updated'>{timeAgo(item.updated_at)}</Field>
+    </FieldList>
+  );
+}
+
+function FieldList({ children }: { children: React.ReactNode }) {
+  return <dl className='flex flex-col gap-2 p-4'>{children}</dl>;
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className='flex gap-3'>
+      <dt className='w-24 shrink-0 text-xs text-gray-500'>{label}</dt>
+      <dd className='min-w-0 flex-1 text-sm text-gray-800'>{children}</dd>
+    </div>
+  );
+}
+
+function SelectionList({ items }: { items: Item[] }) {
+  return (
+    <ul className='flex flex-col divide-y'>
+      {items.map(item => {
+        const logo = TYPE_LOGO[item.type];
+        return (
+          <li key={item.id} className='flex items-center gap-2 px-4 py-2 text-sm'>
+            <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
+            <a
+              href={item.url}
+              target='_blank'
+              rel='noreferrer'
+              className='min-w-0 truncate text-gray-800 hover:underline'
+            >
+              {itemTitle(item)}
+            </a>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function externalLinkLabel(type: ItemType): string {
+  switch (type) {
+    case 'jira_issue':
+      return 'View Jira issue ↗';
+    case 'github_pr':
+      return 'View PR ↗';
+    case 'sentry_issue':
+      return 'View in Sentry ↗';
+    case 'notes':
+      return 'Open ↗';
+  }
+}
+
+function getBadge(item: Item): { label: string; color: string } | null {
+  switch (item.type) {
+    case 'jira_issue': {
+      const j = parseJiraRaw(item.raw);
+      return {
+        label: j.status_name ?? 'unknown',
+        color: JIRA_STATUS_COLOR[j.status_category ?? ''] ?? 'bg-gray-100 text-gray-600',
+      };
+    }
+    case 'github_pr': {
+      const pr = parseGithubPrRaw(item.raw);
+      const status = prStatus(pr);
+      return { label: status, color: PR_STATUS_COLOR[status] };
+    }
+    case 'sentry_issue': {
+      const s = parseSentryRaw(item.raw);
+      return {
+        label: s.level ?? 'issue',
+        color: SENTRY_LEVEL_COLOR[s.level ?? ''] ?? 'bg-gray-100 text-gray-600',
+      };
+    }
+    case 'notes':
+      return null;
+  }
+}
+
+function headerExternalId(item: Item): string | null {
+  switch (item.type) {
+    case 'sentry_issue':
+      return parseSentryRaw(item.raw).shortId ?? null;
+    case 'github_pr': {
+      const n = parseGithubPrRaw(item.raw).number;
+      return n ? `#${n}` : null;
+    }
+    case 'jira_issue':
+      return item.external_id;
+    case 'notes':
+      return null;
+  }
+}
+
+type PrStatus = 'draft' | 'open' | 'merged' | 'closed';
+function prStatus(pr: GithubPrRaw): PrStatus {
+  if (pr.state === 'MERGED') return 'merged';
+  if (pr.state === 'CLOSED') return 'closed';
+  if (pr.isDraft) return 'draft';
+  return 'open';
+}
+
+function toInt(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+
+function formatCount(n: number): string {
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, '')}k`;
+  return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0).replace(/\.0$/, '')}M`;
+}
+
+const JIRA_STATUS_COLOR: Record<JiraStatusCategory, string> = {
+  new: 'bg-gray-100 text-gray-700',
+  indeterminate: 'bg-sky-100 text-sky-700',
+  done: 'bg-emerald-100 text-emerald-700',
+};
+
+const PR_STATUS_COLOR: Record<PrStatus, string> = {
+  draft: 'bg-gray-100 text-gray-600',
+  open: 'bg-emerald-100 text-emerald-700',
+  merged: 'bg-violet-100 text-violet-700',
+  closed: 'bg-rose-100 text-rose-700',
+};
+
+const SENTRY_LEVEL_COLOR: Record<string, string> = {
+  fatal: 'bg-rose-100 text-rose-700',
+  error: 'bg-orange-100 text-orange-700',
+  warning: 'bg-amber-100 text-amber-700',
+  info: 'bg-sky-100 text-sky-700',
+  debug: 'bg-gray-100 text-gray-600',
+};

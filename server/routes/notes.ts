@@ -106,18 +106,18 @@ notes.post('/notebooks/:id/sessions', async c => {
   if (active) return c.json({ error: 'notebook already has an active session' }, 409);
 
   const body = await c.req
-    .json<{ context?: string; prompt?: string; targetRepo?: string }>()
-    .catch(() => ({}) as { context?: string; prompt?: string; targetRepo?: string });
+    .json<{ context?: string; prompt?: string; repo?: string }>()
+    .catch(() => ({}) as { context?: string; prompt?: string; repo?: string });
   const userContext = (body.context ?? '').trim();
   const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : NOTES_PROMPT_ID;
-  const targetRepo = (body.targetRepo ?? '').trim() || null;
+  const repo = (body.repo ?? '').trim() || null;
 
   const res = db
     .prepare(
-      `INSERT INTO sessions (item_id, source_id, user_context, target_repo, status, prompt)
+      `INSERT INTO sessions (item_id, source_id, user_context, repo, status, prompt)
        VALUES (?, ?, ?, ?, 'queued', ?)`,
     )
-    .run(id, item.source_id, userContext || null, targetRepo, prompt);
+    .run(id, item.source_id, userContext || null, repo, prompt);
   const sessionId = Number(res.lastInsertRowid);
   createFlowForSession(sessionId, id);
   enqueueSession(sessionId);

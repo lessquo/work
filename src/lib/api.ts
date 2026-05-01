@@ -176,7 +176,7 @@ export type Session = {
   flow_id: number | null;
   source_type: ItemType;
   user_context: string | null;
-  target_repo: string | null;
+  repo: string | null;
   status: SessionStatus;
   branch: string | null;
   clone_path: string | null;
@@ -269,7 +269,7 @@ export const api = {
     sourceId?: number;
     type?: ItemType;
     prompt?: PromptId;
-    targetRepo?: string;
+    repo?: string;
   }) =>
     req<Session>(`/sessions/draft`, {
       method: 'POST',
@@ -279,7 +279,7 @@ export const api = {
     sessionId: number,
     patch: {
       prompt?: PromptId;
-      targetRepo?: string;
+      repo?: string;
       type?: ItemType;
       userContext?: string;
       sourceId?: number;
@@ -379,10 +379,10 @@ export const api = {
   renameNotebook: (id: number, name: string) =>
     req<Item>(`/notes/notebooks/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
   deleteNotebook: (id: number) => req<{ ok: true }>(`/notes/notebooks/${id}`, { method: 'DELETE' }),
-  startNotesSession: (notebookId: number, opts: { context?: string; targetRepo?: string } = {}) =>
+  startNotesSession: (notebookId: number, opts: { context?: string; repo?: string } = {}) =>
     req<Session>(`/notes/notebooks/${notebookId}/sessions`, {
       method: 'POST',
-      body: JSON.stringify({ context: opts.context ?? '', targetRepo: opts.targetRepo ?? '' }),
+      body: JSON.stringify({ context: opts.context ?? '', repo: opts.repo ?? '' }),
     }),
   updateNote: (id: number, patch: { title?: string; body_md?: string }) =>
     req<Note>(`/notes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),

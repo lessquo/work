@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS sessions (
   source_id INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
   flow_id INTEGER REFERENCES flows(id) ON DELETE SET NULL,
   user_context TEXT,
-  target_repo TEXT,
+  repo TEXT,
   status TEXT NOT NULL,
   branch TEXT,
   clone_path TEXT,
@@ -229,7 +229,7 @@ export type Session = {
   source_id: number;
   flow_id: number | null;
   user_context: string | null;
-  target_repo: string | null;
+  repo: string | null;
   status: SessionStatus;
   branch: string | null;
   clone_path: string | null;

@@ -49,10 +49,10 @@ export function SessionCard({
             <span>#{session.id}</span>
             <span>·</span>
             <code className='font-mono text-gray-700'>{session.prompt}</code>
-            {session.target_repo && (
+            {session.repo && (
               <>
                 <span>·</span>
-                <span>{session.target_repo}</span>
+                <span>{session.repo}</span>
               </>
             )}
             {item?.external_id && (

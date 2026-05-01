@@ -1,5 +1,5 @@
 import { Markdown } from '@/components/panels/Markdown';
-import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
+import { RepoPicker } from '@/components/panels/RepoPicker';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast.lib';
@@ -29,7 +29,7 @@ export function NotebookPanel() {
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
   const [context, setContext] = useState('');
-  const [targetRepo, setTargetRepo] = useState('');
+  const [repo, setRepo] = useState('');
 
   const onError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
@@ -44,8 +44,8 @@ export function NotebookPanel() {
   });
 
   const startSessionMutation = useMutation({
-    mutationFn: (vars: { context: string; targetRepo: string }) =>
-      api.startNotesSession(itemIdNum!, { context: vars.context, targetRepo: vars.targetRepo }),
+    mutationFn: (vars: { context: string; repo: string }) =>
+      api.startNotesSession(itemIdNum!, { context: vars.context, repo: vars.repo }),
     onSuccess: session => {
       setContext('');
       qc.invalidateQueries({ queryKey: ['items', sourceId] });
@@ -136,7 +136,7 @@ export function NotebookPanel() {
           Start a write-notes session
         </h3>
         <div className='mb-2'>
-          <TargetRepoPicker value={targetRepo} onChange={setTargetRepo} allowEmpty />
+          <RepoPicker value={repo} onChange={setRepo} allowEmpty />
         </div>
         <textarea
           value={context}
@@ -147,7 +147,7 @@ export function NotebookPanel() {
         />
         <div className='mt-2 flex justify-end'>
           <button
-            onClick={() => startSessionMutation.mutate({ context: context.trim(), targetRepo: targetRepo.trim() })}
+            onClick={() => startSessionMutation.mutate({ context: context.trim(), repo: repo.trim() })}
             disabled={submitContextDisabled || context.trim().length === 0}
             className='btn-sm btn-primary'
           >

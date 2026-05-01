@@ -221,12 +221,12 @@ sources.post('/:id/session-items', async c => {
   if (!source) return c.json({ error: 'not found' }, 404);
 
   const body = await c.req
-    .json<{ itemIds?: number[]; prompt?: string; targetRepo?: string }>()
-    .catch(() => ({}) as { itemIds?: number[]; prompt?: string; targetRepo?: string });
+    .json<{ itemIds?: number[]; prompt?: string; repo?: string }>()
+    .catch(() => ({}) as { itemIds?: number[]; prompt?: string; repo?: string });
   const ids = Array.isArray(body.itemIds) ? body.itemIds.filter(n => Number.isInteger(n)) : [];
   const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_PROMPT_ID;
-  const targetRepo = (body.targetRepo ?? '').trim();
-  if (!targetRepo) return c.json({ error: 'targetRepo is required' }, 400);
+  const repo = (body.repo ?? '').trim();
+  if (!repo) return c.json({ error: 'repo is required' }, 400);
   if (ids.length === 0) return c.json({ enqueued: 0, skipped: 0 });
 
   const placeholders = ids.map(() => '?').join(',');
@@ -235,7 +235,7 @@ sources.post('/:id/session-items', async c => {
     .all(id, ...ids) as Item[];
 
   const insert = db.prepare(
-    `INSERT INTO sessions (item_id, source_id, user_context, target_repo, status, prompt) VALUES (?, ?, ?, ?, 'queued', ?)`,
+    `INSERT INTO sessions (item_id, source_id, user_context, repo, status, prompt) VALUES (?, ?, ?, ?, 'queued', ?)`,
   );
   const hasActive = db.prepare(`SELECT 1 FROM sessions WHERE item_id = ? AND status IN ('queued','running') LIMIT 1`);
 
@@ -249,7 +249,7 @@ sources.post('/:id/session-items', async c => {
     const isJira = it.type === 'jira_issue';
     const sessionItemId: number | null = isJira ? null : it.id;
     const userContext: string | null = isJira ? buildJiraIssueContext(it) : null;
-    const res = insert.run(sessionItemId, id, userContext, targetRepo, prompt);
+    const res = insert.run(sessionItemId, id, userContext, repo, prompt);
     const sessionId = Number(res.lastInsertRowid);
     createFlowForSession(sessionId, it.id);
     enqueueSession(sessionId);

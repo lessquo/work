@@ -227,15 +227,15 @@ async function runJob(sessionId: number): Promise<void> {
     return;
   }
 
-  if (!session.target_repo) {
+  if (!session.repo) {
     db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
-      'target_repo is required for PR sessions',
+      'repo is required for PR sessions',
       sessionId,
     );
     emitSessionEnd(sessionId);
     return;
   }
-  const targetRepo = session.target_repo;
+  const repo = session.repo;
 
   let branch: string;
   let buildPromptText: () => Promise<string>;
@@ -276,11 +276,11 @@ async function runJob(sessionId: number): Promise<void> {
       ).run(clonePath, logPath, branch, sessionId);
     },
     preflight: async log => {
-      await log(`[${new Date().toISOString()}] cloning ${targetRepo} into ${clonePath}\n`);
+      await log(`[${new Date().toISOString()}] cloning ${repo} into ${clonePath}\n`);
       if (existsSync(clonePath)) {
         await rm(clonePath, { recursive: true, force: true });
       }
-      const { defaultBranch } = await prepareClone(clonePath, targetRepo);
+      const { defaultBranch } = await prepareClone(clonePath, repo);
       await checkoutNewBranch(clonePath, branch, defaultBranch);
       await log(`[${new Date().toISOString()}] branched ${branch} from ${defaultBranch}\n`);
 
@@ -327,11 +327,11 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
       }
 
       let repoNote = 'No repo cloned — base the draft on the user context alone.';
-      if (session.target_repo) {
-        await log(`[${new Date().toISOString()}] cloning ${session.target_repo} into ${workspace}\n`);
-        const { defaultBranch } = await prepareClone(workspace, session.target_repo);
+      if (session.repo) {
+        await log(`[${new Date().toISOString()}] cloning ${session.repo} into ${workspace}\n`);
+        const { defaultBranch } = await prepareClone(workspace, session.repo);
         await log(`[${new Date().toISOString()}] cloned (default branch ${defaultBranch}) — read-only investigation\n`);
-        repoNote = `Repo \`${session.target_repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground the ticket — but do NOT modify any source files.`;
+        repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground the ticket — but do NOT modify any source files.`;
       } else {
         mkdirSync(workspace, { recursive: true });
         await log(`[${new Date().toISOString()}] workspace ${workspace} (no repo)\n`);
@@ -447,11 +447,11 @@ async function runNotesJob(sessionId: number, session: Session): Promise<void> {
       }
 
       let repoNote = 'No repo cloned — base your notes on the user context alone.';
-      if (session.target_repo) {
-        await log(`[${new Date().toISOString()}] cloning ${session.target_repo} into ${workspace}\n`);
-        const { defaultBranch } = await prepareClone(workspace, session.target_repo);
+      if (session.repo) {
+        await log(`[${new Date().toISOString()}] cloning ${session.repo} into ${workspace}\n`);
+        const { defaultBranch } = await prepareClone(workspace, session.repo);
         await log(`[${new Date().toISOString()}] cloned (default branch ${defaultBranch}) — read-only investigation\n`);
-        repoNote = `Repo \`${session.target_repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground your notes — but do NOT modify any files in the cloned repo.`;
+        repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground your notes — but do NOT modify any files in the cloned repo.`;
       } else {
         mkdirSync(workspace, { recursive: true });
         await log(`[${new Date().toISOString()}] workspace ${workspace} (no repo)\n`);

@@ -5,7 +5,7 @@ import { LogsView } from '@/components/panels/LogsView';
 import { Markdown } from '@/components/panels/Markdown';
 import { PromptPicker } from '@/components/panels/PromptPicker';
 import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
-import { TargetRepoPicker } from '@/components/panels/TargetRepoPicker';
+import { RepoPicker } from '@/components/panels/RepoPicker';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Select, type SelectOption } from '@/components/ui/Select';
@@ -163,7 +163,7 @@ export function SessionPanel({
   const active = session?.status === 'queued' || session?.status === 'running';
   const isJira = session?.source_type === 'jira_issue';
   const isNotes = session?.source_type === 'notes';
-  const canRun = isDraft && (isJira || isNotes || !!session?.target_repo);
+  const canRun = isDraft && (isJira || isNotes || !!session?.repo);
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
     (createJiraMutation.error instanceof Error ? createJiraMutation.error.message : null) ??
@@ -202,7 +202,7 @@ export function SessionPanel({
             </a>
           )}
           {isDraft && (
-            <Tooltip content={canRun ? 'Queue this session' : 'Pick a target repo first'}>
+            <Tooltip content={canRun ? 'Queue this session' : 'Pick a repo first'}>
               <button
                 onClick={() => queueMutation.mutate()}
                 disabled={!canRun || queueMutation.isPending}
@@ -381,7 +381,7 @@ function SetupTab({ session }: { session: Session | null }) {
   const allowEmptyRepo = isJira || isNotes;
 
   const updateMutation = useMutation({
-    mutationFn: (patch: { prompt?: PromptId; targetRepo?: string; userContext?: string; sourceId?: number }) =>
+    mutationFn: (patch: { prompt?: PromptId; repo?: string; userContext?: string; sourceId?: number }) =>
       session ? api.updateDraftSession(session.id, patch) : Promise.reject(new Error('no session')),
     onSuccess: updated => {
       qc.setQueryData(['session', updated.id], updated);
@@ -407,7 +407,7 @@ function SetupTab({ session }: { session: Session | null }) {
 
   if (!session) return null;
 
-  const targetRepo = session.target_repo ?? '';
+  const repo = session.repo ?? '';
   const needsContext = !!selectedPrompt?.content.includes('{{user_context}}');
 
   return (
@@ -422,11 +422,11 @@ function SetupTab({ session }: { session: Session | null }) {
             onChange={id => updateMutation.mutate({ sourceId: id })}
           />
         </div>
-        <TargetRepoPicker
-          value={targetRepo}
+        <RepoPicker
+          value={repo}
           onChange={v => {
             if (!isDraft) return;
-            updateMutation.mutate({ targetRepo: v });
+            updateMutation.mutate({ repo: v });
           }}
           allowEmpty={allowEmptyRepo}
         />

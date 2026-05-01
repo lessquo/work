@@ -3,7 +3,7 @@ import { api } from '@/lib/api';
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 
-export function TargetRepoPicker({
+export function RepoPicker({
   value,
   onChange,
   allowEmpty = false,
@@ -36,9 +36,9 @@ export function TargetRepoPicker({
 
   return (
     <label className='flex items-center gap-2 text-xs text-gray-600'>
-      <span className='shrink-0'>Target repo:</span>
+      <span className='shrink-0'>Repo:</span>
       <Select<string>
-        ariaLabel='Target repo'
+        ariaLabel='Repo'
         value={value}
         onChange={onChange}
         options={options}

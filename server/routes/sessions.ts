@@ -45,7 +45,7 @@ sessions.post('/sessions/draft', async c => {
       flowId?: number;
       sourceId?: number;
       prompt?: string;
-      targetRepo?: string;
+      repo?: string;
     }>()
     .catch(() => ({}) as Record<string, never>);
 
@@ -88,15 +88,15 @@ sessions.post('/sessions/draft', async c => {
   }
 
   const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_PROMPT_ID;
-  const targetRepo = (body.targetRepo ?? '').trim() || null;
+  const repo = (body.repo ?? '').trim() || null;
   const flowId = typeof body.flowId === 'number' ? body.flowId : null;
 
   const res = db
     .prepare(
-      `INSERT INTO sessions (item_id, source_id, flow_id, user_context, target_repo, status, prompt)
+      `INSERT INTO sessions (item_id, source_id, flow_id, user_context, repo, status, prompt)
        VALUES (?, ?, ?, ?, ?, 'draft', ?)`,
     )
-    .run(sessionItemId, sourceId, flowId, userContext, targetRepo, prompt);
+    .run(sessionItemId, sourceId, flowId, userContext, repo, prompt);
   const sessionId = Number(res.lastInsertRowid);
 
   // If no explicit flow was supplied, auto-attach via the item's flow (matches runItems' behavior).
@@ -117,7 +117,7 @@ sessions.patch('/sessions/:id', async c => {
   const body = await c.req
     .json<{
       prompt?: string;
-      targetRepo?: string;
+      repo?: string;
       userContext?: string;
       sourceId?: number;
     }>()
@@ -130,9 +130,9 @@ sessions.patch('/sessions/:id', async c => {
     updates.push('prompt = ?');
     args.push(body.prompt);
   }
-  if (typeof body.targetRepo === 'string') {
-    updates.push('target_repo = ?');
-    args.push(body.targetRepo.trim() || null);
+  if (typeof body.repo === 'string') {
+    updates.push('repo = ?');
+    args.push(body.repo.trim() || null);
   }
   if (typeof body.userContext === 'string') {
     updates.push('user_context = ?');
@@ -157,12 +157,12 @@ sessions.post('/sessions/:id/queue', c => {
   if (!session) return c.json({ error: 'not found' }, 404);
   if (session.status !== 'draft') return c.json({ error: 'session is not a draft' }, 409);
   // Jira-creating drafts need user_context; PR-style and notes sessions don't (notes
-  // pulls context from the bound notebook). PR sessions need a target repo to clone.
+  // pulls context from the bound notebook). PR sessions need a repo to clone.
   if (session.source_type === 'jira_issue' && !session.user_context) {
     return c.json({ error: 'user_context is required for jira sessions' }, 400);
   }
-  if (session.source_type !== 'jira_issue' && session.source_type !== 'notes' && !session.target_repo) {
-    return c.json({ error: 'targetRepo is required' }, 400);
+  if (session.source_type !== 'jira_issue' && session.source_type !== 'notes' && !session.repo) {
+    return c.json({ error: 'repo is required' }, 400);
   }
 
   db.prepare(`UPDATE sessions SET status = 'queued' WHERE id = ?`).run(sessionId);
@@ -177,11 +177,11 @@ sessions.post('/items/:id/sessions', async c => {
   if (!item) return c.json({ error: 'item not found' }, 404);
 
   const body = await c.req
-    .json<{ prompt?: string; targetRepo?: string }>()
-    .catch(() => ({}) as { prompt?: string; targetRepo?: string });
+    .json<{ prompt?: string; repo?: string }>()
+    .catch(() => ({}) as { prompt?: string; repo?: string });
   const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_PROMPT_ID;
-  const targetRepo = (body.targetRepo ?? '').trim();
-  if (!targetRepo) return c.json({ error: 'targetRepo is required' }, 400);
+  const repo = (body.repo ?? '').trim();
+  if (!repo) return c.json({ error: 'repo is required' }, 400);
 
   if (activeSessionForItem(itemId)) {
     return c.json({ error: 'Item already has an active session' }, 409);
@@ -197,9 +197,9 @@ sessions.post('/items/:id/sessions', async c => {
 
   const res = db
     .prepare(
-      `INSERT INTO sessions (item_id, source_id, user_context, target_repo, status, prompt) VALUES (?, ?, ?, ?, 'queued', ?)`,
+      `INSERT INTO sessions (item_id, source_id, user_context, repo, status, prompt) VALUES (?, ?, ?, ?, 'queued', ?)`,
     )
-    .run(sessionItemId, item.source_id, userContext, targetRepo, prompt);
+    .run(sessionItemId, item.source_id, userContext, repo, prompt);
   const sessionId = Number(res.lastInsertRowid);
   createFlowForSession(sessionId, itemId);
 

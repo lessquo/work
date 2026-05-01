@@ -32,3 +32,4 @@ This is a personal local only app. Keep clean code and prefer refactoring.
 - `btn-ghost`: Use for icon-only buttons or when small buttons are placed close together.
 - `btn-neutral`: Default button style.
 - `btn-primary`: Use for actions that create external resources (GitHub PRs, Jira issues) or kick off long-running tasks.
+- `btn-danger`: Use for destructive actions or failed states.

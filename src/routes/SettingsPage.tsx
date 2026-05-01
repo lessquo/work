@@ -396,7 +396,7 @@ function SecretField({
               clearMutation.mutate();
             }}
             disabled={clearMutation.isPending}
-            className='btn-md btn-ghost text-rose-600 hover:bg-rose-50'
+            className='btn-md btn-danger'
           >
             {clearMutation.isPending ? 'Clearing…' : 'Clear'}
           </button>

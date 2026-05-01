@@ -64,7 +64,7 @@ function SourceRow({ source }: { source: Source }) {
       }}
       disabled={isNotes || deleteMutation.isPending}
       aria-label={`Delete ${source.ext_id}`}
-      className='btn-md btn-ghost mr-2 text-rose-600 opacity-0 group-hover:opacity-100 hover:bg-rose-50 focus-visible:opacity-100 disabled:opacity-100'
+      className='btn-md btn-ghost mr-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-100'
     >
       <Trash2 />
     </button>

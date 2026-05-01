@@ -441,7 +441,11 @@ function SetupTab({ session }: { session: Session | null }) {
         />
       )}
 
-      {selectedPrompt && <PromptTemplateEditor key={selectedPrompt.id} prompt={selectedPrompt} readOnly={!isDraft} />}
+      {selectedPrompt && (
+        <Suspense>
+          <PromptTemplateEditor key={selectedPrompt.id} prompt={selectedPrompt} readOnly={!isDraft} />
+        </Suspense>
+      )}
     </div>
   );
 }

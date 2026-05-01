@@ -1,3 +1,4 @@
+import { HighlightMatch } from '@/components/HighlightMatch';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
@@ -70,18 +71,22 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
                   {rows.length === 0 ? '(no open issues)' : 'No issues match your search.'}
                 </div>
               ) : (
-                results.map(row => (
+                results.map(({ item, matches }) => (
                   <button
-                    key={row.id}
+                    key={item.id}
                     type='button'
                     onClick={() => {
-                      onInsert(row.url);
+                      onInsert(item.url);
                       setOpen(false);
                     }}
                     className='flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50'
                   >
-                    <span className='shrink-0 font-mono text-[11px] text-gray-500'>{row.key}</span>
-                    <span className='truncate'>{row.title}</span>
+                    <span className='shrink-0 font-mono text-[11px] text-gray-500'>
+                      <HighlightMatch text={item.key} matches={matches} field='key' />
+                    </span>
+                    <span className='truncate'>
+                      <HighlightMatch text={item.title} matches={matches} field='title' />
+                    </span>
                   </button>
                 ))
               )}

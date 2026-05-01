@@ -1,14 +1,14 @@
 import { AddSourcePage } from '@/routes/AddSourcePage';
 import { FlowsPage } from '@/routes/FlowsPage';
+import { FlowsPageSlot } from '@/routes/FlowsPageSlot';
 import { ItemsPage } from '@/routes/ItemsPage';
 import { ItemsPageSlot } from '@/routes/ItemsPageSlot';
 import { RootLayout } from '@/routes/RootLayout';
 import { SessionsPage } from '@/routes/SessionsPage';
+import { SessionsPageSlot } from '@/routes/SessionsPageSlot';
 import { SettingsPage } from '@/routes/SettingsPage';
 import { SourcesPage } from '@/routes/SourcesPage';
 import { Navigate, Route, Routes } from 'react-router';
-import { FlowsPageSlot } from './routes/FlowsPageSlot';
-import { SessionsPageSlot } from './routes/SessionsPageSlot';
 
 export function App() {
   return (

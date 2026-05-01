@@ -1,26 +1,19 @@
+import { HighlightMatch } from '@/components/HighlightMatch';
+import type { ItemCardProps } from '@/components/ItemCard';
 import { ItemCardLayout } from '@/components/ItemCardLayout';
 import { MetaRow } from '@/components/MetaRow';
 import { TYPE_LOGO } from '@/components/typeLogo';
-import { parseJiraRaw, type ItemWithSessions, type JiraRaw, type JiraStatusCategory } from '@/lib/api';
+import { parseJiraRaw, type JiraRaw, type JiraStatusCategory } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 
-export function JiraIssueCard({
-  item,
-  selected = false,
-  onSelect,
-  onOpenSession,
-}: {
-  item: ItemWithSessions;
-  selected?: boolean;
-  onSelect?: (id: number, modifiers: { shiftKey: boolean; metaKey: boolean }) => void;
-  onOpenSession?: (sessionId: number) => void;
-}) {
+export function JiraIssueCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
   const jira = parseJiraRaw(item.raw);
   const logo = TYPE_LOGO.jira_issue;
   const statusName = jira.status_name ?? 'unknown';
   const statusColor = CATEGORY_COLOR[jira.status_category ?? ''] ?? 'bg-gray-100 text-gray-600';
-  const title = jira.summary ?? item.key;
+  const titleText = jira.summary ?? item.key;
+  const titleField = jira.summary ? 'title' : 'key';
 
   return (
     <ItemCardLayout
@@ -28,7 +21,11 @@ export function JiraIssueCard({
       selected={selected}
       onSelect={onSelect}
       onOpenSession={onOpenSession}
-      rightMeta={<div className='text-[11px] text-gray-400'>{item.key}</div>}
+      rightMeta={
+        <div className='text-[11px] text-gray-400'>
+          <HighlightMatch text={item.key} matches={matches} field='key' />
+        </div>
+      }
       body={
         <>
           <div className='flex items-center gap-2'>
@@ -47,7 +44,7 @@ export function JiraIssueCard({
               rel='noreferrer'
               className='truncate text-sm font-medium hover:underline'
             >
-              {title}
+              <HighlightMatch text={titleText} matches={matches} field={titleField} />
             </a>
           </div>
           {jira.issuetype && <div className='mt-0.5 truncate text-xs text-gray-500'>{jira.issuetype}</div>}

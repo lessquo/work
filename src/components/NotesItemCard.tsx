@@ -1,22 +1,13 @@
+import { HighlightMatch } from '@/components/HighlightMatch';
+import type { ItemCardProps } from '@/components/ItemCard';
 import { ItemCardLayout } from '@/components/ItemCardLayout';
 import { MetaRow } from '@/components/MetaRow';
 import { TYPE_LOGO } from '@/components/typeLogo';
-import { type ItemWithSessions } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 
-export function NotesItemCard({
-  item,
-  selected = false,
-  onSelect,
-  onOpenSession,
-}: {
-  item: ItemWithSessions & { note_count?: number };
-  selected?: boolean;
-  onSelect?: (id: number, modifiers: { shiftKey: boolean; metaKey: boolean }) => void;
-  onOpenSession?: (sessionId: number) => void;
-}) {
+export function NotesItemCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
   const logo = TYPE_LOGO.notes;
-  const noteCount = item.note_count ?? 0;
+  const noteCount = (item as { note_count?: number }).note_count ?? 0;
 
   return (
     <ItemCardLayout
@@ -33,7 +24,9 @@ export function NotesItemCard({
         <>
           <div className='flex items-center gap-2'>
             <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-            <span className='truncate text-sm font-medium'>{item.title}</span>
+            <span className='truncate text-sm font-medium'>
+              <HighlightMatch text={item.title} matches={matches} field='title' />
+            </span>
           </div>
           <MetaRow parts={[`updated ${timeAgo(item.updated_at)}`]} />
         </>

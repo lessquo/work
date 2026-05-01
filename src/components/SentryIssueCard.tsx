@@ -1,22 +1,16 @@
+import { HighlightMatch } from '@/components/HighlightMatch';
+import type { ItemCardProps } from '@/components/ItemCard';
 import { ItemCardLayout } from '@/components/ItemCardLayout';
 import { MetaRow } from '@/components/MetaRow';
-import { parseSentryRaw, type ItemWithSessions } from '@/lib/api';
+import { parseSentryRaw } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 
-export function SentryIssueCard({
-  item,
-  selected = false,
-  onSelect,
-  onOpenSession,
-}: {
-  item: ItemWithSessions;
-  selected?: boolean;
-  onSelect?: (id: number, modifiers: { shiftKey: boolean; metaKey: boolean }) => void;
-  onOpenSession?: (sessionId: number) => void;
-}) {
+export function SentryIssueCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
   const sentry = parseSentryRaw(item.raw);
   const levelColor = LEVEL_COLOR[sentry.level ?? ''] ?? 'bg-gray-100 text-gray-600';
+  const titleText = sentry.title ?? item.key;
+  const titleField = sentry.title ? 'title' : 'key';
 
   return (
     <ItemCardLayout
@@ -37,7 +31,7 @@ export function SentryIssueCard({
               rel='noreferrer'
               className='truncate text-sm font-medium hover:underline'
             >
-              {sentry.title ?? item.key}
+              <HighlightMatch text={titleText} matches={matches} field={titleField} />
             </a>
           </div>
           {sentry.culprit && <div className='mt-0.5 truncate text-xs text-gray-500'>{sentry.culprit}</div>}

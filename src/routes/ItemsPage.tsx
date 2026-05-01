@@ -109,7 +109,8 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
   });
   const allItems = itemsQuery.data;
 
-  const items = useFuzzySearch(allItems, query);
+  const results = useFuzzySearch(allItems, query);
+  const items = useMemo(() => results.map(r => r.item), [results]);
 
   const visibleIds = useMemo(() => new Set(items.map(i => i.id)), [items]);
   const validSelectedIds = useMemo(() => selectedIds.filter(eid => visibleIds.has(eid)), [selectedIds, visibleIds]);
@@ -257,10 +258,11 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
             </p>
           ) : (
             <ul className='flex flex-col gap-2'>
-              {items.map(item => (
+              {results.map(({ item, matches }) => (
                 <ItemCard
                   key={item.id}
                   item={item}
+                  matches={matches}
                   selected={selection.has(item.id)}
                   onSelect={selectItem}
                   onOpenSession={sessionId => setOpenSessionId(sessionId)}

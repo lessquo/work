@@ -1,3 +1,4 @@
+import { HighlightMatch } from '@/components/HighlightMatch';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
@@ -87,7 +88,7 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
                   {candidates.length === 0 ? '(no items available)' : 'No items match your search.'}
                 </div>
               ) : (
-                results.map(item => {
+                results.map(({ item, matches }) => {
                   const logo = TYPE_LOGO[item.type];
                   return (
                     <button
@@ -97,8 +98,12 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
                       className='flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50'
                     >
                       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-                      <span className='shrink-0 font-mono text-[11px] text-gray-500'>{item.key}</span>
-                      <span className='truncate'>{item.title}</span>
+                      <span className='shrink-0 font-mono text-[11px] text-gray-500'>
+                        <HighlightMatch text={item.key} matches={matches} field='key' />
+                      </span>
+                      <span className='truncate'>
+                        <HighlightMatch text={item.title} matches={matches} field='title' />
+                      </span>
                       {item.flow_id != null && (
                         <span className='ml-auto shrink-0 rounded bg-amber-100 px-1 text-[10px] text-amber-800'>
                           in flow #{item.flow_id}

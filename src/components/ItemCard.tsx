@@ -3,26 +3,25 @@ import { JiraIssueCard } from '@/components/JiraIssueCard';
 import { NotesItemCard } from '@/components/NotesItemCard';
 import { SentryIssueCard } from '@/components/SentryIssueCard';
 import type { ItemWithSessions } from '@/lib/api';
+import type { FuseResultMatch } from 'fuse.js';
 
-export function ItemCard({
-  item,
-  selected = false,
-  onSelect,
-  onOpenSession,
-}: {
+export type ItemCardProps = {
   item: ItemWithSessions;
   selected?: boolean;
+  matches?: ReadonlyArray<FuseResultMatch>;
   onSelect?: (id: number, modifiers: { shiftKey: boolean; metaKey: boolean }) => void;
   onOpenSession?: (sessionId: number) => void;
-}) {
-  switch (item.type) {
+};
+
+export function ItemCard(props: ItemCardProps) {
+  switch (props.item.type) {
     case 'sentry_issue':
-      return <SentryIssueCard item={item} selected={selected} onSelect={onSelect} onOpenSession={onOpenSession} />;
+      return <SentryIssueCard {...props} />;
     case 'jira_issue':
-      return <JiraIssueCard item={item} selected={selected} onSelect={onSelect} onOpenSession={onOpenSession} />;
+      return <JiraIssueCard {...props} />;
     case 'github_pr':
-      return <GithubPrCard item={item} selected={selected} onSelect={onSelect} onOpenSession={onOpenSession} />;
+      return <GithubPrCard {...props} />;
     case 'notes':
-      return <NotesItemCard item={item} selected={selected} onSelect={onSelect} onOpenSession={onOpenSession} />;
+      return <NotesItemCard {...props} />;
   }
 }

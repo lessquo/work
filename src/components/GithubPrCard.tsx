@@ -1,27 +1,20 @@
+import { HighlightMatch } from '@/components/HighlightMatch';
+import type { ItemCardProps } from '@/components/ItemCard';
 import { ItemCardLayout } from '@/components/ItemCardLayout';
 import { MetaRow } from '@/components/MetaRow';
 import { TYPE_LOGO } from '@/components/typeLogo';
-import { parseGithubPrRaw, type GithubPrRaw, type ItemWithSessions } from '@/lib/api';
+import { parseGithubPrRaw, type GithubPrRaw } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 import { GitBranch } from 'lucide-react';
 
-export function GithubPrCard({
-  item,
-  selected = false,
-  onSelect,
-  onOpenSession,
-}: {
-  item: ItemWithSessions;
-  selected?: boolean;
-  onSelect?: (id: number, modifiers: { shiftKey: boolean; metaKey: boolean }) => void;
-  onOpenSession?: (sessionId: number) => void;
-}) {
+export function GithubPrCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
   const pr = parseGithubPrRaw(item.raw);
   const logo = TYPE_LOGO.github_pr;
   const status = displayStatus(pr);
   const statusColor = STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600';
-  const title = pr.title ?? item.key;
+  const titleText = pr.title ?? item.key;
+  const titleField = pr.title ? 'title' : 'key';
 
   return (
     <ItemCardLayout
@@ -45,7 +38,7 @@ export function GithubPrCard({
               rel='noreferrer'
               className='truncate text-sm font-medium hover:underline'
             >
-              {title}
+              <HighlightMatch text={titleText} matches={matches} field={titleField} />
             </a>
           </div>
           {pr.headRefName && (

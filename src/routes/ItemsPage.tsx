@@ -1,7 +1,6 @@
 import { ItemCard } from '@/components/ItemCard';
 import { SourceSwitcher } from '@/components/SourceSwitcher';
-import { SyncAllButton } from '@/components/SyncAllButton';
-import { SyncSetupDialog } from '@/components/SyncSetupDialog';
+import { SyncItemsButton } from '@/components/items/SyncItemsButton';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
@@ -10,7 +9,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tansta
 import Fuse from 'fuse.js';
 import { Search } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate, useParams } from 'react-router';
 
 type Filter = ItemStatus;
@@ -76,7 +75,6 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
   const [query, setQuery] = useQueryState('q', parseAsString.withDefault(''));
   const [selectedIds, setSelectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
   const [sessionId, setOpenSessionId] = useQueryState('session', parseAsInteger);
-  const [syncDialogOpen, setSyncDialogOpen] = useState(false);
 
   function setSelection(newAnchor: number | null, newExtras: number[]) {
     const filtered = newExtras.filter(eid => eid !== newAnchor);
@@ -158,14 +156,6 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
     navigate({ pathname: `/items/${items[0].id}`, search: params.toString() }, { replace: true });
   }, [items, validItemIdNum, navigate]);
 
-  const syncMutation = useMutation({
-    mutationFn: () => api.syncSource(sourceId),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
-    },
-  });
-
   const createNotebookMutation = useMutation({
     mutationFn: () => api.createNotebook(),
     onSuccess: notebook => {
@@ -176,9 +166,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
     },
   });
 
-  const error =
-    (itemsQuery.error instanceof Error ? itemsQuery.error.message : null) ??
-    (syncMutation.error instanceof Error ? syncMutation.error.message : null);
+  const error = itemsQuery.error instanceof Error ? itemsQuery.error.message : null;
 
   function selectItem(clickedId: number, modifiers: { shiftKey: boolean; metaKey: boolean }) {
     const anchor = validItemIdNum;
@@ -226,7 +214,6 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
   }
 
   const loading = itemsQuery.isLoading;
-  const syncing = syncMutation.isPending;
 
   return (
     <>
@@ -241,7 +228,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
               <FilterTabs sourceType={source.type} value={filter} onChange={onFilterChange} counts={counts} />
             </div>
             <div className='flex items-center gap-2'>
-              {source.type === 'notes' ? (
+              {source.type === 'notes' && (
                 <button
                   onClick={() => createNotebookMutation.mutate()}
                   disabled={createNotebookMutation.isPending}
@@ -249,24 +236,9 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
                 >
                   {createNotebookMutation.isPending ? 'Creating…' : 'New notebook'}
                 </button>
-              ) : (
-                <button onClick={() => setSyncDialogOpen(true)} disabled={syncing} className='btn-md btn-secondary'>
-                  {syncing ? 'Syncing…' : 'Sync'}
-                </button>
               )}
-              <SyncAllButton />
+              <SyncItemsButton />
             </div>
-            <SyncSetupDialog
-              open={syncDialogOpen}
-              onOpenChange={setSyncDialogOpen}
-              title={`Sync ${source.external_id}`}
-              description='Adjust how many items to fetch from the upstream service.'
-              startLabel='Sync'
-              onStart={() => {
-                setSyncDialogOpen(false);
-                syncMutation.mutate();
-              }}
-            />
           </div>
 
           <div className='mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2'>

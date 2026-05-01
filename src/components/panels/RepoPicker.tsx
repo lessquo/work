@@ -13,7 +13,7 @@ export function RepoPicker({
   allowEmpty?: boolean;
 }) {
   const sourcesQuery = useQuery({ queryKey: ['sources'], queryFn: api.listSources });
-  const repos = (sourcesQuery.data ?? []).filter(s => s.type === 'github_pr').map(s => s.external_id);
+  const repos = (sourcesQuery.data ?? []).filter(s => s.type === 'github_pr').map(s => s.ext_id);
 
   // Fire the auto-default at most once per mount. Without this guard, callers that pass an
   // inline onChange (e.g. one that wraps a mutation) recreate the function each render, the

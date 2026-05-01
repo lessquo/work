@@ -16,7 +16,7 @@ export function SourceSwitcher() {
     <Menu.Root>
       <Menu.Trigger aria-label='Switch source' className={cn('btn-md btn-ghost', 'data-popup-open:bg-gray-100')}>
         {current ? (
-          <SourceLabel type={current.type} externalId={current.external_id} />
+          <SourceLabel type={current.type} extId={current.ext_id} />
         ) : (
           <span className='truncate'>Select source</span>
         )}
@@ -32,7 +32,7 @@ export function SourceSwitcher() {
                 <Menu.GroupLabel className='menu-group-label'>Sources</Menu.GroupLabel>
                 {sources.map(s => (
                   <Menu.Item key={s.id} onClick={() => setCurrentSourceId(s.id)} className='menu-item justify-between'>
-                    <SourceLabel type={s.type} externalId={s.external_id} />
+                    <SourceLabel type={s.type} extId={s.ext_id} />
                     {s.id === currentSourceId && <Check className='text-indigo-600' />}
                   </Menu.Item>
                 ))}
@@ -52,9 +52,9 @@ export function SourceSwitcher() {
   );
 }
 
-function SourceLabel({ type, externalId }: { type: ItemType; externalId: string }) {
+function SourceLabel({ type, extId }: { type: ItemType; extId: string }) {
   const logo = TYPE_LOGO[type];
-  const label = type === 'notes' ? 'Notes' : externalId;
+  const label = type === 'notes' ? 'Notes' : extId;
   return (
     <span className='flex min-w-0 items-center gap-2'>
       <img src={logo.src} alt={logo.alt} className='size-4 shrink-0' />

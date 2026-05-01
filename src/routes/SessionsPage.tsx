@@ -90,7 +90,7 @@ function SessionsContent({ sourceId }: { sourceId: number }) {
 
   return (
     <>
-      <title>{`${source.external_id} · Sessions`}</title>
+      <title>{`${source.ext_id} · Sessions`}</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>

@@ -304,8 +304,8 @@ export async function upsertJiraIssue(sourceId: number, key: string): Promise<Ji
 }
 
 export async function syncJiraSource(source: Source, limit: number): Promise<number> {
-  const projectKey = source.external_id.trim();
-  if (!projectKey) throw new Error('Jira source external_id is empty.');
+  const projectKey = source.ext_id.trim();
+  if (!projectKey) throw new Error('Jira source ext_id is empty.');
 
   const jql = `project = "${projectKey}" ORDER BY updated DESC`;
   const remote = await searchIssues(jql, limit);

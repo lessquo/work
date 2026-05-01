@@ -374,7 +374,7 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no workspace path' }, 409);
 
   const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(session.source_id) as
-    | { external_id: string }
+    | { ext_id: string }
     | undefined;
   if (!source) return c.json({ error: 'source not found' }, 404);
 
@@ -382,7 +382,7 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
     const summary = (await readMetaFile(session, 'JIRA_TITLE.txt')).trim();
     const description = (await readMetaFile(session, 'JIRA_DESCRIPTION.md')).trim();
     if (!summary) return c.json({ error: 'JIRA_TITLE.txt is empty' }, 400);
-    const created = await createJiraIssue(source.external_id, summary, description);
+    const created = await createJiraIssue(source.ext_id, summary, description);
     db.prepare(`UPDATE sessions SET pr_url = ? WHERE id = ?`).run(created.url, sessionId);
     // Best-effort: pull the new issue into the local items table so it appears in the Items list
     // immediately. Don't fail the response if this call hiccups — the issue has been created.
@@ -462,7 +462,7 @@ sessions.post('/sessions/:id/create-github-pr', async c => {
       if (parsed) {
         try {
           const ghSource = db
-            .prepare(`SELECT id FROM sources WHERE type = 'github_pr' AND external_id = ?`)
+            .prepare(`SELECT id FROM sources WHERE type = 'github_pr' AND ext_id = ?`)
             .get(`${parsed.owner}/${parsed.repo}`) as { id: number } | undefined;
           if (ghSource) await upsertGithubPr(ghSource.id, parsed.owner, parsed.repo, parsed.number);
         } catch (e) {
@@ -478,7 +478,7 @@ sessions.post('/sessions/:id/create-github-pr', async c => {
       if (parsed) {
         try {
           const ghSource = db
-            .prepare(`SELECT id FROM sources WHERE type = 'github_pr' AND external_id = ?`)
+            .prepare(`SELECT id FROM sources WHERE type = 'github_pr' AND ext_id = ?`)
             .get(`${parsed.owner}/${parsed.repo}`) as { id: number } | undefined;
           if (ghSource) {
             await upsertGithubPr(ghSource.id, parsed.owner, parsed.repo, parsed.number);

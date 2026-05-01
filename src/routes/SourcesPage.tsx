@@ -54,7 +54,7 @@ function SourceRow({ source }: { source: Source }) {
       onClick={async () => {
         if (isNotes) return;
         const ok = await confirm({
-          title: `Delete source "${source.external_id}"?`,
+          title: `Delete source "${source.ext_id}"?`,
           description: 'All items, sessions, and resources for this source will be deleted.',
           confirmText: 'Delete source',
           destructive: true,
@@ -63,7 +63,7 @@ function SourceRow({ source }: { source: Source }) {
         deleteMutation.mutate();
       }}
       disabled={isNotes || deleteMutation.isPending}
-      aria-label={`Delete ${source.external_id}`}
+      aria-label={`Delete ${source.ext_id}`}
       className='btn-md btn-ghost mr-2 text-rose-600 opacity-0 group-hover:opacity-100 hover:bg-rose-50 focus-visible:opacity-100 disabled:opacity-100'
     >
       <Trash2 />
@@ -74,7 +74,7 @@ function SourceRow({ source }: { source: Source }) {
     <li className='group flex items-center border-b last:border-b-0 hover:bg-gray-50'>
       <Link to={`/items?source=${source.id}`} className='flex min-w-0 flex-1 items-center gap-3 px-4 py-3'>
         <img src={logo.src} alt={logo.alt} className='size-5 shrink-0' />
-        <span className='min-w-0 flex-1 truncate font-medium'>{source.external_id}</span>
+        <span className='min-w-0 flex-1 truncate font-medium'>{source.ext_id}</span>
         <span className='text-xs text-gray-500'>Added {timeAgo(source.created_at)}</span>
       </Link>
       {isNotes ? (

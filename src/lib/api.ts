@@ -5,7 +5,7 @@ export type ItemStatus = 'open' | 'resolved';
 export type Source = {
   id: number;
   type: ItemType;
-  external_id: string;
+  ext_id: string;
   created_at: string;
 };
 
@@ -201,7 +201,7 @@ export type SourceSession = Session & {
 export type Note = {
   id: number;
   item_id: number;
-  external_id: string;
+  ext_id: string;
   title: string;
   body_md: string;
   created_at: string;

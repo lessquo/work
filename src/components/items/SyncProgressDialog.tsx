@@ -125,7 +125,7 @@ function SourceLabel({ source }: { source: Source }) {
   return (
     <span className='inline-flex min-w-0 items-center gap-1.5'>
       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-      <span className='truncate'>{source.external_id}</span>
+      <span className='truncate'>{source.ext_id}</span>
     </span>
   );
 }

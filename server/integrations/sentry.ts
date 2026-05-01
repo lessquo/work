@@ -65,7 +65,7 @@ async function fetchPage(url: string): Promise<{
 }
 
 async function fetchAllSentryIssues(source: Source, limit: number): Promise<SentryIssue[]> {
-  const first = `${SENTRY_API}/projects/${org()}/${source.external_id}/issues/?query=&limit=${PAGE_SIZE}`;
+  const first = `${SENTRY_API}/projects/${org()}/${source.ext_id}/issues/?query=&limit=${PAGE_SIZE}`;
   const all: SentryIssue[] = [];
   let url: string | null = first;
   while (url && all.length < limit) {

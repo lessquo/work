@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router';
 
 type SourceFormValues = {
   type: ItemType;
-  external_id: string;
+  ext_id: string;
 };
 
 const TYPE_OPTIONS: Array<{ value: ItemType; label: string; hint: string }> = [
@@ -26,17 +26,17 @@ export function AddSourcePage() {
     watch,
     control,
     formState: { isSubmitting, isDirty, errors },
-  } = useForm<SourceFormValues>({ defaultValues: { type: 'sentry_issue', external_id: '' } });
+  } = useForm<SourceFormValues>({ defaultValues: { type: 'sentry_issue', ext_id: '' } });
 
   const type = watch('type');
-  const externalId = watch('external_id');
+  const extId = watch('ext_id');
   const option = TYPE_OPTIONS.find(o => o.value === type) ?? TYPE_OPTIONS[0];
-  const canSubmit = externalId.trim().length > 0 && isDirty && !isSubmitting;
+  const canSubmit = extId.trim().length > 0 && isDirty && !isSubmitting;
 
   const submit = handleSubmit(async values => {
     const trimmed: SourceFormValues = {
       type: values.type,
-      external_id: values.external_id.trim(),
+      ext_id: values.ext_id.trim(),
     };
     try {
       const s = await api.createSource(trimmed);
@@ -73,7 +73,7 @@ export function AddSourcePage() {
 
           <Field label={option.label} hint={option.hint} required>
             <Controller
-              name='external_id'
+              name='ext_id'
               control={control}
               rules={{ validate: v => v.trim().length > 0 }}
               render={({ field }) =>

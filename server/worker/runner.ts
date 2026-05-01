@@ -285,7 +285,7 @@ async function runJob(sessionId: number): Promise<void> {
 
 async function runJiraDraftJob(sessionId: number, session: Session): Promise<void> {
   const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(session.source_id) as
-    | { external_id: string }
+    | { ext_id: string }
     | undefined;
   if (!source) {
     db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run('Source not found', sessionId);
@@ -331,7 +331,7 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
 
       const promptText = await renderPrompt(
         {
-          project_key: source.external_id,
+          project_key: source.ext_id,
           user_context: session.user_context ?? '',
           repo_note: repoNote,
         },
@@ -376,7 +376,7 @@ async function materializeNotesIntoDir(itemId: number, notesDir: string): Promis
   mkdirSync(notesDir, { recursive: true });
   const rows = listNotes(itemId);
   for (const r of rows) {
-    await writeFile(resolve(notesDir, `${r.external_id}.md`), noteFileContent(r.title, r.body_md), 'utf8');
+    await writeFile(resolve(notesDir, `${r.ext_id}.md`), noteFileContent(r.title, r.body_md), 'utf8');
   }
   return rows.length;
 }
@@ -388,13 +388,13 @@ async function syncNotesWorkspace(itemId: number, workspace: string): Promise<nu
     return 0;
   }
   const entries = await readdir(notesDir, { withFileTypes: true });
-  const rows: Array<{ external_id: string; title: string; body_md: string }> = [];
+  const rows: Array<{ ext_id: string; title: string; body_md: string }> = [];
   for (const e of entries) {
     if (!e.isFile()) continue;
     if (!e.name.toLowerCase().endsWith('.md')) continue;
     const content = await readFile(resolve(notesDir, e.name), 'utf8').catch(() => '');
-    const externalId = noteIdFromFilename(e.name);
-    rows.push({ external_id: externalId, ...parseNoteFile(content, externalId) });
+    const extId = noteIdFromFilename(e.name);
+    rows.push({ ext_id: extId, ...parseNoteFile(content, extId) });
   }
   syncNotesForItem(itemId, rows);
   return rows.length;

@@ -27,21 +27,21 @@ const SOURCE_TYPES: ItemType[] = ['sentry_issue', 'jira_issue', 'github_pr'];
 export const sources = new Hono();
 
 sources.get('/', c => {
-  const rows = db.prepare(`SELECT * FROM sources ORDER BY type ASC, external_id ASC`).all();
+  const rows = db.prepare(`SELECT * FROM sources ORDER BY type ASC, ext_id ASC`).all();
   return c.json(rows);
 });
 
 sources.post('/', async c => {
   const body = await c.req.json<Partial<Source>>();
   const type = body.type;
-  const externalId = body.external_id?.trim();
+  const extId = body.ext_id?.trim();
   if (!type || !SOURCE_TYPES.includes(type)) {
     return c.json({ error: 'type must be one of sentry_issue, jira_issue, github_pr' }, 400);
   }
-  if (!externalId) {
-    return c.json({ error: 'external_id required' }, 400);
+  if (!extId) {
+    return c.json({ error: 'ext_id required' }, 400);
   }
-  const res = db.prepare(`INSERT INTO sources (type, external_id) VALUES (?, ?)`).run(type, externalId);
+  const res = db.prepare(`INSERT INTO sources (type, ext_id) VALUES (?, ?)`).run(type, extId);
   const row = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(res.lastInsertRowid) as Source;
   return c.json(row, 201);
 });

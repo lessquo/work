@@ -217,7 +217,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
 
   return (
     <>
-      <title>{`${source.external_id} · Items`}</title>
+      <title>{`${source.ext_id} · Items`}</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
@@ -249,7 +249,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
                 variant='unstyled'
                 value={query}
                 onChange={e => setQuery(e.target.value)}
-                placeholder='Search by title or ID…'
+                placeholder='Search by title or key…'
                 className='flex-1 bg-transparent text-sm placeholder:text-gray-400 focus:outline-none'
               />
             </label>

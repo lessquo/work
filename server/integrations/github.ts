@@ -24,10 +24,10 @@ async function runGh(args: string[], label: string): Promise<string> {
   }
 }
 
-function parseOwnerRepo(externalId: string): { owner: string; repo: string } {
-  const m = externalId.trim().match(/^([^/\s]+)\/([^/\s]+)$/);
+function parseOwnerRepo(extId: string): { owner: string; repo: string } {
+  const m = extId.trim().match(/^([^/\s]+)\/([^/\s]+)$/);
   if (!m) {
-    throw new Error(`GitHub source external_id must be "owner/repo" — got "${externalId}".`);
+    throw new Error(`GitHub source ext_id must be "owner/repo" — got "${extId}".`);
   }
   return { owner: m[1], repo: m[2] };
 }
@@ -112,7 +112,7 @@ export function parseGithubPrUrl(url: string): { owner: string; repo: string; nu
 }
 
 export async function syncGithubSource(source: Source, limit: number): Promise<number> {
-  const { owner, repo } = parseOwnerRepo(source.external_id);
+  const { owner, repo } = parseOwnerRepo(source.ext_id);
 
   const remote = await fetchPrs(owner, repo, limit);
   upsertItems(

@@ -116,7 +116,7 @@ function Body({
                         className='size-4 shrink-0'
                       />
                       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-                      <span className='min-w-0 truncate'>{s.external_id}</span>
+                      <span className='min-w-0 truncate'>{s.ext_id}</span>
                     </label>
                   </li>
                 );

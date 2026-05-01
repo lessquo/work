@@ -111,12 +111,12 @@ export function NotebookPanel() {
             </form>
           ) : (
             <div className='flex items-center gap-2'>
-              <h2 className='truncate text-sm font-semibold'>{notebook.name}</h2>
+              <h2 className='truncate text-sm font-semibold'>{notebook.title}</h2>
               <button
                 className='btn-sm btn-ghost'
                 aria-label='Rename'
                 onClick={() => {
-                  setRenameValue(notebook.name);
+                  setRenameValue(notebook.title);
                   setRenaming(true);
                 }}
               >

@@ -17,15 +17,6 @@ export const notes = new Hono();
 
 const NOTES_PROMPT_ID = 'write-notes';
 
-function readNotebookName(item: Item): string {
-  try {
-    const obj = JSON.parse(item.raw) as { name?: unknown };
-    return typeof obj.name === 'string' && obj.name.trim() ? obj.name : 'Untitled notebook';
-  } catch {
-    return 'Untitled notebook';
-  }
-}
-
 function generateNotebookExternalId(): string {
   return `nb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
@@ -56,8 +47,8 @@ notes.post('/notebooks', async c => {
   const externalId = generateNotebookExternalId();
   const raw = JSON.stringify({ name });
   const res = db
-    .prepare(`INSERT INTO items (source_id, type, ext_id, key, url, raw) VALUES (?, 'notes', ?, ?, '', ?)`)
-    .run(sourceId, externalId, externalId, raw);
+    .prepare(`INSERT INTO items (source_id, type, ext_id, key, title, url, raw) VALUES (?, 'notes', ?, ?, ?, '', ?)`)
+    .run(sourceId, externalId, externalId, name, raw);
   const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(res.lastInsertRowid) as Item;
   return c.json(item, 201);
 });
@@ -67,7 +58,7 @@ notes.get('/notebooks/:id', c => {
   const id = Number(c.req.param('id'));
   const item = getNotebook(id);
   if (!item) return c.json({ error: 'notebook not found' }, 404);
-  return c.json({ ...item, name: readNotebookName(item), notes: listNotes(id) });
+  return c.json({ ...item, notes: listNotes(id) });
 });
 
 // PATCH /api/notes/notebooks/:id — rename
@@ -79,7 +70,7 @@ notes.patch('/notebooks/:id', async c => {
   const name = (body.name ?? '').trim();
   if (!name) return c.json({ error: 'name is required' }, 400);
   const raw = JSON.stringify({ name });
-  db.prepare(`UPDATE items SET raw = ?, updated_at = datetime('now') WHERE id = ?`).run(raw, id);
+  db.prepare(`UPDATE items SET raw = ?, title = ?, updated_at = datetime('now') WHERE id = ?`).run(raw, name, id);
   const updated = db.prepare(`SELECT * FROM items WHERE id = ?`).get(id) as Item;
   return c.json(updated);
 });

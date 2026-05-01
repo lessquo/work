@@ -41,7 +41,7 @@ export function InsertNoteButton({ onInsert }: { onInsert: (note: { title: strin
                 const notes = detail?.notes ?? [];
                 return (
                   <Menu.Group key={nb.id}>
-                    <Menu.GroupLabel className='menu-group-label'>{detail?.name ?? 'Notebook'}</Menu.GroupLabel>
+                    <Menu.GroupLabel className='menu-group-label'>{detail?.title ?? 'Notebook'}</Menu.GroupLabel>
                     {notes.length === 0 ? (
                       <div className='px-3 py-1 text-xs text-gray-400'>(empty)</div>
                     ) : (

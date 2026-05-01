@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS items (
   type TEXT NOT NULL,
   ext_id TEXT NOT NULL,
   key TEXT NOT NULL,
+  title TEXT NOT NULL,
   url TEXT NOT NULL,
   raw TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
@@ -155,6 +156,7 @@ export type Item = {
   type: ItemType;
   ext_id: string;
   key: string;
+  title: string;
   url: string;
   raw: string;
   created_at: string;
@@ -162,24 +164,30 @@ export type Item = {
 };
 
 const upsertItemStmt = db.prepare(`
-  INSERT INTO items (source_id, type, ext_id, key, url, raw, updated_at)
-  VALUES (@source_id, @type, @ext_id, @key, @url, @raw, datetime('now'))
+  INSERT INTO items (source_id, type, ext_id, key, title, url, raw, updated_at)
+  VALUES (@source_id, @type, @ext_id, @key, @title, @url, @raw, datetime('now'))
   ON CONFLICT(type, ext_id) DO UPDATE SET
     source_id = excluded.source_id,
     key = excluded.key,
+    title = excluded.title,
     url = excluded.url,
     raw = excluded.raw,
     updated_at = datetime('now')
 `);
 
 export const upsertItems = db.transaction(
-  (type: ItemType, sourceId: number, rows: Array<{ ext_id: string; key: string; url: string; raw: string }>) => {
+  (
+    type: ItemType,
+    sourceId: number,
+    rows: Array<{ ext_id: string; key: string; title: string; url: string; raw: string }>,
+  ) => {
     for (const r of rows) {
       upsertItemStmt.run({
         source_id: sourceId,
         type,
         ext_id: r.ext_id,
         key: r.key,
+        title: r.title,
         url: r.url,
         raw: r.raw,
       });

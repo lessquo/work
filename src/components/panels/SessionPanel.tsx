@@ -792,7 +792,7 @@ function NotesView({ session }: { session: Session | null }) {
     <div className='h-full overflow-auto bg-white p-4'>
       <div className='mb-3 flex items-center justify-between text-xs text-gray-500'>
         <span>
-          Notebook: <span className='font-medium text-gray-700'>{notebook.name}</span>
+          Notebook: <span className='font-medium text-gray-700'>{notebook.title}</span>
         </span>
         <span>
           {notebook.notes.length} note{notebook.notes.length === 1 ? '' : 's'}

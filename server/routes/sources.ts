@@ -107,8 +107,7 @@ type Sort = 'recency' | 'title';
 // near-identical for every item in a sync batch (datetime('now') has 1s res).
 function buildOrderClause(type: ItemType, status: Status, sort: Sort): string {
   if (sort === 'title') {
-    const titleKey = type === 'jira_issue' ? '$.summary' : type === 'notes' ? '$.name' : '$.title';
-    return `json_extract(i.raw, '${titleKey}') COLLATE NOCASE ASC, i.id DESC`;
+    return `i.title COLLATE NOCASE ASC, i.id DESC`;
   }
   const expr = recencyExpr(type, status);
   return `${expr} DESC, i.id DESC`;
@@ -289,6 +288,7 @@ sources.get('/:id/sessions', c => {
       `SELECT ${sessionColumns},
               i.ext_id AS item_ext_id,
               i.key    AS item_key,
+              i.title  AS item_title,
               i.type   AS item_type,
               i.url    AS item_url,
               i.raw    AS item_raw

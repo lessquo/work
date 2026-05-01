@@ -4,10 +4,8 @@ import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import {
   api,
-  itemTitle,
   parseGithubPrRaw,
   parseJiraRaw,
-  parseNotebookRaw,
   parseSentryRaw,
   type GithubPrRaw,
   type Item,
@@ -232,7 +230,7 @@ function ItemHeading({ item }: { item: Item }) {
         </span>
       )}
       <a href={item.url} target='_blank' rel='noreferrer' className='min-w-0 truncate font-semibold hover:underline'>
-        {itemTitle(item)}
+        {item.title}
       </a>
       {externalId && <span className='shrink-0 text-xs text-gray-400'>{externalId}</span>}
     </>
@@ -307,10 +305,9 @@ function SentryBody({ item }: { item: Item }) {
 }
 
 function NotesBody({ item }: { item: Item }) {
-  const n = parseNotebookRaw(item.raw);
   return (
     <FieldList>
-      <Field label='Name'>{n.name ?? '—'}</Field>
+      <Field label='Name'>{item.title}</Field>
       <Field label='Created'>{timeAgo(item.created_at)}</Field>
       <Field label='Updated'>{timeAgo(item.updated_at)}</Field>
     </FieldList>

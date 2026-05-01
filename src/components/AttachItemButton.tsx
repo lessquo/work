@@ -2,7 +2,7 @@ import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast.lib';
-import { api, type Item, itemTitle } from '@/lib/api';
+import { api, type Item } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { Popover } from '@base-ui/react/popover';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -25,8 +25,8 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
     () =>
       new Fuse(candidates, {
         keys: [
-          { name: 'key', weight: 2, getFn: it => it.key },
-          { name: 'title', weight: 2, getFn: itemTitle },
+          { name: 'key', weight: 2 },
+          { name: 'title', weight: 2 },
         ],
         threshold: 0.4,
         ignoreLocation: true,
@@ -115,7 +115,7 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
                     >
                       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
                       <span className='shrink-0 font-mono text-[11px] text-gray-500'>{item.key}</span>
-                      <span className='truncate'>{itemTitle(item)}</span>
+                      <span className='truncate'>{item.title}</span>
                       {item.flow_id != null && (
                         <span className='ml-auto shrink-0 rounded bg-amber-100 px-1 text-[10px] text-amber-800'>
                           in flow #{item.flow_id}

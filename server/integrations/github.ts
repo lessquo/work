@@ -98,6 +98,7 @@ export async function upsertGithubPr(
     {
       ext_id: pr.id,
       key: String(number),
+      title: pr.title,
       url: pr.url || canonicalGithubPrUrl(owner, repo, number),
       raw: JSON.stringify(pr),
     },
@@ -121,6 +122,7 @@ export async function syncGithubSource(source: Source, limit: number): Promise<n
     remote.map(pr => ({
       ext_id: pr.id,
       key: String(pr.number),
+      title: pr.title,
       url: pr.url || canonicalGithubPrUrl(owner, repo, pr.number),
       raw: JSON.stringify(pr),
     })),

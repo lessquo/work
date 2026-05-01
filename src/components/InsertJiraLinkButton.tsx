@@ -1,6 +1,6 @@
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { Input } from '@/components/ui/Input';
-import { api, itemTitle } from '@/lib/api';
+import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { Popover } from '@base-ui/react/popover';
 import { useQueries, useQuery } from '@tanstack/react-query';
@@ -25,7 +25,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
     for (const q of itemsQueries) {
       if (!q.data) continue;
       for (const it of q.data) {
-        out.push({ id: it.id, externalId: it.key, title: itemTitle(it), url: it.url });
+        out.push({ id: it.id, externalId: it.key, title: it.title, url: it.url });
       }
     }
     return out;

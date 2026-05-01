@@ -1,5 +1,5 @@
 import { TYPE_LOGO } from '@/components/typeLogo';
-import { itemTitle, type SourceSession } from '@/lib/api';
+import { type SourceSession } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 
@@ -18,12 +18,10 @@ export function SessionCard({
       ? {
           key: session.item_key,
           type: session.item_type,
-          raw: session.item_raw ?? '',
         }
       : null;
-  const title = item
-    ? itemTitle(item)
-    : firstLine(session.user_context) || (isJira ? '(empty draft)' : `Session #${session.id}`);
+  const title =
+    session.item_title || firstLine(session.user_context) || (isJira ? '(empty draft)' : `Session #${session.id}`);
   const logo = item ? TYPE_LOGO[item.type] : null;
 
   return (

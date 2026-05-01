@@ -298,7 +298,13 @@ export async function fetchJiraIssue(key: string): Promise<JiraRaw> {
 export async function upsertJiraIssue(sourceId: number, key: string): Promise<JiraRaw> {
   const raw = await fetchJiraIssue(key);
   upsertItems('jira_issue', sourceId, [
-    { ext_id: raw.id, key: raw.key, url: canonicalJiraUrl(raw.key), raw: JSON.stringify(raw) },
+    {
+      ext_id: raw.id,
+      key: raw.key,
+      title: raw.summary ?? raw.key,
+      url: canonicalJiraUrl(raw.key),
+      raw: JSON.stringify(raw),
+    },
   ]);
   return raw;
 }
@@ -315,6 +321,7 @@ export async function syncJiraSource(source: Source, limit: number): Promise<num
     remote.map(issue => ({
       ext_id: issue.id,
       key: issue.key,
+      title: issue.fields?.summary ?? issue.key,
       url: canonicalJiraUrl(issue.key),
       raw: JSON.stringify(toRaw(issue)),
     })),

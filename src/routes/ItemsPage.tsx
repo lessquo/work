@@ -4,7 +4,7 @@ import { SyncItemsButton } from '@/components/items/SyncItemsButton';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
-import { api, itemTitle, type ItemStatus, type ItemType } from '@/lib/api';
+import { api, type ItemStatus, type ItemType } from '@/lib/api';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import Fuse from 'fuse.js';
 import { Search } from 'lucide-react';
@@ -113,8 +113,8 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
     () =>
       new Fuse(allItems, {
         keys: [
-          { name: 'title', weight: 2, getFn: itemTitle },
-          { name: 'key', weight: 1, getFn: it => it.key },
+          { name: 'title', weight: 2 },
+          { name: 'key', weight: 1 },
         ],
         threshold: 0.4,
         ignoreLocation: true,

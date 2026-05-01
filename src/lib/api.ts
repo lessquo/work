@@ -16,6 +16,7 @@ export type Item = {
   type: ItemType;
   ext_id: string;
   key: string;
+  title: string;
   url: string;
   raw: string;
   created_at: string;
@@ -42,6 +43,7 @@ export type FlowSessionChild = {
   created_at: string;
   item_ext_id: string | null;
   item_key: string | null;
+  item_title: string | null;
   item_type: ItemType | null;
   item_url: string | null;
   item_raw: string | null;
@@ -123,29 +125,6 @@ export function parseJiraRaw(raw: string): JiraRaw {
   }
 }
 
-export type NotebookRaw = { name?: string };
-
-export function parseNotebookRaw(raw: string): NotebookRaw {
-  try {
-    return JSON.parse(raw) as NotebookRaw;
-  } catch {
-    return {};
-  }
-}
-
-export function itemTitle(item: Pick<Item, 'type' | 'raw' | 'key'>): string {
-  switch (item.type) {
-    case 'sentry_issue':
-      return parseSentryRaw(item.raw).title ?? item.key;
-    case 'github_pr':
-      return parseGithubPrRaw(item.raw).title ?? item.key;
-    case 'jira_issue':
-      return parseJiraRaw(item.raw).summary ?? item.key;
-    case 'notes':
-      return parseNotebookRaw(item.raw).name ?? 'Untitled notebook';
-  }
-}
-
 export function itemCreationTime(item: Pick<Item, 'type' | 'raw' | 'created_at'>): string {
   switch (item.type) {
     case 'sentry_issue':
@@ -193,6 +172,7 @@ export type Session = {
 export type SourceSession = Session & {
   item_ext_id: string | null;
   item_key: string | null;
+  item_title: string | null;
   item_type: ItemType | null;
   item_url: string | null;
   item_raw: string | null;
@@ -210,7 +190,7 @@ export type Note = {
 
 export type Notebook = Item & { note_count: number };
 
-export type NotebookDetail = Item & { name: string; notes: Note[] };
+export type NotebookDetail = Item & { notes: Note[] };
 
 export type Settings = {
   max_parallel: number;

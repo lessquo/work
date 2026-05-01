@@ -5,7 +5,6 @@ import { useToast } from '@/components/ui/Toast.lib';
 import {
   api,
   itemCreationTime,
-  itemTitle,
   type FlowSessionChild,
   type FlowWithChildren,
   type Item,
@@ -124,7 +123,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   async function handleDetach(item: Item) {
     const ok = await confirm({
       title: 'Detach item?',
-      description: `Remove "${itemTitle(item)}" from this flow?`,
+      description: `Remove "${item.title}" from this flow?`,
       confirmText: 'Detach',
       destructive: true,
     });
@@ -286,7 +285,7 @@ function ItemChip({
   onDetach: () => void;
 }) {
   const logo = TYPE_LOGO[item.type];
-  const title = itemTitle(item);
+  const title = item.title;
   return (
     <div className='group relative shrink-0'>
       <Link

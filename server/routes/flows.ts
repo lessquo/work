@@ -4,18 +4,6 @@ import { Hono } from 'hono';
 
 export const flows = new Hono();
 
-function extractItemTitle(type: ItemType, raw: string, key: string): string {
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (type === 'sentry_issue' && typeof parsed.title === 'string') return parsed.title;
-    if (type === 'github_pr' && typeof parsed.title === 'string') return parsed.title;
-    if (type === 'jira_issue' && typeof parsed.summary === 'string') return parsed.summary;
-  } catch {
-    /* fall through */
-  }
-  return key;
-}
-
 function sanitizeName(s: string): string {
   return (
     s
@@ -39,10 +27,9 @@ flows.post('/:id/auto-name', async c => {
   const flow = db.prepare(`SELECT * FROM flows WHERE id = ?`).get(id) as Flow | undefined;
   if (!flow) return c.json({ error: 'not found' }, 404);
 
-  const items = db.prepare(`SELECT type, raw, key FROM items WHERE flow_id = ?`).all(id) as Array<{
+  const items = db.prepare(`SELECT type, title FROM items WHERE flow_id = ?`).all(id) as Array<{
     type: ItemType;
-    raw: string;
-    key: string;
+    title: string;
   }>;
   const sessions = db
     .prepare(`SELECT prompt, status FROM sessions WHERE flow_id = ? ORDER BY id ASC`)
@@ -62,7 +49,7 @@ flows.post('/:id/auto-name', async c => {
   lines.push('');
   if (items.length) {
     lines.push('Items:');
-    for (const i of items) lines.push(`- [${i.type}] ${extractItemTitle(i.type, i.raw, i.key)}`);
+    for (const i of items) lines.push(`- [${i.type}] ${i.title}`);
   }
   if (sessions.length) {
     lines.push('Sessions:');
@@ -99,6 +86,7 @@ flows.get('/', c => {
              'type',        i.type,
              'ext_id',      i.ext_id,
              'key',          i.key,
+             'title',       i.title,
              'url',         i.url,
              'raw',         i.raw,
              'created_at',  i.created_at,
@@ -120,6 +108,7 @@ flows.get('/', c => {
              'created_at',   s.created_at,
              'item_ext_id', si.ext_id,
              'item_key',    si.key,
+             'item_title',  si.title,
              'item_type',        si.type,
              'item_url',         si.url,
              'item_raw',         si.raw

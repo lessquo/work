@@ -74,7 +74,6 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
   );
   const [query, setQuery] = useQueryState('q', parseAsString.withDefault(''));
   const [selectedIds, setSelectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
-  const [sessionId, setOpenSessionId] = useQueryState('session', parseAsInteger);
 
   function setSelection(newAnchor: number | null, newExtras: number[]) {
     const filtered = newExtras.filter(eid => eid !== newAnchor);
@@ -88,7 +87,6 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
     if (sort !== 'recency') params.set('sort', sort);
     if (query) params.set('q', query);
     if (filtered.length > 0) params.set('selected', filtered.join(','));
-    if (sessionId !== null) params.set('session', String(sessionId));
     const path = newAnchor !== null ? `/items/${newAnchor}` : `/items`;
     navigate({ pathname: path, search: params.toString() });
   }
@@ -265,7 +263,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
                   matches={matches}
                   selected={selection.has(item.id)}
                   onSelect={selectItem}
-                  onOpenSession={sessionId => setOpenSessionId(sessionId)}
+                  onOpenSession={sessionId => navigate(`/sessions/${sessionId}`)}
                 />
               ))}
             </ul>

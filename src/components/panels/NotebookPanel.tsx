@@ -1,73 +1,48 @@
 import { Markdown } from '@/components/panels/Markdown';
-import { RepoPicker } from '@/components/panels/RepoPicker';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast.lib';
-import { api, type Note } from '@/lib/api';
+import { api, type Item, type Note } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Pencil, Trash2 } from 'lucide-react';
-import { parseAsInteger, useQueryState } from 'nuqs';
 import { useState } from 'react';
-import { useParams } from 'react-router';
 
-export function NotebookPanel() {
-  const { itemId } = useParams();
-  const itemIdNum = itemId ? Number(itemId) : null;
-  const [, setSessionId] = useQueryState('session', parseAsInteger);
-  const [sourceId] = useQueryState('source', parseAsInteger);
+export function NotebookPanel({ item }: { item: Item }) {
   const qc = useQueryClient();
   const toast = useToast();
   const confirm = useConfirm();
 
   const notebookQuery = useSuspenseQuery({
-    queryKey: itemIdNum !== null ? ['notebook', itemIdNum] : ['notebook-noop'],
-    queryFn: () => (itemIdNum !== null ? api.getNotebook(itemIdNum) : Promise.resolve(null)),
+    queryKey: ['notebook', item.id],
+    queryFn: () => api.getNotebook(item.id),
   });
   const notebook = notebookQuery.data;
 
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState('');
-  const [context, setContext] = useState('');
-  const [repo, setRepo] = useState('');
 
   const onError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
   const renameMutation = useMutation({
-    mutationFn: (title: string) => api.renameNotebook(itemIdNum!, title),
+    mutationFn: (title: string) => api.renameNotebook(item.id, title),
     onSuccess: () => {
       setRenaming(false);
-      qc.invalidateQueries({ queryKey: ['notebook', itemIdNum] });
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
-    },
-    onError,
-  });
-
-  const startSessionMutation = useMutation({
-    mutationFn: (vars: { context: string; repo: string }) =>
-      api.startNotesSession(itemIdNum!, { context: vars.context, repo: vars.repo }),
-    onSuccess: session => {
-      setContext('');
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
-      qc.invalidateQueries({ queryKey: ['notebook', itemIdNum] });
-      setSessionId(session.id);
+      qc.invalidateQueries({ queryKey: ['notebook', item.id] });
+      qc.invalidateQueries({ queryKey: ['items', item.source_id] });
     },
     onError,
   });
 
   const deleteNotebookMutation = useMutation({
-    mutationFn: () => api.deleteNotebook(itemIdNum!),
+    mutationFn: () => api.deleteNotebook(item.id),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
+      qc.invalidateQueries({ queryKey: ['items', item.source_id] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', item.source_id] });
       toast.add({ title: 'Notebook deleted.' });
     },
     onError,
   });
-
-  if (notebook === null) {
-    return <div className='flex h-full items-center justify-center text-sm text-gray-500'>No notebook selected.</div>;
-  }
 
   async function onDeleteNotebook() {
     const ok = await confirm({
@@ -79,8 +54,6 @@ export function NotebookPanel() {
     if (!ok) return;
     deleteNotebookMutation.mutate();
   }
-
-  const submitContextDisabled = startSessionMutation.isPending;
 
   return (
     <aside className='flex h-full flex-col border-l bg-white'>
@@ -130,31 +103,6 @@ export function NotebookPanel() {
         </button>
       </header>
 
-      <section className='border-b px-4 py-3'>
-        <h3 className='mb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase'>
-          Start a write-notes session
-        </h3>
-        <div className='mb-2'>
-          <RepoPicker value={repo} onChange={setRepo} allowEmpty />
-        </div>
-        <textarea
-          value={context}
-          onChange={e => setContext(e.target.value)}
-          placeholder='Describe what you want Claude to capture or revise…'
-          rows={4}
-          className='w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-2 text-sm placeholder:text-gray-400 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none'
-        />
-        <div className='mt-2 flex justify-end'>
-          <button
-            onClick={() => startSessionMutation.mutate({ context: context.trim(), repo: repo.trim() })}
-            disabled={submitContextDisabled || context.trim().length === 0}
-            className='btn-sm btn-primary'
-          >
-            {submitContextDisabled ? 'Starting…' : 'Start session'}
-          </button>
-        </div>
-      </section>
-
       <section className='flex-1 overflow-y-auto px-4 py-3'>
         <h3 className='mb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase'>
           Notes ({notebook.notes.length})
@@ -164,7 +112,7 @@ export function NotebookPanel() {
         ) : (
           <ul className='flex flex-col gap-3'>
             {notebook.notes.map(note => (
-              <NoteRow key={note.id} note={note} notebookId={itemIdNum!} />
+              <NoteRow key={note.id} note={note} notebookId={item.id} />
             ))}
           </ul>
         )}

@@ -1,7 +1,5 @@
 import { BatchPanel } from '@/components/panels/BatchPanel';
 import { ItemPanel } from '@/components/panels/ItemPanel';
-import { NotebookPanel } from '@/components/panels/NotebookPanel';
-import { SessionPanel } from '@/components/panels/SessionPanel';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item } from '@/lib/api';
@@ -21,15 +19,6 @@ export function ItemsPageSlot() {
   const [filter] = useQueryState('filter', parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'));
   const [sort] = useQueryState('sort', parseAsStringLiteral(['recency', 'title'] as const).withDefault('recency'));
   const [selectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
-  const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
-  const [sessionTab, setSessionTab] = useQueryState(
-    'sessionTab',
-    parseAsStringLiteral(['setup', 'logs', 'diff', 'pr', 'notes'] as const).withDefault('logs'),
-  );
-  const [descriptionMode, setDescriptionMode] = useQueryState(
-    'descriptionMode',
-    parseAsStringLiteral(['edit', 'preview'] as const).withDefault('preview'),
-  );
   const sourceQuery = useSuspenseQuery({ queryKey: ['source', sourceId], queryFn: () => api.getSource(sourceId) });
   const source = sourceQuery.data;
 
@@ -71,8 +60,7 @@ export function ItemsPageSlot() {
       qc.invalidateQueries({ queryKey: ['flows'] });
       if (created.length === 1 && created[0].status === 'fulfilled') {
         const sess = created[0].value;
-        setSessionTab('setup');
-        setSessionId(sess.id);
+        navigate(`/sessions/${sess.id}?sessionTab=setup`);
       }
     },
     onError: onMutationError,
@@ -157,20 +145,6 @@ export function ItemsPageSlot() {
     deleteSessionsMutation.mutate(Array.from(selection));
   }
 
-  if (sessionId !== null) {
-    return (
-      <SessionPanel
-        key={sessionId}
-        sessionId={sessionId}
-        onClose={() => setSessionId(null)}
-        tab={sessionTab}
-        setTab={setSessionTab}
-        descriptionMode={descriptionMode}
-        setDescriptionMode={setDescriptionMode}
-      />
-    );
-  }
-
   if (selection.size > 1) {
     return (
       <BatchPanel
@@ -189,7 +163,6 @@ export function ItemsPageSlot() {
   }
 
   if (selection.size === 1) {
-    if (source.type === 'notes') return <NotebookPanel />;
     return <ItemPanel />;
   }
 

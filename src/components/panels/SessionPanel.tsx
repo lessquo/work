@@ -196,11 +196,6 @@ export function SessionPanel({
           {session?.error && <div className='mt-0.5 truncate text-xs text-rose-600'>{session.error}</div>}
         </div>
         <div className='flex shrink-0 items-center gap-2'>
-          {session?.pr_url && (
-            <a href={session.pr_url} target='_blank' rel='noreferrer' className='btn-sm btn-success'>
-              {isJira ? 'View Jira issue ↗' : 'View PR ↗'}
-            </a>
-          )}
           {isDraft && (
             <Tooltip content={canRun ? 'Queue this session' : 'Pick a repo first'}>
               <button

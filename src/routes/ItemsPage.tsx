@@ -1,5 +1,6 @@
 import { ItemCard } from '@/components/ItemCard';
 import { SourceSwitcher } from '@/components/SourceSwitcher';
+import { SyncAllButton } from '@/components/SyncAllButton';
 import { SyncSetupDialog } from '@/components/SyncSetupDialog';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -253,6 +254,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
                   {syncing ? 'Syncing…' : 'Sync'}
                 </button>
               )}
+              <SyncAllButton />
             </div>
             <SyncSetupDialog
               open={syncDialogOpen}

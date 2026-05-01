@@ -1,5 +1,4 @@
 import { RootTabs } from '@/components/RootTabs';
-import { SyncAllButton } from '@/components/SyncAllButton';
 import { Link, Outlet } from 'react-router';
 
 export function RootLayout() {
@@ -10,7 +9,6 @@ export function RootLayout() {
           Work
         </Link>
         <RootTabs />
-        <SyncAllButton />
       </header>
       <Outlet />
     </div>

@@ -46,7 +46,7 @@ export function SyncAllButton() {
         type='button'
         onClick={() => setSetupOpen(true)}
         disabled={sources.length === 0 || state?.status === 'running'}
-        className='btn-md btn-secondary ml-auto'
+        className='btn-md btn-secondary'
       >
         <RefreshCw className={cn('size-3.5', state?.status === 'running' && 'animate-spin')} />
         Sync all

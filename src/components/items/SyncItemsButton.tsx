@@ -57,9 +57,6 @@ export function SyncItemsButton() {
       <SyncSetupDialog
         open={setupOpen}
         onOpenChange={setSetupOpen}
-        title='Sync items'
-        description='Pick which sources to sync and how many items to fetch per source. Sources are synced sequentially.'
-        startLabel='Start'
         sources={sources}
         onStart={ids => {
           setSetupOpen(false);

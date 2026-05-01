@@ -12,17 +12,11 @@ const SYNC_LIMIT_MAX = 10000;
 export function SyncSetupDialog({
   open,
   onOpenChange,
-  title,
-  description,
-  startLabel,
   onStart,
   sources,
 }: {
   open: boolean;
   onOpenChange: (next: boolean) => void;
-  title: string;
-  description?: string;
-  startLabel: string;
   onStart: (selectedSourceIds: number[]) => void;
   sources?: Source[];
 }) {
@@ -31,16 +25,7 @@ export function SyncSetupDialog({
       <Dialog.Portal>
         <Dialog.Backdrop className='fixed inset-0 bg-black/30' />
         <Dialog.Popup className='fixed top-1/2 left-1/2 flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border bg-white shadow-xl outline-none'>
-          {open && (
-            <Body
-              title={title}
-              description={description}
-              startLabel={startLabel}
-              onStart={onStart}
-              onClose={() => onOpenChange(false)}
-              sources={sources}
-            />
-          )}
+          {open && <Body onStart={onStart} onClose={() => onOpenChange(false)} sources={sources} />}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
@@ -48,16 +33,10 @@ export function SyncSetupDialog({
 }
 
 function Body({
-  title,
-  description,
-  startLabel,
   onStart,
   onClose,
   sources,
 }: {
-  title: string;
-  description?: string;
-  startLabel: string;
   onStart: (selectedSourceIds: number[]) => void;
   onClose: () => void;
   sources?: Source[];
@@ -105,14 +84,16 @@ function Body({
   return (
     <>
       <div className='flex items-center justify-between border-b px-4 py-3'>
-        <Dialog.Title className='text-base font-semibold'>{title}</Dialog.Title>
+        <Dialog.Title className='text-base font-semibold'>Sync items</Dialog.Title>
         <button onClick={onClose} className='btn-md btn-ghost' aria-label='close'>
           <X />
         </button>
       </div>
 
       <div className='flex flex-col gap-3 px-4 py-4'>
-        {description && <p className='text-sm text-gray-600'>{description}</p>}
+        <p className='text-sm text-gray-600'>
+          Pick which sources to sync and how many items to fetch per source. Sources are synced sequentially.
+        </p>
 
         {sources && sources.length > 0 && (
           <div className='flex flex-col gap-1'>
@@ -174,7 +155,7 @@ function Body({
           disabled={!valid || !hasSelection || saveMutation.isPending}
           className='btn-md btn-primary'
         >
-          {saveMutation.isPending ? 'Saving…' : startLabel}
+          {saveMutation.isPending ? 'Saving…' : 'Start'}
         </button>
       </div>
     </>

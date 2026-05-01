@@ -8,13 +8,14 @@ import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
+import { parseAsBoolean, useQueryState } from 'nuqs';
 import { useState } from 'react';
 
 export function SyncItemsButton() {
   const qc = useQueryClient();
   const { data: sources } = useSuspenseQuery({ queryKey: ['sources'], queryFn: api.listSources });
   const [state, setState] = useState<SyncProgressState | null>(null);
-  const [setupOpen, setSetupOpen] = useState(false);
+  const [setupOpen, setSetupOpen] = useQueryState('syncSetup', parseAsBoolean.withDefault(false));
 
   function patchItem(index: number, patch: Partial<SyncProgressItem>) {
     setState(prev =>

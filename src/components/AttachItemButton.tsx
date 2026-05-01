@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useFuzzySearch } from '@/lib/fuse';
-import { Popover } from '@base-ui/react/popover';
+import { Combobox } from '@base-ui/react/combobox';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
@@ -20,9 +20,11 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
 
   const { data: allItems = [] } = useQuery({ queryKey: ['allItems'], queryFn: api.listAllItems });
 
-  const candidates = useMemo(() => allItems.filter(it => it.flow_id !== flowId), [allItems, flowId]);
+  const items = useMemo(() => allItems.filter(it => it.flow_id !== flowId), [allItems, flowId]);
 
-  const results = useFuzzySearch(candidates, query);
+  const results = useFuzzySearch(items, query);
+  const filteredItems = useMemo(() => results.map(r => r.item), [results]);
+  const matchesById = useMemo(() => new Map(results.map(r => [r.item.id, r.matches])), [results]);
 
   const attachMutation = useMutation({
     mutationFn: (itemId: number) => api.setItemFlow(itemId, flowId),
@@ -31,7 +33,6 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
       qc.invalidateQueries({ queryKey: ['allItems'] });
       if (sourceId !== undefined) qc.invalidateQueries({ queryKey: ['items', sourceId] });
       toast.add({ title: 'Item attached to flow', type: 'success' });
-      setOpen(false);
     },
     onError: e => {
       toast.add({
@@ -55,47 +56,50 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
   }
 
   return (
-    <Popover.Root
+    <Combobox.Root<Item>
+      items={items}
+      filteredItems={filteredItems}
+      inputValue={query}
+      onInputValueChange={setQuery}
+      value={null}
+      onValueChange={item => {
+        if (item) attach(item);
+      }}
       open={open}
       onOpenChange={next => {
         setOpen(next);
         if (!next) setQuery('');
       }}
     >
-      <Popover.Trigger
+      <Combobox.Trigger
         className={cn('btn-sm btn-ghost flex items-center gap-1 text-[11px]', 'data-popup-open:bg-gray-100')}
         title='Attach item'
       >
         <Plus />
         Attach item
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Positioner sideOffset={4}>
-          <Popover.Popup className='popup flex max-h-128 w-lg flex-col overflow-hidden'>
+      </Combobox.Trigger>
+      <Combobox.Portal>
+        <Combobox.Positioner sideOffset={4}>
+          <Combobox.Popup className='popup flex max-h-128 w-lg flex-col overflow-hidden' aria-label='Attach item'>
             <div className='border-b p-2'>
-              <Input
-                type='search'
-                value={query}
-                onChange={e => setQuery(e.target.value)}
+              <Combobox.Input
                 placeholder='Search by title or key…'
-                className='w-full'
-                autoFocus
+                render={<Input type='search' className='w-full' />}
               />
             </div>
             <div className='min-h-0 flex-1 overflow-y-auto'>
-              {results.length === 0 ? (
-                <div className='px-3 py-2 text-xs text-gray-400'>
-                  {candidates.length === 0 ? '(no items available)' : 'No items match your search.'}
-                </div>
-              ) : (
-                results.map(({ item, matches }) => {
+              <Combobox.Empty className='px-3 py-2 text-xs text-gray-400'>
+                {items.length === 0 ? '(no items available)' : 'No items match your search.'}
+              </Combobox.Empty>
+              <Combobox.List>
+                {(item: Item) => {
                   const logo = TYPE_LOGO[item.type];
+                  const matches = matchesById.get(item.id);
                   return (
-                    <button
+                    <Combobox.Item
                       key={item.id}
-                      type='button'
-                      onClick={() => attach(item)}
-                      className='flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-gray-50'
+                      value={item}
+                      className='flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm data-highlighted:bg-gray-50'
                     >
                       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
                       <span className='shrink-0 font-mono text-[11px] text-gray-500'>
@@ -109,14 +113,14 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
                           in flow #{item.flow_id}
                         </span>
                       )}
-                    </button>
+                    </Combobox.Item>
                   );
-                })
-              )}
+                }}
+              </Combobox.List>
             </div>
-          </Popover.Popup>
-        </Popover.Positioner>
-      </Popover.Portal>
-    </Popover.Root>
+          </Combobox.Popup>
+        </Combobox.Positioner>
+      </Combobox.Portal>
+    </Combobox.Root>
   );
 }

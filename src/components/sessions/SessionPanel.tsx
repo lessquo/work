@@ -152,14 +152,6 @@ export function SessionPanel({
     return () => es.close();
   }, [sessionId, streamEpoch, qc, isDraft]);
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const active = session?.status === 'queued' || session?.status === 'running';
   const isJira = session?.source_type === 'jira_issue';
   const isNotes = session?.source_type === 'notes';

@@ -41,11 +41,11 @@
   .btn-ghost {
     @apply not-disabled:hover:bg-gray-100;
   }
+  .btn-neutral {
+    @apply border border-gray-300 bg-white text-gray-700 not-disabled:hover:bg-gray-50 disabled:opacity-50;
+  }
   .btn-primary {
     @apply border border-indigo-200 bg-white text-indigo-700 not-disabled:hover:bg-indigo-50/50 disabled:opacity-50;
-  }
-  .btn-secondary {
-    @apply border border-gray-300 bg-white text-gray-700 not-disabled:hover:bg-gray-50 disabled:opacity-50;
   }
   .btn-success {
     @apply border border-emerald-200 bg-white text-emerald-700 not-disabled:hover:bg-emerald-50/50 disabled:opacity-50;

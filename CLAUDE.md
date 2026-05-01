@@ -26,3 +26,9 @@ This is a personal local only app. Keep clean code and prefer refactoring.
 
 - [cn](src/lib/cn.ts): This exports `twMerge` as `cn`
 - [time](src/lib/time.ts): Time utils
+
+## CSS utility classes
+
+- `btn-ghost`: Use for icon-only buttons or when small buttons are placed close together.
+- `btn-neutral`: Default button style.
+- `btn-primary`: Use for actions that create external resources (GitHub PRs, Jira issues) or kick off long-running tasks.

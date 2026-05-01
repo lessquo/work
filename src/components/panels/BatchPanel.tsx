@@ -69,13 +69,13 @@ export function BatchPanel({
                 <button
                   onClick={onCreateSessions}
                   disabled={creatingSessions || count === 0}
-                  className='btn-sm btn-primary'
+                  className='btn-sm btn-neutral'
                 >
                   {creatingSessions ? 'Creating…' : `Create ${count} sessions`}
                 </button>
               </Tooltip>
               <Tooltip content='Mark the selected issues as resolved upstream'>
-                <button onClick={onResolve} disabled={resolving || count === 0} className='btn-sm btn-secondary'>
+                <button onClick={onResolve} disabled={resolving || count === 0} className='btn-sm btn-neutral'>
                   {resolving ? 'Resolving…' : 'Resolve'}
                 </button>
               </Tooltip>
@@ -86,7 +86,7 @@ export function BatchPanel({
               count === 1 ? 'Create a flow with this item as a child' : `Create ${count} flows, one per selected item`
             }
           >
-            <button onClick={onCreateFlows} disabled={creatingFlows || count === 0} className='btn-sm btn-secondary'>
+            <button onClick={onCreateFlows} disabled={creatingFlows || count === 0} className='btn-sm btn-neutral'>
               <Workflow />
               {creatingFlows ? 'Creating…' : count > 1 ? `Create ${count} flows` : 'Create flow'}
             </button>

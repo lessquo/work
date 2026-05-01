@@ -215,7 +215,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
                 <button
                   onClick={() => createNotebookMutation.mutate()}
                   disabled={createNotebookMutation.isPending}
-                  className='btn-md btn-primary'
+                  className='btn-md btn-neutral'
                 >
                   {createNotebookMutation.isPending ? 'Creating…' : 'New notebook'}
                 </button>

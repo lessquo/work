@@ -46,7 +46,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
         if (!next) setQuery('');
       }}
     >
-      <Popover.Trigger className={cn('btn-sm btn-secondary', 'data-popup-open:bg-gray-100')}>
+      <Popover.Trigger className={cn('btn-sm btn-neutral', 'data-popup-open:bg-gray-100')}>
         <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
         Insert Jira link
       </Popover.Trigger>

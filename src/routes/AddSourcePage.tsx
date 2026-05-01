@@ -95,7 +95,7 @@ export function AddSourcePage() {
           )}
 
           <div className='flex items-center justify-end gap-2 pt-1'>
-            <button type='submit' disabled={!canSubmit} className='btn-md btn-primary'>
+            <button type='submit' disabled={!canSubmit} className='btn-md btn-neutral'>
               {isSubmitting ? 'Creating…' : 'Create source'}
             </button>
           </div>

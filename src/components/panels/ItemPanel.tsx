@@ -172,13 +172,13 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
                 <button
                   onClick={() => createSessionMutation.mutate()}
                   disabled={createSessionMutation.isPending}
-                  className='btn-sm btn-primary'
+                  className='btn-sm btn-neutral'
                 >
                   {createSessionMutation.isPending ? 'Creating…' : 'Create session'}
                 </button>
               </Tooltip>
               <Tooltip content='Mark this issue as resolved upstream'>
-                <button onClick={handleResolve} disabled={resolveMutation.isPending} className='btn-sm btn-secondary'>
+                <button onClick={handleResolve} disabled={resolveMutation.isPending} className='btn-sm btn-neutral'>
                   {resolveMutation.isPending ? 'Resolving…' : 'Resolve'}
                 </button>
               </Tooltip>
@@ -188,7 +188,7 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
             <button
               onClick={() => createFlowMutation.mutate()}
               disabled={createFlowMutation.isPending}
-              className='btn-sm btn-secondary'
+              className='btn-sm btn-neutral'
             >
               <Workflow />
               {createFlowMutation.isPending ? 'Creating…' : 'Create flow'}

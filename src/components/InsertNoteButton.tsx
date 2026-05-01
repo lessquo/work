@@ -26,7 +26,7 @@ export function InsertNoteButton({ onInsert }: { onInsert: (note: { title: strin
 
   return (
     <Menu.Root>
-      <Menu.Trigger className={cn('btn-sm btn-secondary', 'data-popup-open:bg-gray-100')}>
+      <Menu.Trigger className={cn('btn-sm btn-neutral', 'data-popup-open:bg-gray-100')}>
         <NotebookPen />
         Insert note
       </Menu.Trigger>

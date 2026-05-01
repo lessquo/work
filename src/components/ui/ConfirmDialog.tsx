@@ -40,7 +40,7 @@ export function ConfirmDialogProvider({ children }: { children: React.ReactNode 
               <Base.Description className='mt-1.5 text-sm text-gray-600'>{state.opts.description}</Base.Description>
             )}
             <div className='mt-5 flex justify-end gap-2'>
-              <Base.Close className='btn-md btn-secondary'>{state?.opts.cancelText ?? 'Cancel'}</Base.Close>
+              <Base.Close className='btn-md btn-neutral'>{state?.opts.cancelText ?? 'Cancel'}</Base.Close>
               <button
                 onClick={() => settle(true)}
                 autoFocus

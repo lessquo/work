@@ -43,7 +43,7 @@ export function FlowsPage() {
                     search: params.toString(),
                   });
                 }}
-                className='btn-md btn-secondary'
+                className='btn-md btn-neutral'
               >
                 New flow
               </button>

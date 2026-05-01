@@ -6,7 +6,7 @@ import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Note } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Pencil, Play, Plus, Trash2, X } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useState } from 'react';
 import { useParams } from 'react-router';
@@ -102,7 +102,7 @@ export function NotebookPanel() {
                 placeholder='Notebook title'
                 className='flex-1 text-sm'
               />
-              <button type='submit' className='btn-sm btn-primary' disabled={renameMutation.isPending}>
+              <button type='submit' className='btn-sm btn-neutral' disabled={renameMutation.isPending}>
                 Save
               </button>
               <button type='button' className='btn-sm btn-ghost' onClick={() => setRenaming(false)}>
@@ -150,7 +150,6 @@ export function NotebookPanel() {
             disabled={submitContextDisabled || context.trim().length === 0}
             className='btn-sm btn-primary'
           >
-            <Play />
             {submitContextDisabled ? 'Starting…' : 'Start session'}
           </button>
         </div>
@@ -237,11 +236,10 @@ function NoteRow({ note, notebookId }: { note: Note; notebookId: number }) {
                 setEditing(false);
               }}
             >
-              <X />
               Cancel
             </button>
             <button
-              className='btn-sm btn-primary'
+              className='btn-sm btn-neutral'
               onClick={() => saveMutation.mutate()}
               disabled={saveMutation.isPending}
             >
@@ -274,35 +272,5 @@ function NoteRow({ note, notebookId }: { note: Note; notebookId: number }) {
         </>
       )}
     </li>
-  );
-}
-
-export function NotebookPanelEmpty() {
-  const qc = useQueryClient();
-  const toast = useToast();
-  const [sourceId] = useQueryState('source', parseAsInteger);
-
-  const createMutation = useMutation({
-    mutationFn: () => api.createNotebook(),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
-      toast.add({ title: 'Notebook created.' });
-    },
-    onError: e => toast.add({ title: e instanceof Error ? e.message : 'Failed.' }),
-  });
-
-  return (
-    <div className='flex h-full flex-1 flex-col items-center justify-center gap-3 bg-gray-50 text-sm text-gray-500'>
-      <p>No notebooks yet.</p>
-      <button
-        onClick={() => createMutation.mutate()}
-        className='btn-md btn-primary'
-        disabled={createMutation.isPending}
-      >
-        <Plus />
-        {createMutation.isPending ? 'Creating…' : 'New notebook'}
-      </button>
-    </div>
   );
 }

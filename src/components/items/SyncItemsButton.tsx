@@ -49,7 +49,7 @@ export function SyncItemsButton() {
         type='button'
         onClick={() => setSetupOpen(true)}
         disabled={sources.length === 0 || state?.status === 'running'}
-        className='btn-md btn-secondary'
+        className='btn-md btn-neutral'
       >
         <RefreshCw className={cn('size-3.5', state?.status === 'running' && 'animate-spin')} />
         Sync items

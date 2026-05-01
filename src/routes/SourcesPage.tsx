@@ -17,7 +17,7 @@ export function SourcesPage() {
       <div className='mx-auto w-full max-w-2xl p-6'>
         <div className='mb-4 flex items-center justify-between'>
           <h1 className='text-lg font-semibold'>Sources</h1>
-          <Link to='/sources/add' className='btn-md btn-primary'>
+          <Link to='/sources/add' className='btn-md btn-neutral'>
             <Plus />
             Add source
           </Link>

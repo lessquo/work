@@ -303,7 +303,7 @@ function IdentifierField({
           type='button'
           onClick={() => saveMutation.mutate()}
           disabled={!dirty || saveMutation.isPending}
-          className='btn-md btn-secondary'
+          className='btn-md btn-neutral'
         >
           {saveMutation.isPending ? 'Saving…' : 'Save'}
         </button>
@@ -378,7 +378,7 @@ function SecretField({
           type='button'
           onClick={() => saveMutation.mutate()}
           disabled={value.trim().length === 0 || saveMutation.isPending}
-          className='btn-md btn-secondary'
+          className='btn-md btn-neutral'
         >
           {saveMutation.isPending ? 'Saving…' : 'Save'}
         </button>

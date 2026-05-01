@@ -146,7 +146,7 @@ function Body({
       </div>
 
       <div className='flex items-center justify-end gap-2 border-t px-4 py-3'>
-        <button onClick={onClose} className='btn-md btn-secondary'>
+        <button onClick={onClose} className='btn-md btn-ghost'>
           Cancel
         </button>
         <button

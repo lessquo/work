@@ -52,7 +52,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
       </Popover.Trigger>
       <Popover.Portal>
         <Popover.Positioner sideOffset={4}>
-          <Popover.Popup className='popup flex max-h-96 w-96 flex-col overflow-hidden'>
+          <Popover.Popup className='popup flex max-h-128 w-lg flex-col overflow-hidden'>
             <div className='border-b p-2'>
               <Input
                 type='search'

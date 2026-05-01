@@ -11,7 +11,6 @@ import {
   parseSentryRaw,
   type GithubPrRaw,
   type Item,
-  type ItemType,
   type JiraStatusCategory,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
@@ -170,9 +169,6 @@ export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
           </div>
         </div>
         <div className='flex shrink-0 items-center gap-2'>
-          <a href={item.url} target='_blank' rel='noreferrer' className='btn-sm btn-success'>
-            {externalLinkLabel(item.type)}
-          </a>
           {filter === 'open' && (
             <>
               <Tooltip content='Create a draft session — configure and run from the session panel'>
@@ -236,7 +232,9 @@ function ItemHeading({ item }: { item: Item }) {
           {badge.label}
         </span>
       )}
-      <span className='min-w-0 truncate font-semibold'>{itemTitle(item)}</span>
+      <a href={item.url} target='_blank' rel='noreferrer' className='min-w-0 truncate font-semibold hover:underline'>
+        {itemTitle(item)}
+      </a>
       {externalId && <span className='shrink-0 text-xs text-gray-400'>{externalId}</span>}
     </>
   );
@@ -331,19 +329,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <dd className='min-w-0 flex-1 text-sm text-gray-800'>{children}</dd>
     </div>
   );
-}
-
-function externalLinkLabel(type: ItemType): string {
-  switch (type) {
-    case 'jira_issue':
-      return 'View Jira issue ↗';
-    case 'github_pr':
-      return 'View PR ↗';
-    case 'sentry_issue':
-      return 'View in Sentry ↗';
-    case 'notes':
-      return 'Open ↗';
-  }
 }
 
 function getBadge(item: Item): { label: string; color: string } | null {

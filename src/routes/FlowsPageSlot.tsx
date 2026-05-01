@@ -27,6 +27,11 @@ export function FlowsPageSlot() {
         key={sessionId}
         sessionId={sessionId}
         onClose={() => setSessionId(null)}
+        onDelete={() => {
+          void setSessionId(null);
+          void setSessionTab(null);
+          void setDescriptionMode(null);
+        }}
         tab={sessionTab}
         setTab={setSessionTab}
         descriptionMode={descriptionMode}

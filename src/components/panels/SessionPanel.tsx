@@ -25,6 +25,7 @@ export type DescriptionMode = 'edit' | 'preview';
 export function SessionPanel({
   sessionId,
   onClose,
+  onDelete,
   tab,
   setTab,
   descriptionMode,
@@ -32,6 +33,7 @@ export function SessionPanel({
 }: {
   sessionId: number;
   onClose: () => void;
+  onDelete?: () => void;
   tab: SessionPanelTab;
   setTab: (t: SessionPanelTab) => void;
   descriptionMode: DescriptionMode;
@@ -127,7 +129,7 @@ export function SessionPanel({
       qc.removeQueries({ queryKey: ['session', sessionId] });
       qc.invalidateQueries({ queryKey: ['items'] });
       qc.invalidateQueries({ queryKey: ['flows'] });
-      onClose();
+      (onDelete ?? onClose)();
     },
   });
 

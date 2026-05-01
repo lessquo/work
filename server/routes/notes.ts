@@ -47,7 +47,9 @@ notes.post('/notebooks', async c => {
   const extId = generateNotebookExtId();
   const raw = JSON.stringify({ title });
   const res = db
-    .prepare(`INSERT INTO items (source_id, type, ext_id, key, title, url, raw) VALUES (?, 'notes', ?, ?, ?, '', ?)`)
+    .prepare(
+      `INSERT INTO items (source_id, type, ext_id, key, title, status, url, raw) VALUES (?, 'notes', ?, ?, ?, 'open', '', ?)`,
+    )
     .run(sourceId, extId, extId, title, raw);
   const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(res.lastInsertRowid) as Item;
   return c.json(item, 201);

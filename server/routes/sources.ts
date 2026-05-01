@@ -134,19 +134,13 @@ function recencyExpr(type: ItemType, status: Status): string {
 // (type, status) combination should yield zero rows.
 function buildStatusClause(type: ItemType, status: Status): string | null {
   if (type === 'github_pr') {
-    return status === 'open'
-      ? `AND json_extract(i.raw, '$.state') = 'OPEN'`
-      : `AND json_extract(i.raw, '$.state') IN ('CLOSED','MERGED')`;
+    return status === 'open' ? `AND i.status = 'OPEN'` : `AND i.status IN ('CLOSED','MERGED')`;
   }
   if (type === 'jira_issue') {
-    return status === 'open'
-      ? `AND json_extract(i.raw, '$.status_category') != 'done'`
-      : `AND json_extract(i.raw, '$.status_category') = 'done'`;
+    return status === 'open' ? `AND i.status != 'done'` : `AND i.status = 'done'`;
   }
   if (type === 'sentry_issue') {
-    return status === 'open'
-      ? `AND json_extract(i.raw, '$.status') = 'unresolved'`
-      : `AND json_extract(i.raw, '$.status') = 'resolved'`;
+    return status === 'open' ? `AND i.status = 'unresolved'` : `AND i.status = 'resolved'`;
   }
   if (type === 'notes') {
     // Notebooks have no "open/resolved" state — show all rows on the open tab, none on resolved.
@@ -359,7 +353,10 @@ async function resolveItemUpstream(source: Source, item: Item, assignTo: string 
     await resolveSentryIssue(item.ext_id, { assignTo });
     const raw = safeParse(item.raw);
     raw.status = 'resolved';
-    db.prepare(`UPDATE items SET raw = ?, updated_at = datetime('now') WHERE id = ?`).run(JSON.stringify(raw), item.id);
+    db.prepare(`UPDATE items SET raw = ?, status = 'resolved', updated_at = datetime('now') WHERE id = ?`).run(
+      JSON.stringify(raw),
+      item.id,
+    );
     return true;
   }
   return false;

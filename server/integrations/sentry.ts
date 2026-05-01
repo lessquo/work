@@ -85,6 +85,7 @@ export async function syncSentrySource(source: Source, limit: number): Promise<n
       ext_id: i.id,
       key: i.shortId,
       title: i.title,
+      status: i.status,
       url: i.permalink,
       raw: JSON.stringify(i),
     })),

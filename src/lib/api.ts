@@ -17,6 +17,7 @@ export type Item = {
   ext_id: string;
   key: string;
   title: string;
+  status: string;
   url: string;
   raw: string;
   created_at: string;

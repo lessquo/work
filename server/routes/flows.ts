@@ -87,6 +87,7 @@ flows.get('/', c => {
              'ext_id',      i.ext_id,
              'key',          i.key,
              'title',       i.title,
+             'status',      i.status,
              'url',         i.url,
              'raw',         i.raw,
              'created_at',  i.created_at,

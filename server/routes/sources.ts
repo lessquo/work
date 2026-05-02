@@ -1,12 +1,4 @@
-import {
-  createFlowForSession,
-  db,
-  sessionColumns,
-  sessionFrom,
-  type Item,
-  type ItemType,
-  type Source,
-} from '@server/db.js';
+import { createFlowForSession, db, type Item, type ItemType, type Source } from '@server/db.js';
 import { syncGithubSource } from '@server/integrations/github.js';
 import { buildJiraIssueContext, syncJiraSource } from '@server/integrations/jira.js';
 import {
@@ -179,28 +171,6 @@ sources.post('/:id/session-items', async c => {
   }
 
   return c.json({ enqueued, skipped });
-});
-
-sources.get('/:id/sessions', c => {
-  const id = Number(c.req.param('id'));
-  const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(id) as Source | undefined;
-  if (!source) return c.json({ error: 'not found' }, 404);
-  const rows = db
-    .prepare(
-      `SELECT ${sessionColumns},
-              i.ext_id AS item_ext_id,
-              i.key    AS item_key,
-              i.title  AS item_title,
-              i.type   AS item_type,
-              i.url    AS item_url,
-              i.raw    AS item_raw
-         FROM ${sessionFrom}
-         LEFT JOIN items i ON i.id = s.item_id
-        WHERE s.source_id = ? OR i.source_id = ?
-        ORDER BY s.id DESC`,
-    )
-    .all(id, id);
-  return c.json(rows);
 });
 
 async function resolveItemUpstream(source: Source, item: Item, assignTo: string | null): Promise<boolean> {

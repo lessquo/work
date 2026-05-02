@@ -294,7 +294,6 @@ export const api = {
   createJiraIssue: (sessionId: number) => req<Session>(`/sessions/${sessionId}/create-jira-issue`, { method: 'POST' }),
   updateJiraIssue: (sessionId: number) => req<Session>(`/sessions/${sessionId}/update-jira-issue`, { method: 'POST' }),
   listSessions: () => req<SourceSession[]>(`/sessions`),
-  listSourceSessions: (sourceId: number) => req<SourceSession[]>(`/sources/${sourceId}/sessions`),
   listFlows: () => req<FlowWithChildren[]>(`/flows`),
   createFlow: () => req<Flow>(`/flows`, { method: 'POST' }),
   deleteFlow: (id: number) => req<{ ok: true }>(`/flows/${id}`, { method: 'DELETE' }),

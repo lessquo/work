@@ -81,7 +81,7 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
       <Combobox.Portal>
         <Combobox.Positioner sideOffset={4}>
           <Combobox.Popup className='popup flex max-h-128 w-lg flex-col overflow-hidden' aria-label='Attach item'>
-            <div className='border-b p-2'>
+            <div className='p-2'>
               <Combobox.Input
                 placeholder='Search by title or key…'
                 render={<Input type='search' className='w-full' />}
@@ -96,11 +96,7 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
                   const logo = TYPE_LOGO[item.type];
                   const matches = matchesById.get(item.id);
                   return (
-                    <Combobox.Item
-                      key={item.id}
-                      value={item}
-                      className='flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm data-highlighted:bg-gray-50'
-                    >
+                    <Combobox.Item key={item.id} value={item} className='combobox-item'>
                       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
                       <span className='shrink-0 font-mono text-[11px] text-gray-500'>
                         <HighlightMatch text={item.key} matches={matches} field='key' />

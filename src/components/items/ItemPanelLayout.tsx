@@ -1,9 +1,9 @@
+import { StatusBadge } from '@/components/items/StatusBadge';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api, type Item } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Copy, RefreshCw } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
@@ -12,13 +12,11 @@ import { useNavigate } from 'react-router';
 export function ItemPanelLayout({
   item,
   isFlowMode,
-  badge,
   headerKey,
   body,
 }: {
   item: Item;
   isFlowMode: boolean;
-  badge?: { label: string; color: string };
   headerKey?: string;
   body: React.ReactNode;
 }) {
@@ -112,16 +110,7 @@ export function ItemPanelLayout({
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2 text-sm'>
             <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-            {badge && (
-              <span
-                className={cn(
-                  'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase',
-                  badge.color,
-                )}
-              >
-                {badge.label}
-              </span>
-            )}
+            <StatusBadge item={item} />
             <a
               href={item.url}
               target='_blank'

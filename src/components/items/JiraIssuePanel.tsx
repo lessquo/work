@@ -1,5 +1,5 @@
 import { Field, FieldList, ItemPanelLayout } from '@/components/items/ItemPanelLayout';
-import { parseJiraRaw, type Item, type JiraStatusCategory } from '@/lib/api';
+import { parseJiraRaw, type Item } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 
 export function JiraIssuePanel({ item, isFlowMode }: { item: Item; isFlowMode: boolean }) {
@@ -9,10 +9,6 @@ export function JiraIssuePanel({ item, isFlowMode }: { item: Item; isFlowMode: b
       item={item}
       isFlowMode={isFlowMode}
       headerKey={item.key}
-      badge={{
-        label: j.status_name ?? 'unknown',
-        color: STATUS_COLOR[j.status_category ?? ''] ?? 'bg-gray-100 text-gray-600',
-      }}
       body={
         <FieldList>
           <Field label='Type'>{j.issuetype ?? '—'}</Field>
@@ -25,9 +21,3 @@ export function JiraIssuePanel({ item, isFlowMode }: { item: Item; isFlowMode: b
     />
   );
 }
-
-const STATUS_COLOR: Record<JiraStatusCategory, string> = {
-  new: 'bg-gray-100 text-gray-700',
-  indeterminate: 'bg-sky-100 text-sky-700',
-  done: 'bg-emerald-100 text-emerald-700',
-};

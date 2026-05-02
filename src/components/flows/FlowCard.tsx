@@ -1,4 +1,5 @@
 import { AttachItemButton } from '@/components/AttachItemButton';
+import { StatusBadge } from '@/components/items/StatusBadge';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
@@ -249,7 +250,6 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                 head: (
                   <ItemChip
                     item={col.item}
-                    at={itemCreationTime(col.item)}
                     to={chipHref('item', col.item.id)}
                     selected={openItemId === col.item.id}
                     onDetach={() => handleDetach(col.item)}
@@ -319,13 +319,11 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
 
 function ItemChip({
   item,
-  at,
   to,
   selected,
   onDetach,
 }: {
   item: Item;
-  at: string;
   to: string;
   selected?: boolean;
   onDetach: () => void;
@@ -345,8 +343,7 @@ function ItemChip({
         </div>
         <div className='mt-1 flex items-center gap-1 text-[10px] text-gray-500'>
           <span className='truncate'>{item.key}</span>
-          <span>·</span>
-          <span className='shrink-0'>{timeAgo(at)}</span>
+          <StatusBadge item={item} size='sm' />
         </div>
       </Link>
       <button

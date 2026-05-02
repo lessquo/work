@@ -1,17 +1,15 @@
 import { HighlightMatch } from '@/components/HighlightMatch';
 import type { ItemCardProps } from '@/components/items/ItemCard';
 import { ItemCardLayout } from '@/components/items/ItemCardLayout';
+import { StatusBadge } from '@/components/items/StatusBadge';
 import { MetaRow } from '@/components/MetaRow';
 import { TYPE_LOGO } from '@/components/typeLogo';
-import { parseJiraRaw, type JiraRaw, type JiraStatusCategory } from '@/lib/api';
-import { cn } from '@/lib/cn';
+import { parseJiraRaw, type JiraRaw } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 
 export function JiraIssueCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
   const jira = parseJiraRaw(item.raw);
   const logo = TYPE_LOGO.jira_issue;
-  const statusName = jira.status_name ?? 'unknown';
-  const statusColor = CATEGORY_COLOR[jira.status_category ?? ''] ?? 'bg-gray-100 text-gray-600';
   const titleText = jira.summary ?? item.key;
   const titleField = jira.summary ? 'title' : 'key';
 
@@ -30,14 +28,7 @@ export function JiraIssueCard({ item, selected = false, matches, onSelect, onOpe
         <>
           <div className='flex items-center gap-2'>
             <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-            <span
-              className={cn(
-                'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase',
-                statusColor,
-              )}
-            >
-              {statusName}
-            </span>
+            <StatusBadge item={item} />
             <a
               href={item.url}
               target='_blank'
@@ -63,9 +54,3 @@ function JiraStats({ jira }: { jira: JiraRaw }) {
   if (jira.updated) parts.push(`updated ${timeAgo(jira.updated)}`);
   return <MetaRow parts={parts} />;
 }
-
-const CATEGORY_COLOR: Record<JiraStatusCategory, string> = {
-  new: 'bg-gray-100 text-gray-700',
-  indeterminate: 'bg-sky-100 text-sky-700',
-  done: 'bg-emerald-100 text-emerald-700',
-};

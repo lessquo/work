@@ -1,18 +1,16 @@
 import { HighlightMatch } from '@/components/HighlightMatch';
 import type { ItemCardProps } from '@/components/items/ItemCard';
 import { ItemCardLayout } from '@/components/items/ItemCardLayout';
+import { StatusBadge } from '@/components/items/StatusBadge';
 import { MetaRow } from '@/components/MetaRow';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { parseGithubPrRaw, type GithubPrRaw } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 import { GitBranch } from 'lucide-react';
 
 export function GithubPrCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
   const pr = parseGithubPrRaw(item.raw);
   const logo = TYPE_LOGO.github_pr;
-  const status = displayStatus(pr);
-  const statusColor = STATUS_COLOR[status] ?? 'bg-gray-100 text-gray-600';
   const titleText = pr.title ?? item.key;
   const titleField = pr.title ? 'title' : 'key';
 
@@ -27,11 +25,7 @@ export function GithubPrCard({ item, selected = false, matches, onSelect, onOpen
         <>
           <div className='flex items-center gap-2'>
             <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-            <span
-              className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase', statusColor)}
-            >
-              {status}
-            </span>
+            <StatusBadge item={item} />
             <a
               href={item.url}
               target='_blank'
@@ -61,19 +55,3 @@ function PrStats({ pr }: { pr: GithubPrRaw }) {
   if (pr.updatedAt) parts.push(`updated ${timeAgo(pr.updatedAt)}`);
   return <MetaRow parts={parts} />;
 }
-
-type PrStatus = 'draft' | 'open' | 'merged' | 'closed';
-
-function displayStatus(pr: GithubPrRaw): PrStatus {
-  if (pr.state === 'MERGED') return 'merged';
-  if (pr.state === 'CLOSED') return 'closed';
-  if (pr.isDraft) return 'draft';
-  return 'open';
-}
-
-const STATUS_COLOR: Record<PrStatus, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  open: 'bg-emerald-100 text-emerald-700',
-  merged: 'bg-violet-100 text-violet-700',
-  closed: 'bg-rose-100 text-rose-700',
-};

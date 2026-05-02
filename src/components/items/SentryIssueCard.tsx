@@ -1,16 +1,15 @@
 import { HighlightMatch } from '@/components/HighlightMatch';
 import type { ItemCardProps } from '@/components/items/ItemCard';
 import { ItemCardLayout } from '@/components/items/ItemCardLayout';
+import { StatusBadge } from '@/components/items/StatusBadge';
 import { MetaRow } from '@/components/MetaRow';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { parseSentryRaw } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 
 export function SentryIssueCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
   const sentry = parseSentryRaw(item.raw);
   const logo = TYPE_LOGO.sentry_issue;
-  const levelColor = LEVEL_COLOR[sentry.level ?? ''] ?? 'bg-gray-100 text-gray-600';
   const titleText = sentry.title ?? item.key;
   const titleField = sentry.title ? 'title' : 'key';
 
@@ -25,14 +24,7 @@ export function SentryIssueCard({ item, selected = false, matches, onSelect, onO
         <>
           <div className='flex items-center gap-2'>
             <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-            <span
-              className={cn(
-                'shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide uppercase',
-                levelColor,
-              )}
-            >
-              {sentry.level ?? 'issue'}
-            </span>
+            <StatusBadge item={item} />
             <a
               href={item.url}
               target='_blank'
@@ -72,11 +64,3 @@ function formatCount(n: number): string {
   if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, '')}k`;
   return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0).replace(/\.0$/, '')}M`;
 }
-
-const LEVEL_COLOR: Record<string, string> = {
-  fatal: 'bg-rose-100 text-rose-700',
-  error: 'bg-orange-100 text-orange-700',
-  warning: 'bg-amber-100 text-amber-700',
-  info: 'bg-sky-100 text-sky-700',
-  debug: 'bg-gray-100 text-gray-600',
-};

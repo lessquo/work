@@ -11,10 +11,6 @@ export function SentryIssuePanel({ item, isFlowMode }: { item: Item; isFlowMode:
       item={item}
       isFlowMode={isFlowMode}
       headerKey={item.key}
-      badge={{
-        label: s.level ?? 'issue',
-        color: LEVEL_COLOR[s.level ?? ''] ?? 'bg-gray-100 text-gray-600',
-      }}
       body={
         <FieldList>
           {s.culprit && (
@@ -43,11 +39,3 @@ function formatCount(n: number): string {
   if (n < 1_000_000) return `${(n / 1000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, '')}k`;
   return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0).replace(/\.0$/, '')}M`;
 }
-
-const LEVEL_COLOR: Record<string, string> = {
-  fatal: 'bg-rose-100 text-rose-700',
-  error: 'bg-orange-100 text-orange-700',
-  warning: 'bg-amber-100 text-amber-700',
-  info: 'bg-sky-100 text-sky-700',
-  debug: 'bg-gray-100 text-gray-600',
-};

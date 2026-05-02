@@ -107,6 +107,31 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     },
   });
 
+  const addNotebookMutation = useMutation({
+    mutationFn: async (sessionIds: number[]) => {
+      const item = await api.createNotebook();
+      await api.setItemFlow(item.id, wid);
+      await Promise.all(sessionIds.map(id => api.updateDraftSession(id, { itemId: item.id })));
+      return item;
+    },
+    onSuccess: item => {
+      qc.invalidateQueries({ queryKey: ['flows'] });
+      qc.invalidateQueries({ queryKey: ['allItems'] });
+      const params = new URLSearchParams(location.search);
+      params.set('item', String(item.id));
+      params.delete('session');
+      params.delete('note');
+      navigate({ pathname: `/flows/${wid}`, search: params.toString() });
+    },
+    onError: e => {
+      toast.add({
+        title: 'Failed to add notebook',
+        description: e instanceof Error ? e.message : String(e),
+        type: 'error',
+      });
+    },
+  });
+
   const detachMutation = useMutation({
     mutationFn: (itemId: number) => api.setItemFlow(itemId, null),
     onSuccess: () => {
@@ -237,7 +262,20 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                     {
                       key: 'orphans',
                       item: null as Item | null,
-                      head: <PlaceholderItemChip type={orphanSessions[0].source_type} />,
+                      head: (
+                        <PlaceholderItemChip
+                          type={orphanSessions[0].source_type}
+                          onCreate={
+                            orphanSessions[0].source_type === 'notes'
+                              ? () =>
+                                  addNotebookMutation.mutate(
+                                    orphanSessions.filter(s => s.status === 'draft').map(s => s.id),
+                                  )
+                              : undefined
+                          }
+                          pending={addNotebookMutation.isPending}
+                        />
+                      ),
                       sessions: orphanSessions,
                     },
                   ]
@@ -328,8 +366,33 @@ function ItemChip({
   );
 }
 
-function PlaceholderItemChip({ type }: { type: ItemType }) {
+function PlaceholderItemChip({
+  type,
+  onCreate,
+  pending,
+}: {
+  type: ItemType;
+  onCreate?: () => void;
+  pending?: boolean;
+}) {
   const logo = TYPE_LOGO[type];
+  if (onCreate) {
+    return (
+      <button
+        type='button'
+        onClick={onCreate}
+        disabled={pending}
+        title='Create a new notebook in this flow'
+        className='block w-44 shrink-0 cursor-pointer rounded-md border border-dashed border-gray-300 bg-white p-2 text-left hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60'
+      >
+        <div className='flex items-center gap-1.5'>
+          <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0 opacity-50' />
+          <span className='truncate text-xs text-gray-500'>{pending ? 'Creating…' : 'New notebook'}</span>
+        </div>
+        <div className='mt-1 text-[10px] text-gray-400'>{logo.alt}</div>
+      </button>
+    );
+  }
   return (
     <div
       aria-hidden

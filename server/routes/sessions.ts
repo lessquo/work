@@ -120,6 +120,7 @@ sessions.patch('/sessions/:id', async c => {
       repo?: string;
       userContext?: string;
       sourceId?: number;
+      itemId?: number;
     }>()
     .catch(() => ({}) as Record<string, never>);
 
@@ -143,6 +144,12 @@ sessions.patch('/sessions/:id', async c => {
     if (!exists) return c.json({ error: 'source not found' }, 400);
     updates.push('source_id = ?');
     args.push(body.sourceId);
+  }
+  if (typeof body.itemId === 'number') {
+    const exists = db.prepare(`SELECT 1 FROM items WHERE id = ?`).get(body.itemId);
+    if (!exists) return c.json({ error: 'item not found' }, 400);
+    updates.push('item_id = ?');
+    args.push(body.itemId);
   }
   if (updates.length === 0) return c.json(session);
   args.push(sessionId);

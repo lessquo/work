@@ -261,6 +261,7 @@ export const api = {
       type?: ItemType;
       userContext?: string;
       sourceId?: number;
+      itemId?: number;
     },
   ) =>
     req<Session>(`/sessions/${sessionId}`, {

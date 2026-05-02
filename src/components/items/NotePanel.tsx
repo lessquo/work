@@ -61,7 +61,7 @@ export function NotePanel({ noteId }: { noteId: number }) {
     },
   });
 
-  const [mode, setMode] = useState<NotePanelMode>('edit');
+  const [mode, setMode] = useState<NotePanelMode>('preview');
 
   const deleteMutation = useMutation({
     mutationFn: () => api.deleteNote(noteId),
@@ -125,11 +125,11 @@ export function NotePanel({ noteId }: { noteId: number }) {
         <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
           <TabsRoot value={mode} onValueChange={v => setMode(v as NotePanelMode)}>
             <PillTabsList>
-              <PillTabsTab value='edit' size='sm'>
-                Edit
-              </PillTabsTab>
               <PillTabsTab value='preview' size='sm'>
                 Preview
+              </PillTabsTab>
+              <PillTabsTab value='edit' size='sm'>
+                Edit
               </PillTabsTab>
             </PillTabsList>
           </TabsRoot>

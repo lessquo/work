@@ -15,7 +15,7 @@ import { Hono } from 'hono';
 
 export const notes = new Hono();
 
-const NOTES_PROMPT_ID = 'write-notes';
+const NOTES_PROMPT_ID = 'write-plans';
 
 function generateNotebookExtId(): string {
   return `nb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -87,7 +87,7 @@ notes.delete('/notebooks/:id', c => {
   return c.json({ ok: true });
 });
 
-// POST /api/notes/notebooks/:id/sessions — start a write-notes session on this notebook
+// POST /api/notes/notebooks/:id/sessions — start a write-plans session on this notebook
 notes.post('/notebooks/:id/sessions', async c => {
   const id = Number(c.req.param('id'));
   const item = getNotebook(id);

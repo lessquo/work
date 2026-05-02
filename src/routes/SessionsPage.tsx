@@ -1,3 +1,4 @@
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { SessionCard } from '@/components/SessionCard';
 import { api } from '@/lib/api';
 import { useNumberParam } from '@/lib/router';
@@ -36,7 +37,10 @@ export function SessionsPage() {
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex flex-wrap items-center gap-3'>
-            <h1 className='text-lg font-semibold'>Sessions</h1>
+            <h1 className='flex items-center gap-1 text-lg font-semibold'>
+              Work
+              <PageSwitcher />
+            </h1>
           </div>
 
           {error && (

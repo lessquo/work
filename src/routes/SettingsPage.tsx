@@ -1,3 +1,4 @@
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
 import { api, type SecretKey, type Settings } from '@/lib/api';
@@ -26,7 +27,10 @@ export function SettingsPage() {
 
       <div className='flex-1 overflow-y-auto'>
         <div className='mx-auto max-w-4xl p-6'>
-          <h1 className='mb-4 text-lg font-semibold'>Settings</h1>
+          <h1 className='mb-4 flex items-center gap-1 text-lg font-semibold'>
+            Work
+            <PageSwitcher />
+          </h1>
           <SetupSection
             title='Sentry'
             guidance={

@@ -1,5 +1,6 @@
 import { ItemCard } from '@/components/items/ItemCard';
 import { SyncItemsButton } from '@/components/items/SyncItemsButton';
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
 import { useFuzzySearch } from '@/lib/fuse';
@@ -100,10 +101,14 @@ export function ItemsPage() {
   return (
     <>
       <title>Items · Work</title>
+
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex items-center justify-between'>
-            <h1 className='text-lg font-semibold'>Items</h1>
+            <h1 className='flex items-center gap-1 text-lg font-semibold'>
+              Work
+              <PageSwitcher />
+            </h1>
             <SyncItemsButton />
           </div>
 

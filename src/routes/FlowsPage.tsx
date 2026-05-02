@@ -1,4 +1,5 @@
 import { FlowCard } from '@/components/flows/FlowCard';
+import { PageSwitcher } from '@/components/PageSwitcher';
 import { api } from '@/lib/api';
 import { useNumberParam } from '@/lib/router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,7 +33,10 @@ export function FlowsPage() {
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex items-center justify-between'>
-            <h1 className='text-lg font-semibold'>Flows</h1>
+            <h1 className='flex items-center gap-1 text-lg font-semibold'>
+              Work
+              <PageSwitcher />
+            </h1>
             <div className='flex items-center gap-2'>
               <button
                 onClick={async () => {

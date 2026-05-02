@@ -5,7 +5,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { api, type Item } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Copy, Workflow } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useNavigate } from 'react-router';
 
@@ -68,17 +68,6 @@ export function ItemPanelLayout({
       if (res.errors.length > 0) parts.push(`${res.errors.length} error${res.errors.length === 1 ? '' : 's'}`);
       toast.add({ title: parts.join(' · ') + '.' });
       invalidateAfterMutation();
-    },
-  });
-
-  const createFlowMutation = useMutation({
-    mutationFn: () => api.createFlowsForItems(item.source_id, [item.id]),
-    onSuccess: res => {
-      toast.add({
-        title: res.created === 0 ? 'No flows created.' : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
-      });
-      invalidateAfterMutation();
-      navigate(`/flows`);
     },
   });
 
@@ -155,16 +144,6 @@ export function ItemPanelLayout({
               </Tooltip>
             </>
           )}
-          <Tooltip content='Create a flow with this item as a child'>
-            <button
-              onClick={() => createFlowMutation.mutate()}
-              disabled={createFlowMutation.isPending}
-              className='btn-sm btn-neutral'
-            >
-              <Workflow />
-              {createFlowMutation.isPending ? 'Creating…' : 'Create flow'}
-            </button>
-          </Tooltip>
         </div>
       </header>
       <div className='min-h-0 flex-1 overflow-auto'>{body}</div>

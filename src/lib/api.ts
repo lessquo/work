@@ -303,11 +303,6 @@ export const api = {
   createFlow: () => req<Flow>(`/flows`, { method: 'POST' }),
   deleteFlow: (id: number) => req<{ ok: true }>(`/flows/${id}`, { method: 'DELETE' }),
   autoNameFlow: (id: number) => req<{ ok: true; name: string }>(`/flows/${id}/auto-name`, { method: 'POST' }),
-  createFlowsForItems: (sourceId: number, itemIds: number[]) =>
-    req<{ created: number; flowIds: number[] }>(`/sources/${sourceId}/flows-from-items`, {
-      method: 'POST',
-      body: JSON.stringify({ itemIds }),
-    }),
   getSessionDiff: async (sessionId: number): Promise<string> => {
     const res = await fetch(`/api/sessions/${sessionId}/diff`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);

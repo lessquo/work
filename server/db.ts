@@ -121,13 +121,6 @@ export const createFlowForSession = db.transaction(
   },
 );
 
-export const createFlowForItem = db.transaction((itemId: number, name: string | null = null): number => {
-  const res = insertFlowStmt.run(name);
-  const flowId = Number(res.lastInsertRowid);
-  setItemFlowStmt.run(flowId, itemId);
-  return flowId;
-});
-
 // ---------- sources ----------
 
 export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes';

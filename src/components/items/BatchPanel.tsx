@@ -1,7 +1,7 @@
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { type Item } from '@/lib/api';
-import { Copy, Workflow } from 'lucide-react';
+import { Copy } from 'lucide-react';
 
 type Filter = 'open' | 'resolved';
 
@@ -10,19 +10,15 @@ export function BatchPanel({
   selectedItems,
   onCreateSessions,
   onResolve,
-  onCreateFlows,
   creatingSessions,
   resolving,
-  creatingFlows,
 }: {
   filter: Filter;
   selectedItems: Item[];
   onCreateSessions: () => void;
   onResolve: () => void;
-  onCreateFlows: () => void;
   creatingSessions: boolean;
   resolving: boolean;
-  creatingFlows: boolean;
 }) {
   const toast = useToast();
   const count = selectedItems.length;
@@ -77,16 +73,6 @@ export function BatchPanel({
               </Tooltip>
             </>
           )}
-          <Tooltip
-            content={
-              count === 1 ? 'Create a flow with this item as a child' : `Create ${count} flows, one per selected item`
-            }
-          >
-            <button onClick={onCreateFlows} disabled={creatingFlows || count === 0} className='btn-sm btn-neutral'>
-              <Workflow />
-              {creatingFlows ? 'Creating…' : count > 1 ? `Create ${count} flows` : 'Create flow'}
-            </button>
-          </Tooltip>
         </div>
       </section>
     </aside>

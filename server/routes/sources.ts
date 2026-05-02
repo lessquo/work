@@ -1,5 +1,4 @@
 import {
-  createFlowForItem,
   createFlowForSession,
   db,
   sessionColumns,
@@ -249,27 +248,6 @@ sources.post('/:id/session-items', async c => {
   }
 
   return c.json({ enqueued, skipped });
-});
-
-sources.post('/:id/flows-from-items', async c => {
-  const id = Number(c.req.param('id'));
-  const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(id) as Source | undefined;
-  if (!source) return c.json({ error: 'not found' }, 404);
-
-  const body = await c.req.json<{ itemIds?: number[] }>().catch(() => ({}) as { itemIds?: number[] });
-  const ids = Array.isArray(body.itemIds) ? body.itemIds.filter(n => Number.isInteger(n)) : [];
-  if (ids.length === 0) return c.json({ created: 0, flowIds: [] });
-
-  const placeholders = ids.map(() => '?').join(',');
-  const items = db
-    .prepare(`SELECT id FROM items WHERE source_id = ? AND id IN (${placeholders})`)
-    .all(id, ...ids) as Array<{ id: number }>;
-
-  const flowIds: number[] = [];
-  for (const it of items) {
-    flowIds.push(createFlowForItem(it.id));
-  }
-  return c.json({ created: flowIds.length, flowIds });
 });
 
 sources.get('/:id/sessions', c => {

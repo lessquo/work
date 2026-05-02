@@ -80,23 +80,8 @@ export function ItemsPageSlot() {
     onError: onMutationError,
   });
 
-  const createFlowsMutation = useMutation({
-    mutationFn: (ids: number[]) => api.createFlowsForItems(sourceId, ids),
-    onSuccess: res => {
-      toast.add({
-        title: res.created === 0 ? 'No flows created.' : `Created ${res.created} flow${res.created === 1 ? '' : 's'}.`,
-      });
-      clearSelection();
-      qc.invalidateQueries({ queryKey: ['flows'] });
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
-      navigate(`/flows`);
-    },
-    onError: onMutationError,
-  });
-
   const creatingSessions = createSessionsMutation.isPending;
   const resolving = resolveItemsMutation.isPending;
-  const creatingFlows = createFlowsMutation.isPending;
 
   function createSelected() {
     if (selection.size === 0) return;
@@ -122,10 +107,8 @@ export function ItemsPageSlot() {
         selectedItems={items.filter(i => selection.has(i.id))}
         onCreateSessions={createSelected}
         onResolve={resolveSelected}
-        onCreateFlows={() => createFlowsMutation.mutate(Array.from(selection))}
         creatingSessions={creatingSessions}
         resolving={resolving}
-        creatingFlows={creatingFlows}
       />
     );
   }

@@ -6,7 +6,7 @@ import { Select } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, type ItemStatus, type ItemType } from '@/lib/api';
 import { useFuzzySearch } from '@/lib/fuse';
-import { useNumberParam } from '@/lib/useNumberParam';
+import { useNumberParam } from '@/lib/router';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';

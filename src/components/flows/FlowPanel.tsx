@@ -1,5 +1,5 @@
 import { api, itemCreationTime } from '@/lib/api';
-import { useNumberParam } from '@/lib/useNumberParam';
+import { useNumberParam } from '@/lib/router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect } from 'react';

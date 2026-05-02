@@ -2,7 +2,7 @@ import { SessionCard } from '@/components/SessionCard';
 import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, type ItemType, type SessionStatus, type SourceSession } from '@/lib/api';
-import { useNumberParam } from '@/lib/useNumberParam';
+import { useNumberParam } from '@/lib/router';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useState } from 'react';

@@ -2,7 +2,7 @@ import { FlowPanel } from '@/components/flows/FlowPanel';
 import { ItemPanel } from '@/components/items/ItemPanel';
 import { NotePanel } from '@/components/items/NotePanel';
 import { SessionPanel } from '@/components/sessions/SessionPanel';
-import { useNumberParam } from '@/lib/useNumberParam';
+import { useNumberParam } from '@/lib/router';
 import { parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 
 export function FlowsPageSlot() {

@@ -1,5 +1,5 @@
 import { SessionPanel } from '@/components/sessions/SessionPanel';
-import { useNumberParam } from '@/lib/useNumberParam';
+import { useNumberParam } from '@/lib/router';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useNavigate } from 'react-router';
 

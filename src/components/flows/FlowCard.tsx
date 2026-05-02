@@ -13,8 +13,8 @@ import {
   type SessionStatus,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
+import { useNumberParam } from '@/lib/router';
 import { timeAgo } from '@/lib/time';
-import { useNumberParam } from '@/lib/useNumberParam';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { FileText, Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';

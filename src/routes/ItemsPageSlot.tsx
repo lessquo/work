@@ -3,7 +3,7 @@ import { ItemPanel } from '@/components/items/ItemPanel';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item } from '@/lib/api';
-import { useNumberParam } from '@/lib/useNumberParam';
+import { useNumberParam } from '@/lib/router';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useNavigate } from 'react-router';

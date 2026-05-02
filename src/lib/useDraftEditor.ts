@@ -21,7 +21,7 @@ export function useDraftEditor(opts: {
     mutationFn: save,
     onSuccess: (_, content) => {
       qc.setQueryData(queryKey, content);
-      setUserDraft(null);
+      setUserDraft(prev => (prev === content ? null : prev));
     },
   });
 

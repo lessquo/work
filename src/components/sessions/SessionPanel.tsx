@@ -440,7 +440,7 @@ function SetupTab({ session }: { session: Session | null }) {
           sessionId={session.id}
           value={session.user_context ?? ''}
           readOnly={!isDraft}
-          onChange={v => updateMutation.mutate({ userContext: v })}
+          onChange={v => updateMutation.mutateAsync({ userContext: v })}
         />
       )}
 
@@ -509,8 +509,15 @@ function UserContextSection({
   sessionId: number;
   value: string;
   readOnly: boolean;
-  onChange: (v: string) => void;
+  onChange: (v: string) => Promise<unknown>;
 }) {
+  const { draft, setDraft } = useDraftEditor({
+    queryKey: ['session', sessionId, 'user_context'],
+    loaded: value,
+    save: onChange,
+    disabled: readOnly,
+  });
+
   return (
     <section key={sessionId} className='flex h-56 shrink-0 flex-col border-b bg-white'>
       <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
@@ -519,23 +526,21 @@ function UserContextSection({
           <div className='flex items-center gap-2'>
             <InsertJiraLinkButton
               onInsert={url => {
-                const next = value.trim().length === 0 ? url : `${value.trim()}\n\n${url}`;
-                onChange(next);
+                setDraft(draft.trim().length === 0 ? url : `${draft.trim()}\n\n${url}`);
               }}
             />
             <InsertNoteButton
               onInsert={({ title, body_md }) => {
                 const block = `### ${title}\n\n${body_md.trim()}`;
-                const next = value.trim().length === 0 ? block : `${value.trim()}\n\n${block}`;
-                onChange(next);
+                setDraft(draft.trim().length === 0 ? block : `${draft.trim()}\n\n${block}`);
               }}
             />
           </div>
         )}
       </div>
       <textarea
-        value={value}
-        onChange={e => onChange(e.target.value)}
+        value={draft}
+        onChange={e => setDraft(e.target.value)}
         disabled={readOnly}
         spellCheck
         placeholder='Describe the bug, feature, or chore. Include any relevant links, repro steps, affected users, deadlines, or constraints.'

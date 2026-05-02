@@ -9,15 +9,16 @@ import {
   type FlowWithChildren,
   type Item,
   type ItemType,
+  type Note,
   type SessionStatus,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
 import { useNumberParam } from '@/lib/useNumberParam';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
+import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { FileText, Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
-import { useEffect, useMemo, useRef } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
 type ItemColumn = { item: Item; sessions: FlowSessionChild[] };
@@ -29,6 +30,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   const wid = flow.id;
   const [openItemId] = useQueryState('item', parseAsInteger);
   const [openSessionId] = useQueryState('session', parseAsInteger);
+  const [openNoteId] = useQueryState('note', parseAsInteger);
   const confirm = useConfirm();
   const toast = useToast();
   const qc = useQueryClient();
@@ -132,15 +134,12 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     detachMutation.mutate(item.id);
   }
 
-  function chipHref(kind: 'item' | 'session', id: number): string {
+  function chipHref(kind: 'item' | 'session' | 'note', id: number): string {
     const params = new URLSearchParams(location.search);
-    if (kind === 'item') {
-      params.set('item', String(id));
-      params.delete('session');
-    } else {
-      params.set('session', String(id));
-      params.delete('item');
-    }
+    params.delete('item');
+    params.delete('session');
+    params.delete('note');
+    params.set(kind, String(id));
     const search = params.toString();
     return `/flows/${wid}${search ? `?${search}` : ''}`;
   }
@@ -221,6 +220,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
             {[
               ...columns.map(col => ({
                 key: `col-${col.item.id}`,
+                item: col.item,
                 head: (
                   <ItemChip
                     item={col.item}
@@ -236,15 +236,22 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                 ? [
                     {
                       key: 'orphans',
+                      item: null as Item | null,
                       head: <PlaceholderItemChip type={orphanSessions[0].source_type} />,
                       sessions: orphanSessions,
                     },
                   ]
                 : []),
             ].flatMap((col, idx) => {
+              const isNotebook = col.item?.type === 'notes';
               const column = (
                 <li key={col.key} className='flex shrink-0 flex-col gap-1.5'>
                   {col.head}
+                  {isNotebook && col.item && (
+                    <Suspense fallback={null}>
+                      <NotesColumn notebookId={col.item.id} chipHref={chipHref} openNoteId={openNoteId} />
+                    </Suspense>
+                  )}
                   {col.sessions.length > 0 && (
                     <ol className='flex flex-col gap-1.5'>
                       {col.sessions.map(s => (
@@ -334,6 +341,48 @@ function PlaceholderItemChip({ type }: { type: ItemType }) {
       </div>
       <div className='mt-1 text-[10px] text-gray-400'>{logo.alt}</div>
     </div>
+  );
+}
+
+function NotesColumn({
+  notebookId,
+  chipHref,
+  openNoteId,
+}: {
+  notebookId: number;
+  chipHref: (kind: 'item' | 'session' | 'note', id: number) => string;
+  openNoteId: number | null;
+}) {
+  const notebookQuery = useSuspenseQuery({
+    queryKey: ['notebook', notebookId],
+    queryFn: () => api.getNotebook(notebookId),
+  });
+  const notes = notebookQuery.data.notes;
+  if (notes.length === 0) return null;
+  return (
+    <ol className='flex flex-col gap-1.5'>
+      {notes.map(n => (
+        <NoteChip key={`n-${n.id}`} note={n} to={chipHref('note', n.id)} selected={openNoteId === n.id} />
+      ))}
+    </ol>
+  );
+}
+
+function NoteChip({ note, to, selected }: { note: Note; to: string; selected?: boolean }) {
+  return (
+    <li className='shrink-0'>
+      <Link
+        to={to}
+        title={`${note.title} · updated ${timeAgo(note.updated_at)}`}
+        className={cn(
+          'selectable flex w-44 items-center gap-1.5 rounded-md border px-2 py-1.5',
+          selected && 'selected',
+        )}
+      >
+        <FileText className='size-3 shrink-0 text-gray-500' />
+        <span className='min-w-0 flex-1 truncate text-[11px] text-gray-700'>{note.title}</span>
+      </Link>
+    </li>
   );
 }
 

@@ -1,4 +1,5 @@
 import { Markdown } from '@/components/panels/Markdown';
+import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
 import { useToast } from '@/components/ui/Toast.lib';
@@ -19,15 +20,15 @@ export function NotebookPanel({ item }: { item: Item }) {
   });
   const notebook = notebookQuery.data;
 
-  const [renaming, setRenaming] = useState(false);
-  const [renameValue, setRenameValue] = useState('');
+  const [title, setTitle] = useState(notebook.title);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const titleDirty = title.trim() !== notebook.title;
 
   const onError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
   const renameMutation = useMutation({
-    mutationFn: (title: string) => api.renameNotebook(item.id, title),
+    mutationFn: () => api.renameNotebook(item.id, title.trim()),
     onSuccess: () => {
-      setRenaming(false);
       qc.invalidateQueries({ queryKey: ['notebook', item.id] });
       qc.invalidateQueries({ queryKey: ['items', item.source_id] });
     },
@@ -55,55 +56,69 @@ export function NotebookPanel({ item }: { item: Item }) {
     deleteNotebookMutation.mutate();
   }
 
+  const logo = TYPE_LOGO[item.type];
+
   return (
     <aside className='flex h-full flex-col border-l bg-white'>
-      <header className='h-header flex items-center gap-2 border-b bg-gray-50 px-4'>
+      <header className='flex h-12 items-center gap-2 border-b bg-gray-50 px-4'>
         <div className='min-w-0 flex-1'>
-          {renaming ? (
-            <form
-              className='flex items-center gap-2'
-              onSubmit={e => {
-                e.preventDefault();
-                const v = renameValue.trim();
-                if (v) renameMutation.mutate(v);
-              }}
-            >
-              <Input
+          <div className='flex items-center gap-2 text-sm'>
+            <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
+            {editingTitle ? (
+              <input
                 autoFocus
-                value={renameValue}
-                onChange={e => setRenameValue(e.target.value)}
-                placeholder='Notebook title'
-                className='flex-1 text-sm'
-              />
-              <button type='submit' className='btn-sm btn-neutral' disabled={renameMutation.isPending}>
-                Save
-              </button>
-              <button type='button' className='btn-sm btn-ghost' onClick={() => setRenaming(false)}>
-                Cancel
-              </button>
-            </form>
-          ) : (
-            <div className='flex items-center gap-2'>
-              <h2 className='truncate text-sm font-semibold'>{notebook.title}</h2>
-              <button
-                className='btn-sm btn-ghost'
-                aria-label='Rename'
-                onClick={() => {
-                  setRenameValue(notebook.title);
-                  setRenaming(true);
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                onBlur={() => setEditingTitle(false)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    setEditingTitle(false);
+                  } else if (e.key === 'Escape') {
+                    setTitle(notebook.title);
+                    setEditingTitle(false);
+                  }
                 }}
-              >
-                <Pencil />
-              </button>
-            </div>
-          )}
+                placeholder='Notebook title'
+                className='min-w-0 flex-1 truncate bg-transparent font-semibold focus:outline-none'
+              />
+            ) : (
+              <>
+                <h2 className='min-w-0 flex-1 truncate font-semibold'>{title}</h2>
+                <button
+                  type='button'
+                  onClick={() => setEditingTitle(true)}
+                  aria-label='Rename notebook'
+                  title='Rename'
+                  className='btn-sm btn-ghost'
+                >
+                  <Pencil />
+                </button>
+              </>
+            )}
+          </div>
         </div>
-        <button onClick={onDeleteNotebook} className='btn-sm btn-danger' disabled={deleteNotebookMutation.isPending}>
-          Delete
-        </button>
+        <div className='flex shrink-0 items-center gap-2'>
+          <button
+            type='button'
+            onClick={() => renameMutation.mutate()}
+            disabled={!titleDirty || !title.trim() || renameMutation.isPending}
+            className='btn-sm btn-neutral'
+          >
+            {renameMutation.isPending ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            type='button'
+            onClick={onDeleteNotebook}
+            disabled={deleteNotebookMutation.isPending}
+            className='btn-sm btn-danger'
+          >
+            {deleteNotebookMutation.isPending ? 'Deleting…' : 'Delete'}
+          </button>
+        </div>
       </header>
 
-      <section className='flex-1 overflow-y-auto px-4 py-3'>
+      <section className='min-h-0 flex-1 overflow-auto px-4 py-3'>
         <h3 className='mb-2 text-xs font-semibold tracking-wide text-gray-500 uppercase'>
           Notes ({notebook.notes.length})
         </h3>

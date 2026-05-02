@@ -367,6 +367,7 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ context: opts.context ?? '', repo: opts.repo ?? '' }),
     }),
+  getNote: (id: number) => req<Note>(`/notes/${id}`),
   updateNote: (id: number, patch: { title?: string; body_md?: string }) =>
     req<Note>(`/notes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteNote: (id: number) => req<{ ok: true }>(`/notes/${id}`, { method: 'DELETE' }),

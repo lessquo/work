@@ -29,15 +29,12 @@ export function PageSwitcher() {
       <Menu.Portal>
         <Menu.Positioner sideOffset={4}>
           <Menu.Popup className='popup'>
-            <Menu.Group>
-              <Menu.GroupLabel className='menu-group-label'>Pages</Menu.GroupLabel>
-              {PAGES.map(p => (
-                <Menu.Item key={p.path} render={<Link to={p.path} />} className='menu-item justify-between'>
-                  <PageLabel icon={p.icon} label={p.label} />
-                  {p.path === activePath && <Check className='text-indigo-600' />}
-                </Menu.Item>
-              ))}
-            </Menu.Group>
+            {PAGES.map(p => (
+              <Menu.Item key={p.path} render={<Link to={p.path} />} className='menu-item justify-between'>
+                <PageLabel icon={p.icon} label={p.label} />
+                {p.path === activePath && <Check className='text-indigo-600' />}
+              </Menu.Item>
+            ))}
           </Menu.Popup>
         </Menu.Positioner>
       </Menu.Portal>

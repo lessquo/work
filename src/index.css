@@ -100,9 +100,6 @@
     @apply flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm;
     @apply data-highlighted:bg-gray-100;
   }
-  .menu-group-label {
-    @apply flex h-11 items-center px-3 font-medium select-none;
-  }
   .menu-item {
     @apply flex h-9 cursor-pointer items-center gap-2 rounded-md px-3 text-sm outline-none;
     @apply data-highlighted:bg-gray-100;

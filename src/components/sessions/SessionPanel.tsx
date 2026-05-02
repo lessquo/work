@@ -300,11 +300,7 @@ export function SessionPanel({
           <>
             <TabsPanel value='logs' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
               <div ref={logRef} className='h-full overflow-auto bg-white p-4 font-mono text-xs text-gray-800'>
-                {logs ? (
-                  <LogsView text={logs} />
-                ) : (
-                  <span className='text-gray-500'>{active ? 'Waiting for output…' : '(no output)'}</span>
-                )}
+                <LogsView text={logs} isRunning={active} />
               </div>
             </TabsPanel>
             {isNotes ? (

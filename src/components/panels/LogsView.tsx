@@ -1,5 +1,6 @@
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
+import { Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 type Block =
@@ -11,9 +12,12 @@ type Block =
 
 type View = 'pretty' | 'raw';
 
-export function LogsView({ text }: { text: string }) {
+export function LogsView({ text, isRunning = false }: { text: string; isRunning?: boolean }) {
   const [view, setView] = useState<View>('pretty');
   const stripped = stripAnsi(text);
+  if (!stripped) {
+    return isRunning ? <RunningIndicator /> : <span className='text-gray-500'>(no output)</span>;
+  }
   return (
     <div className='flex flex-col gap-1.5'>
       <TabsRoot value={view} onValueChange={v => setView(v as View)} className='sticky top-0 z-10 self-start'>
@@ -32,6 +36,15 @@ export function LogsView({ text }: { text: string }) {
         <pre className='leading-relaxed whitespace-pre-wrap text-gray-700'>{stripped}</pre>
       )}
     </div>
+  );
+}
+
+function RunningIndicator() {
+  return (
+    <span className='inline-flex items-center gap-1.5 text-gray-500'>
+      <Loader2 className='size-3.5 animate-spin' />
+      Waiting for output…
+    </span>
   );
 }
 

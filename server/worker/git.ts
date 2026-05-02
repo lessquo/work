@@ -20,7 +20,7 @@ export async function prepareClone(dest: string, githubRepo: string): Promise<{ 
   );
 
   const defaultBranch = await detectDefaultBranch(dest);
-  ensureLocalExcludes(dest, ['COMMIT_MSG.txt', 'PR_BODY.md']);
+  ensureLocalExcludes(dest, ['COMMIT_MSG.txt', 'PR_BODY.md', 'session.log']);
   return { defaultBranch };
 }
 

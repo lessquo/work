@@ -5,7 +5,6 @@ dist
 data/
 clones/
 *.log
-logs/
 .DS_Store
 .claude/
 *.tsbuildinfo

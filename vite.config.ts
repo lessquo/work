@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
         },
       },
       watch: {
-        ignored: ['**/prompts/**', '**/clones/**', '**/data/**', '**/logs/**'],
+        ignored: ['**/prompts/**', '**/clones/**', '**/data/**'],
       },
     },
   };

@@ -36,14 +36,13 @@ export function enqueueFollowup(sessionId: number, message: string): void {
 }
 
 const CLONES_ROOT = resolve(process.cwd(), 'clones');
-const LOGS_ROOT = resolve(process.cwd(), 'logs');
 
 function clonePathFor(sessionId: number): string {
   return resolve(CLONES_ROOT, `session-${sessionId}`);
 }
 
 function logPathFor(sessionId: number): string {
-  return resolve(LOGS_ROOT, `session-${sessionId}.log`);
+  return resolve(clonePathFor(sessionId), 'session.log');
 }
 
 function currentStatus(sessionId: number): string | undefined {
@@ -249,12 +248,9 @@ async function runJob(sessionId: number): Promise<void> {
   }
 
   mkdirSync(CLONES_ROOT, { recursive: true });
-  mkdirSync(LOGS_ROOT, { recursive: true });
 
   const clonePath = clonePathFor(sessionId);
   const logPath = logPathFor(sessionId);
-
-  await writeFile(logPath, '');
 
   await runSDKTurn({
     sessionId,
@@ -268,11 +264,13 @@ async function runJob(sessionId: number): Promise<void> {
       ).run(clonePath, logPath, branch, sessionId);
     },
     preflight: async log => {
-      await log(`[${new Date().toISOString()}] cloning ${repo} into ${clonePath}\n`);
+      // Clone first so the log file (which lives inside the worktree, excluded from git) has a
+      // directory to land in before the first append.
       if (existsSync(clonePath)) {
         await rm(clonePath, { recursive: true, force: true });
       }
       const { defaultBranch } = await prepareClone(clonePath, repo);
+      await log(`[${new Date().toISOString()}] cloned ${repo} into ${clonePath}\n`);
       await checkoutNewBranch(clonePath, branch, defaultBranch);
       await log(`[${new Date().toISOString()}] branched ${branch} from ${defaultBranch}\n`);
 
@@ -294,12 +292,9 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
   }
 
   mkdirSync(CLONES_ROOT, { recursive: true });
-  mkdirSync(LOGS_ROOT, { recursive: true });
 
   const workspace = clonePathFor(sessionId);
   const logPath = logPathFor(sessionId);
-
-  await writeFile(logPath, '');
 
   await runSDKTurn({
     sessionId,
@@ -314,15 +309,17 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
       ).run(workspace, logPath, sessionId);
     },
     preflight: async log => {
+      // Workspace must exist before the first log() call — the log file lives inside it.
       if (existsSync(workspace)) {
         await rm(workspace, { recursive: true, force: true });
       }
 
       let repoNote = 'No repo cloned — base the draft on the user context alone.';
       if (session.repo) {
-        await log(`[${new Date().toISOString()}] cloning ${session.repo} into ${workspace}\n`);
         const { defaultBranch } = await prepareClone(workspace, session.repo);
-        await log(`[${new Date().toISOString()}] cloned (default branch ${defaultBranch}) — read-only investigation\n`);
+        await log(
+          `[${new Date().toISOString()}] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
+        );
         repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground the ticket — but do NOT modify any source files.`;
       } else {
         mkdirSync(workspace, { recursive: true });
@@ -412,13 +409,10 @@ async function runNotesJob(sessionId: number, session: Session): Promise<void> {
   const itemId = session.item_id;
 
   mkdirSync(CLONES_ROOT, { recursive: true });
-  mkdirSync(LOGS_ROOT, { recursive: true });
 
   const workspace = clonePathFor(sessionId);
   const notesDir = resolve(workspace, NOTES_DIRNAME);
   const logPath = logPathFor(sessionId);
-
-  await writeFile(logPath, '');
 
   await runSDKTurn({
     sessionId,
@@ -433,16 +427,18 @@ async function runNotesJob(sessionId: number, session: Session): Promise<void> {
       ).run(workspace, logPath, sessionId);
     },
     preflight: async log => {
-      // Fresh workspace per session — matches the Jira/PR pattern.
+      // Fresh workspace per session — matches the Jira/PR pattern. Workspace must exist before
+      // the first log() call since the log file lives inside it.
       if (existsSync(workspace)) {
         await rm(workspace, { recursive: true, force: true });
       }
 
       let repoNote = 'No repo cloned — base your notes on the user context alone.';
       if (session.repo) {
-        await log(`[${new Date().toISOString()}] cloning ${session.repo} into ${workspace}\n`);
         const { defaultBranch } = await prepareClone(workspace, session.repo);
-        await log(`[${new Date().toISOString()}] cloned (default branch ${defaultBranch}) — read-only investigation\n`);
+        await log(
+          `[${new Date().toISOString()}] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
+        );
         repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground your notes — but do NOT modify any files in the cloned repo.`;
       } else {
         mkdirSync(workspace, { recursive: true });

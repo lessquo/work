@@ -2,6 +2,5 @@ node_modules
 dist
 data
 clones
-logs
 package-lock.json
 *.tsbuildinfo

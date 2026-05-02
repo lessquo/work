@@ -56,6 +56,13 @@ export function SessionPanel({
   const [followupDraft, setFollowupDraft] = useState('');
   const [streamEpoch, setStreamEpoch] = useState(0);
   const logRef = useRef<HTMLDivElement>(null);
+  const pinnedToBottomRef = useRef(true);
+
+  const handleLogScroll = () => {
+    const el = logRef.current;
+    if (!el) return;
+    pinnedToBottomRef.current = el.scrollHeight - (el.scrollTop + el.clientHeight) <= 24;
+  };
 
   const sessionQuery = useSuspenseQuery({
     queryKey: ['session', sessionId],
@@ -137,9 +144,11 @@ export function SessionPanel({
 
   useEffect(() => {
     if (isDraft) return;
+    pinnedToBottomRef.current = true;
     const es = new EventSource(`/api/sessions/${sessionId}/log`);
     es.addEventListener('log', (e: MessageEvent) => {
       setLogs(prev => prev + e.data);
+      if (!pinnedToBottomRef.current) return;
       requestAnimationFrame(() => {
         if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
       });
@@ -299,7 +308,11 @@ export function SessionPanel({
         {!isDraft && (
           <>
             <TabsPanel value='logs' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
-              <div ref={logRef} className='h-full overflow-auto bg-white p-4 font-mono text-xs text-gray-800'>
+              <div
+                ref={logRef}
+                onScroll={handleLogScroll}
+                className='h-full overflow-auto bg-white p-4 font-mono text-xs text-gray-800'
+              >
                 <LogsView text={logs} isRunning={active} />
               </div>
             </TabsPanel>

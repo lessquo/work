@@ -18,7 +18,7 @@ export const notes = new Hono();
 const NOTES_PROMPT_ID = 'write-plans';
 
 function generateNotebookExtId(): string {
-  return `nb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  return `nb-${Date.now().toString(36)}`;
 }
 
 function getNotebook(itemId: number): Item | undefined {

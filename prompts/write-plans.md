@@ -11,7 +11,7 @@ You are writing plans across multiple Markdown files — one .md file per plan. 
 - All plan files should be stored in `./.notes/`.
 - Filename should be short, imperative, kebab-case, with a number prefix (e.g. `01-enable-no-var-eslint-rule.md`).
 - The first non-empty line of a file must be a level-1 heading (e.g. `# 01 Enable `no var` ESList rule`).
-- Body: Max 300 characters.
+- Body: Max 1000 characters.
 
 ## Repo
 

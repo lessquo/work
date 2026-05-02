@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { FileText, Pencil } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useState } from 'react';
 
@@ -25,7 +25,6 @@ export function NotePanel({ noteId }: { noteId: number }) {
   const note = noteQuery.data;
 
   const [titleDraft, setTitleDraft] = useState(note.title);
-  const [editingTitle, setEditingTitle] = useState(false);
 
   const onError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
@@ -39,7 +38,6 @@ export function NotePanel({ noteId }: { noteId: number }) {
   });
 
   function commitTitle() {
-    setEditingTitle(false);
     const trimmed = titleDraft.trim();
     if (trimmed && trimmed !== note.title) {
       renameMutation.mutate(trimmed);
@@ -93,41 +91,22 @@ export function NotePanel({ noteId }: { noteId: number }) {
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2 text-sm'>
             <FileText className='size-3.5 shrink-0 text-gray-500' />
-            {editingTitle ? (
-              <input
-                autoFocus
-                value={titleDraft}
-                onChange={e => setTitleDraft(e.target.value)}
-                onBlur={commitTitle}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    commitTitle();
-                  } else if (e.key === 'Escape') {
-                    setTitleDraft(note.title);
-                    setEditingTitle(false);
-                  }
-                }}
-                placeholder='Note title'
-                className='min-w-0 flex-1 truncate bg-transparent font-semibold focus:outline-none'
-              />
-            ) : (
-              <>
-                <h2 className='min-w-0 flex-1 truncate font-semibold'>{note.title}</h2>
-                <button
-                  type='button'
-                  onClick={() => {
-                    setTitleDraft(note.title);
-                    setEditingTitle(true);
-                  }}
-                  aria-label='Rename note'
-                  title='Rename'
-                  className='btn-sm btn-ghost'
-                >
-                  <Pencil />
-                </button>
-              </>
-            )}
+            <input
+              value={titleDraft}
+              onChange={e => setTitleDraft(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                } else if (e.key === 'Escape') {
+                  setTitleDraft(note.title);
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder='Note title'
+              className='min-w-0 flex-1 truncate bg-transparent font-semibold focus:outline-none'
+            />
             <span className='shrink-0 text-xs text-gray-400'>updated {timeAgo(note.updated_at)}</span>
           </div>
         </div>

@@ -20,20 +20,27 @@ export function NotebookPanel({ item }: { item: Item }) {
   });
   const notebook = notebookQuery.data;
 
-  const [title, setTitle] = useState(notebook.title);
-  const [editingTitle, setEditingTitle] = useState(false);
-  const titleDirty = title.trim() !== notebook.title;
+  const [titleDraft, setTitleDraft] = useState(notebook.title);
 
   const onError = (e: unknown) => toast.add({ title: e instanceof Error ? e.message : 'Failed.' });
 
   const renameMutation = useMutation({
-    mutationFn: () => api.renameNotebook(item.id, title.trim()),
+    mutationFn: (newTitle: string) => api.renameNotebook(item.id, newTitle),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notebook', item.id] });
       qc.invalidateQueries({ queryKey: ['items', item.source_id] });
     },
     onError,
   });
+
+  function commitTitle() {
+    const trimmed = titleDraft.trim();
+    if (trimmed && trimmed !== notebook.title) {
+      renameMutation.mutate(trimmed);
+    } else {
+      setTitleDraft(notebook.title);
+    }
+  }
 
   const deleteNotebookMutation = useMutation({
     mutationFn: () => api.deleteNotebook(item.id),
@@ -64,58 +71,32 @@ export function NotebookPanel({ item }: { item: Item }) {
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2 text-sm'>
             <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-            {editingTitle ? (
-              <input
-                autoFocus
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                onBlur={() => setEditingTitle(false)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    setEditingTitle(false);
-                  } else if (e.key === 'Escape') {
-                    setTitle(notebook.title);
-                    setEditingTitle(false);
-                  }
-                }}
-                placeholder='Notebook title'
-                className='min-w-0 flex-1 truncate bg-transparent font-semibold focus:outline-none'
-              />
-            ) : (
-              <>
-                <h2 className='min-w-0 flex-1 truncate font-semibold'>{title}</h2>
-                <button
-                  type='button'
-                  onClick={() => setEditingTitle(true)}
-                  aria-label='Rename notebook'
-                  title='Rename'
-                  className='btn-sm btn-ghost'
-                >
-                  <Pencil />
-                </button>
-              </>
-            )}
+            <input
+              value={titleDraft}
+              onChange={e => setTitleDraft(e.target.value)}
+              onBlur={commitTitle}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                } else if (e.key === 'Escape') {
+                  setTitleDraft(notebook.title);
+                  e.currentTarget.blur();
+                }
+              }}
+              placeholder='Notebook title'
+              className='min-w-0 flex-1 truncate bg-transparent font-semibold focus:outline-none'
+            />
           </div>
         </div>
-        <div className='flex shrink-0 items-center gap-2'>
-          <button
-            type='button'
-            onClick={() => renameMutation.mutate()}
-            disabled={!titleDirty || !title.trim() || renameMutation.isPending}
-            className='btn-sm btn-neutral'
-          >
-            {renameMutation.isPending ? 'Saving…' : 'Save'}
-          </button>
-          <button
-            type='button'
-            onClick={onDeleteNotebook}
-            disabled={deleteNotebookMutation.isPending}
-            className='btn-sm btn-danger'
-          >
-            {deleteNotebookMutation.isPending ? 'Deleting…' : 'Delete'}
-          </button>
-        </div>
+        <button
+          type='button'
+          onClick={onDeleteNotebook}
+          disabled={deleteNotebookMutation.isPending}
+          className='btn-sm btn-danger'
+        >
+          {deleteNotebookMutation.isPending ? 'Deleting…' : 'Delete'}
+        </button>
       </header>
 
       <section className='min-h-0 flex-1 overflow-auto px-4 py-3'>

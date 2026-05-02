@@ -59,15 +59,8 @@ sources.delete('/:id', c => {
 
 sources.get('/:id/items', c => {
   const id = Number(c.req.param('id'));
-  const status = parseStatus(c.req.query('status'));
   const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(id) as Source | undefined;
   if (!source) return c.json({ error: 'not found' }, 404);
-
-  const statusClause = buildStatusClause(source.type, status);
-  if (statusClause === null) return c.json([]);
-
-  const sort = c.req.query('sort') === 'title' ? 'title' : 'recency';
-  const order = buildOrderClause(source.type, status, sort);
 
   const rows = db
     .prepare(
@@ -79,8 +72,8 @@ sources.get('/:id/items', c => {
          ), '[]') AS sessions,
          (SELECT COUNT(*) FROM notes WHERE item_id = i.id) AS note_count
        FROM items i
-       WHERE i.source_id = ? ${statusClause}
-       ORDER BY ${order}`,
+       WHERE i.source_id = ?
+       ORDER BY ${recencyExpr(source.type)} DESC, i.id DESC`,
     )
     .all(id) as Array<Item & { sessions: string; note_count: number }>;
   return c.json(
@@ -91,78 +84,16 @@ sources.get('/:id/items', c => {
   );
 });
 
-type Status = 'open' | 'resolved';
-
-function parseStatus(raw: string | undefined): Status {
-  return raw === 'resolved' ? 'resolved' : 'open';
-}
-
-type Sort = 'recency' | 'title';
-
-// Returns the SQL ORDER BY fragment for the given (type, status, sort). The
-// recency sort uses upstream timestamps from raw — the local items.updated_at
+// Recency uses upstream timestamps from raw — the local items.updated_at
 // reflects the last sync, not when the item itself changed upstream, and is
 // near-identical for every item in a sync batch (datetime('now') has 1s res).
-function buildOrderClause(type: ItemType, status: Status, sort: Sort): string {
-  if (sort === 'title') {
-    return `i.title COLLATE NOCASE ASC, i.id DESC`;
-  }
-  const expr = recencyExpr(type, status);
-  return `${expr} DESC, i.id DESC`;
+function recencyExpr(type: ItemType): string {
+  if (type === 'sentry_issue') return `json_extract(i.raw, '$.lastSeen')`;
+  if (type === 'jira_issue') return `json_extract(i.raw, '$.updated')`;
+  if (type === 'notes') return `i.updated_at`;
+  // github_pr: prefer mergedAt for closed-merged PRs, fall back to updatedAt.
+  return `COALESCE(json_extract(i.raw, '$.mergedAt'), json_extract(i.raw, '$.updatedAt'))`;
 }
-
-function recencyExpr(type: ItemType, status: Status): string {
-  if (type === 'sentry_issue') {
-    return `json_extract(i.raw, '$.lastSeen')`;
-  }
-  if (type === 'jira_issue') {
-    return `json_extract(i.raw, '$.updated')`;
-  }
-  if (type === 'notes') {
-    return `i.updated_at`;
-  }
-  // github_pr: closed tab prefers mergedAt (closed-not-merged falls back to updatedAt).
-  if (status === 'resolved') {
-    return `COALESCE(json_extract(i.raw, '$.mergedAt'), json_extract(i.raw, '$.updatedAt'))`;
-  }
-  return `json_extract(i.raw, '$.updatedAt')`;
-}
-
-// Returns the SQL fragment to AND into the WHERE clause, or null when the
-// (type, status) combination should yield zero rows.
-function buildStatusClause(type: ItemType, status: Status): string | null {
-  if (type === 'github_pr') {
-    return status === 'open' ? `AND i.status = 'OPEN'` : `AND i.status IN ('CLOSED','MERGED')`;
-  }
-  if (type === 'jira_issue') {
-    return status === 'open' ? `AND i.status != 'done'` : `AND i.status = 'done'`;
-  }
-  if (type === 'sentry_issue') {
-    return status === 'open' ? `AND i.status = 'unresolved'` : `AND i.status = 'resolved'`;
-  }
-  if (type === 'notes') {
-    // Notebooks have no "open/resolved" state — show all rows on the open tab, none on resolved.
-    return status === 'open' ? '' : null;
-  }
-  return '';
-}
-
-sources.get('/:id/counts', c => {
-  const id = Number(c.req.param('id'));
-  const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(id) as Source | undefined;
-  if (!source) return c.json({ error: 'not found' }, 404);
-  const count = (clause: string | null): number => {
-    if (clause === null) return 0;
-    const row = db.prepare(`SELECT COUNT(*) AS n FROM items i WHERE i.source_id = ? ${clause}`).get(id) as {
-      n: number;
-    };
-    return row.n;
-  };
-  return c.json({
-    open: count(buildStatusClause(source.type, 'open')),
-    resolved: count(buildStatusClause(source.type, 'resolved')),
-  });
-});
 
 sources.post('/:id/resolve-items', async c => {
   const id = Number(c.req.param('id'));

@@ -14,8 +14,8 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
 
   const itemsQueries = useQueries({
     queries: jiraSources.map(s => ({
-      queryKey: ['items', s.id, 'open', 'recency'] as const,
-      queryFn: () => api.listItems(s.id, 'open', 'recency'),
+      queryKey: ['items', s.id] as const,
+      queryFn: () => api.listItems(s.id),
     })),
   });
 

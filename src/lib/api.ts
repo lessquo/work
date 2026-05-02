@@ -1,7 +1,5 @@
 export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes';
 
-export type ItemStatus = 'open' | 'resolved';
-
 export type Source = {
   id: number;
   type: ItemType;
@@ -234,10 +232,8 @@ export const api = {
   createSource: (s: Omit<Source, 'id' | 'created_at'>) =>
     req<Source>('/sources', { method: 'POST', body: JSON.stringify(s) }),
   deleteSource: (id: number) => req<{ ok: true }>(`/sources/${id}`, { method: 'DELETE' }),
-  listItems: (sourceId: number, status: ItemStatus = 'open', sort: 'recency' | 'title' = 'recency') =>
-    req<ItemWithSessions[]>(`/sources/${sourceId}/items?status=${status}&sort=${sort}`),
-  getItemCounts: (sourceId: number) => req<{ open: number; resolved: number }>(`/sources/${sourceId}/counts`),
-  listAllItems: () => req<Item[]>('/items'),
+  listItems: (sourceId: number) => req<ItemWithSessions[]>(`/sources/${sourceId}/items`),
+  listAllItems: () => req<ItemWithSessions[]>('/items'),
   getItem: (id: number) => req<Item>(`/items/${id}`),
   setItemFlow: (itemId: number, flowId: number | null) =>
     req<Item>(`/items/${itemId}/flow`, {

@@ -1,77 +1,18 @@
 import { ItemCard } from '@/components/items/ItemCard';
 import { SyncItemsButton } from '@/components/items/SyncItemsButton';
-import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { Input } from '@/components/ui/Input';
-import { Select } from '@/components/ui/Select';
-import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
-import { api, type ItemStatus, type ItemType } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useFuzzySearch } from '@/lib/fuse';
 import { useNumberParam } from '@/lib/router';
-import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
+import { useSuspenseQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
-import { parseAsArrayOf, parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
+import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryState } from 'nuqs';
 import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
-type Filter = ItemStatus;
-type Sort = 'recency' | 'title';
-
-type FilterTab = { value: Filter; label: string; recencyLabel: string };
-
-const FILTER_TABS: Record<ItemType, FilterTab[]> = {
-  sentry_issue: [
-    { value: 'open', label: 'Open', recencyLabel: 'Last seen' },
-    { value: 'resolved', label: 'Resolved', recencyLabel: 'Last seen' },
-  ],
-  github_pr: [
-    { value: 'open', label: 'Open', recencyLabel: 'Updated' },
-    { value: 'resolved', label: 'Closed', recencyLabel: 'Closed' },
-  ],
-  jira_issue: [
-    { value: 'open', label: 'Open', recencyLabel: 'Updated' },
-    { value: 'resolved', label: 'Done', recencyLabel: 'Done' },
-  ],
-  notes: [{ value: 'open', label: 'Notebooks', recencyLabel: 'Updated' }],
-};
-
-const EMPTY_OPEN_SYNC: Record<ItemType, string> = {
-  sentry_issue: 'fetch from Sentry',
-  github_pr: 'fetch from GitHub',
-  jira_issue: 'fetch from Jira',
-  notes: 'create your first notebook',
-};
-
 export function ItemsPage() {
-  const [source] = useQueryState('source', parseAsInteger);
-
-  return (
-    <>
-      <title>Items · Work</title>
-
-      {source !== null ? (
-        <ItemsContent sourceId={source} />
-      ) : (
-        <div className='flex flex-1 flex-col items-center justify-center gap-3 text-sm text-gray-500'>
-          <SourceSwitcher />
-          Select a source to view items.
-        </div>
-      )}
-    </>
-  );
-}
-
-function ItemsContent({ sourceId }: { sourceId: number }) {
   const itemId = useNumberParam('itemId');
   const navigate = useNavigate();
-  const qc = useQueryClient();
-  const [filter, setFilter] = useQueryState(
-    'filter',
-    parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'),
-  );
-  const [sort, setSort] = useQueryState(
-    'sort',
-    parseAsStringLiteral(['recency', 'title'] as const).withDefault('recency'),
-  );
   const [query, setQuery] = useQueryState('q', parseAsString.withDefault(''));
   const [selectedIds, setSelectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
 
@@ -82,28 +23,15 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
       return;
     }
     const params = new URLSearchParams();
-    params.set('source', String(sourceId));
-    if (filter !== 'open') params.set('filter', filter);
-    if (sort !== 'recency') params.set('sort', sort);
     if (query) params.set('q', query);
     if (filtered.length > 0) params.set('selected', filtered.join(','));
     const path = newAnchor !== null ? `/items/${newAnchor}` : `/items`;
     navigate({ pathname: path, search: params.toString() });
   }
 
-  function clearSelection() {
-    setSelection(null, []);
-  }
-
-  const sourceQuery = useSuspenseQuery({
-    queryKey: ['source', sourceId],
-    queryFn: () => api.getSource(sourceId),
-  });
-  const source = sourceQuery.data;
-
   const itemsQuery = useSuspenseQuery({
-    queryKey: ['items', sourceId, filter, sort],
-    queryFn: () => api.listItems(sourceId, filter, sort),
+    queryKey: ['items', null],
+    queryFn: api.listAllItems,
   });
   const allItems = itemsQuery.data;
 
@@ -119,33 +47,12 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
     return set;
   }, [validSelectedIds, validItemId]);
 
-  const countsQuery = useQuery({
-    queryKey: ['itemCounts', sourceId],
-    queryFn: () => api.getItemCounts(sourceId),
-  });
-  const counts = countsQuery.data ?? { open: 0, resolved: 0 };
-
-  useEffect(() => {
-    const valid = FILTER_TABS[source.type].some(t => t.value === filter);
-    if (!valid) setFilter('open');
-  }, [source.type, filter, setFilter]);
-
   useEffect(() => {
     if (items.length === 0) return;
     if (validItemId !== null) return;
     const params = new URLSearchParams(window.location.search);
     navigate({ pathname: `/items/${items[0].id}`, search: params.toString() }, { replace: true });
   }, [items, validItemId, navigate]);
-
-  const createNotebookMutation = useMutation({
-    mutationFn: () => api.createNotebook(),
-    onSuccess: notebook => {
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
-      const params = new URLSearchParams(window.location.search);
-      navigate({ pathname: `/items/${notebook.id}`, search: params.toString() });
-    },
-  });
 
   const error = itemsQuery.error instanceof Error ? itemsQuery.error.message : null;
 
@@ -188,42 +95,19 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
     setSelection(clickedId, []);
   }
 
-  function onFilterChange(next: Filter) {
-    if (next === filter) return;
-    setFilter(next);
-    clearSelection();
-  }
-
   const loading = itemsQuery.isLoading;
 
   return (
     <>
-      <title>{`${source.ext_id} · Items`}</title>
-
+      <title>Items · Work</title>
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex items-center justify-between'>
-            <div className='flex items-center gap-3'>
-              <h1 className='text-lg font-semibold'>Items</h1>
-              <SourceSwitcher />
-              <FilterTabs sourceType={source.type} value={filter} onChange={onFilterChange} counts={counts} />
-            </div>
-            <div className='flex items-center gap-2'>
-              {source.type === 'notes' && (
-                <button
-                  onClick={() => createNotebookMutation.mutate()}
-                  disabled={createNotebookMutation.isPending}
-                  className='btn-md btn-neutral'
-                >
-                  {createNotebookMutation.isPending ? 'Creating…' : 'New notebook'}
-                </button>
-              )}
-              <SyncItemsButton />
-            </div>
+            <h1 className='text-lg font-semibold'>Items</h1>
+            <SyncItemsButton />
           </div>
 
-          <div className='mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-2'>
-            <SortBar sourceType={source.type} filter={filter} sort={sort} onChange={setSort} />
+          <div className='mb-3'>
             <label className='flex w-full max-w-xs items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20'>
               <Search className='text-gray-400' />
               <Input
@@ -246,12 +130,10 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
             <p className='text-gray-500'>
               {query.trim().length > 0 ? (
                 <>No items match your search.</>
-              ) : filter === 'open' ? (
-                <>
-                  No items yet. Click <b>Sync</b> to {EMPTY_OPEN_SYNC[source.type]}.
-                </>
               ) : (
-                <>No {currentTabLabel(source.type, filter).toLowerCase()} items yet.</>
+                <>
+                  No items yet. Click <b>Sync</b> to fetch from a source.
+                </>
               )}
             </p>
           ) : (
@@ -274,72 +156,5 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
         </div>
       </div>
     </>
-  );
-}
-
-function tabsFor(sourceType: ItemType): FilterTab[] {
-  return FILTER_TABS[sourceType];
-}
-
-function currentTab(sourceType: ItemType, value: Filter): FilterTab {
-  return tabsFor(sourceType).find(t => t.value === value) ?? tabsFor(sourceType)[0];
-}
-
-function currentTabLabel(sourceType: ItemType, value: Filter): string {
-  return currentTab(sourceType, value).label;
-}
-
-function FilterTabs({
-  sourceType,
-  value,
-  onChange,
-  counts,
-}: {
-  sourceType: ItemType;
-  value: Filter;
-  onChange: (v: Filter) => void;
-  counts: Record<Filter, number>;
-}) {
-  const tabs = tabsFor(sourceType);
-  return (
-    <TabsRoot value={value} onValueChange={v => onChange(v as Filter)}>
-      <PillTabsList>
-        {tabs.map(tab => (
-          <PillTabsTab key={tab.value} value={tab.value}>
-            {tab.label} <span className='ml-1 text-gray-400'>({counts[tab.value]})</span>
-          </PillTabsTab>
-        ))}
-      </PillTabsList>
-    </TabsRoot>
-  );
-}
-
-function SortBar({
-  sourceType,
-  filter,
-  sort,
-  onChange,
-}: {
-  sourceType: ItemType;
-  filter: Filter;
-  sort: Sort;
-  onChange: (s: Sort) => void;
-}) {
-  const recencyLabel = currentTab(sourceType, filter).recencyLabel;
-  const hint = sort === 'title' ? '(A → Z)' : '(newest first)';
-  return (
-    <div className='flex items-center gap-2 text-xs text-gray-500'>
-      <span>Sorted by</span>
-      <Select<Sort>
-        ariaLabel='Sort'
-        value={sort}
-        onChange={onChange}
-        options={[
-          { value: 'recency', label: recencyLabel },
-          { value: 'title', label: 'Title' },
-        ]}
-      />
-      <span className='text-gray-400'>{hint}</span>
-    </div>
   );
 }

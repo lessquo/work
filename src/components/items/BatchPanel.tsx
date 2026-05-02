@@ -3,17 +3,13 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { type Item } from '@/lib/api';
 import { Copy } from 'lucide-react';
 
-type Filter = 'open' | 'resolved';
-
 export function BatchPanel({
-  filter,
   selectedItems,
   onCreateSessions,
   onResolve,
   creatingSessions,
   resolving,
 }: {
-  filter: Filter;
   selectedItems: Item[];
   onCreateSessions: () => void;
   onResolve: () => void;
@@ -55,24 +51,20 @@ export function BatchPanel({
 
       <section className='border-b px-4 py-3'>
         <div className='flex gap-2'>
-          {filter === 'open' && (
-            <>
-              <Tooltip content='Create a draft session per selected item — configure and run from the session panel'>
-                <button
-                  onClick={onCreateSessions}
-                  disabled={creatingSessions || count === 0}
-                  className='btn-sm btn-neutral'
-                >
-                  {creatingSessions ? 'Creating…' : `Create ${count} sessions`}
-                </button>
-              </Tooltip>
-              <Tooltip content='Mark the selected issues as resolved upstream'>
-                <button onClick={onResolve} disabled={resolving || count === 0} className='btn-sm btn-neutral'>
-                  {resolving ? 'Resolving…' : 'Resolve'}
-                </button>
-              </Tooltip>
-            </>
-          )}
+          <Tooltip content='Create a draft session per selected item — configure and run from the session panel'>
+            <button
+              onClick={onCreateSessions}
+              disabled={creatingSessions || count === 0}
+              className='btn-sm btn-neutral'
+            >
+              {creatingSessions ? 'Creating…' : `Create ${count} sessions`}
+            </button>
+          </Tooltip>
+          <Tooltip content='Mark the selected issues as resolved upstream'>
+            <button onClick={onResolve} disabled={resolving || count === 0} className='btn-sm btn-neutral'>
+              {resolving ? 'Resolving…' : 'Resolve'}
+            </button>
+          </Tooltip>
         </div>
       </section>
     </aside>

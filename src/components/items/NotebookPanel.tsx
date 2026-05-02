@@ -93,9 +93,10 @@ export function NotebookPanel({ item }: { item: Item }) {
           type='button'
           onClick={onDeleteNotebook}
           disabled={deleteNotebookMutation.isPending}
-          className='btn-sm btn-danger'
+          aria-label='Delete notebook'
+          className='btn-sm btn-ghost'
         >
-          {deleteNotebookMutation.isPending ? 'Deleting…' : 'Delete'}
+          <Trash2 />
         </button>
       </header>
 
@@ -201,7 +202,7 @@ function NoteRow({ note, notebookId }: { note: Note; notebookId: number }) {
                 <Pencil />
               </button>
               <button
-                className='btn-sm btn-ghost text-rose-600'
+                className='btn-sm btn-ghost'
                 aria-label='Delete'
                 onClick={onDelete}
                 disabled={deleteMutation.isPending}

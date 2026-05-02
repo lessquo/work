@@ -6,7 +6,7 @@ import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { FileText } from 'lucide-react';
+import { FileText, Trash2 } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useState } from 'react';
 
@@ -110,8 +110,14 @@ export function NotePanel({ noteId }: { noteId: number }) {
             <span className='shrink-0 text-xs text-gray-400'>updated {timeAgo(note.updated_at)}</span>
           </div>
         </div>
-        <button type='button' onClick={onDelete} disabled={deleteMutation.isPending} className='btn-sm btn-danger'>
-          {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+        <button
+          type='button'
+          onClick={onDelete}
+          disabled={deleteMutation.isPending}
+          aria-label='Delete note'
+          className='btn-sm btn-ghost'
+        >
+          <Trash2 />
         </button>
       </header>
 

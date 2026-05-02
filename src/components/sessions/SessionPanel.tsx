@@ -16,7 +16,7 @@ import { api, DEFAULT_PROMPT_ID, type Prompt, type PromptId, type Session, type 
 import { cn } from '@/lib/cn';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Copy, Terminal } from 'lucide-react';
+import { Copy, Terminal, Trash2 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
 export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'notes';
@@ -270,9 +270,10 @@ export function SessionPanel({
                   deleteMutation.mutate();
                 }}
                 disabled={deleteMutation.isPending}
-                className='btn-sm btn-danger'
+                aria-label={isDraft ? 'Discard draft' : 'Delete session'}
+                className='btn-sm btn-ghost'
               >
-                {isDraft ? 'Discard' : 'Delete'}
+                <Trash2 />
               </button>
             </Tooltip>
           )}

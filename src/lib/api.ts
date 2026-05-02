@@ -241,6 +241,7 @@ export const api = {
       body: JSON.stringify({ flowId }),
     }),
   syncSource: (sourceId: number) => req<{ synced: number }>(`/sources/${sourceId}/sync`, { method: 'POST' }),
+  syncItem: (itemId: number) => req<Item>(`/items/${itemId}/sync`, { method: 'POST' }),
   createDraftSession: (input: {
     itemId?: number;
     flowId?: number;

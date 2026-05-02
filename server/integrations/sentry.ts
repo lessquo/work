@@ -76,6 +76,32 @@ async function fetchAllSentryIssues(source: Source, limit: number): Promise<Sent
   return all.slice(0, limit);
 }
 
+export async function fetchSentryIssue(sentryId: string): Promise<SentryIssue> {
+  const res = await fetch(`${SENTRY_API}/issues/${sentryId}/`, {
+    headers: { Authorization: `Bearer ${token()}` },
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Sentry GET /issues/${sentryId} ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return (await res.json()) as SentryIssue;
+}
+
+export async function upsertSentryIssue(sourceId: number, sentryId: string): Promise<SentryIssue> {
+  const i = await fetchSentryIssue(sentryId);
+  upsertItems('sentry_issue', sourceId, [
+    {
+      ext_id: i.id,
+      key: i.shortId,
+      title: i.title,
+      status: i.status,
+      url: i.permalink,
+      raw: JSON.stringify(i),
+    },
+  ]);
+  return i;
+}
+
 export async function syncSentrySource(source: Source, limit: number): Promise<number> {
   const remote = await fetchAllSentryIssues(source, limit);
   upsertItems(

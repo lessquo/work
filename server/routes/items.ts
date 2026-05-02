@@ -1,4 +1,7 @@
-import { db, type Item } from '@server/db.js';
+import { db, type Item, type Source } from '@server/db.js';
+import { syncGithubItem } from '@server/integrations/github.js';
+import { upsertJiraIssue } from '@server/integrations/jira.js';
+import { upsertSentryIssue } from '@server/integrations/sentry.js';
 import { Hono } from 'hono';
 
 export const items = new Hono();
@@ -44,6 +47,38 @@ items.put('/:id/flow', async c => {
     db.prepare(`UPDATE sessions SET flow_id = ? WHERE item_id = ?`).run(flowId, id);
   });
   tx();
+
+  const updated = db.prepare(`SELECT * FROM items WHERE id = ?`).get(id) as Item;
+  return c.json(updated);
+});
+
+items.post('/:id/sync', async c => {
+  const id = Number(c.req.param('id'));
+  const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(id) as Item | undefined;
+  if (!item) return c.json({ error: 'item not found' }, 404);
+  const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(item.source_id) as Source | undefined;
+  if (!source) return c.json({ error: 'source not found' }, 404);
+
+  try {
+    switch (item.type) {
+      case 'github_pr': {
+        const number = Number(item.key);
+        if (!Number.isFinite(number)) throw new Error(`invalid PR number "${item.key}"`);
+        await syncGithubItem(source, number);
+        break;
+      }
+      case 'jira_issue':
+        await upsertJiraIssue(source.id, item.key);
+        break;
+      case 'sentry_issue':
+        await upsertSentryIssue(source.id, item.ext_id);
+        break;
+      case 'notes':
+        return c.json({ error: 'notes have no upstream to sync' }, 400);
+    }
+  } catch (e) {
+    return c.json({ error: String(e) }, 500);
+  }
 
   const updated = db.prepare(`SELECT * FROM items WHERE id = ?`).get(id) as Item;
   return c.json(updated);

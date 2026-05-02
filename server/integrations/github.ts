@@ -113,6 +113,11 @@ export function parseGithubPrUrl(url: string): { owner: string; repo: string; nu
   return { owner: m[1], repo: m[2], number: Number(m[3]) };
 }
 
+export async function syncGithubItem(source: Source, prNumber: number): Promise<void> {
+  const { owner, repo } = parseOwnerRepo(source.ext_id);
+  await upsertGithubPr(source.id, owner, repo, prNumber);
+}
+
 export async function syncGithubSource(source: Source, limit: number): Promise<number> {
   const { owner, repo } = parseOwnerRepo(source.ext_id);
 

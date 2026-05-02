@@ -5,7 +5,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { api, type Item } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { Copy } from 'lucide-react';
+import { Copy, RefreshCw } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useNavigate } from 'react-router';
 
@@ -57,6 +57,19 @@ export function ItemPanelLayout({
       } else {
         navigate(`/sessions/${sess.id}?sessionTab=setup`);
       }
+    },
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: () => api.syncItem(item.id),
+    onSuccess: () => {
+      toast.add({ title: 'Synced.' });
+      qc.invalidateQueries({ queryKey: ['item', item.id] });
+      qc.invalidateQueries({ queryKey: ['items', item.source_id] });
+      qc.invalidateQueries({ queryKey: ['itemCounts', item.source_id] });
+    },
+    onError: e => {
+      toast.add({ title: `Sync failed: ${e instanceof Error ? e.message : String(e)}` });
     },
   });
 
@@ -126,6 +139,18 @@ export function ItemPanelLayout({
           </div>
         </div>
         <div className='flex shrink-0 items-center gap-2'>
+          {item.type !== 'notes' && (
+            <Tooltip content='Sync this item from upstream'>
+              <button
+                onClick={() => syncMutation.mutate()}
+                disabled={syncMutation.isPending}
+                className='btn-sm btn-ghost'
+                aria-label='sync item'
+              >
+                <RefreshCw className={syncMutation.isPending ? 'animate-spin' : undefined} />
+              </button>
+            </Tooltip>
+          )}
           {filter === 'open' && (
             <>
               <Tooltip content='Create a draft session — configure and run from the session panel'>

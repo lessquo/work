@@ -1,3 +1,4 @@
+import { HomeLink } from '@/components/HomeLink';
 import { PageSwitcher } from '@/components/PageSwitcher';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
@@ -28,7 +29,7 @@ export function SettingsPage() {
       <div className='flex-1 overflow-y-auto'>
         <div className='mx-auto max-w-4xl p-6'>
           <h1 className='mb-4 flex items-center gap-1 text-lg font-semibold'>
-            Work
+            <HomeLink />
             <PageSwitcher />
           </h1>
           <SetupSection

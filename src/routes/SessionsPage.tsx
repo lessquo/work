@@ -1,3 +1,4 @@
+import { HomeLink } from '@/components/HomeLink';
 import { PageSwitcher } from '@/components/PageSwitcher';
 import { SessionCard } from '@/components/SessionCard';
 import { api } from '@/lib/api';
@@ -38,7 +39,7 @@ export function SessionsPage() {
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='mb-4 flex flex-wrap items-center gap-3'>
             <h1 className='flex items-center gap-1 text-lg font-semibold'>
-              Work
+              <HomeLink />
               <PageSwitcher />
             </h1>
           </div>

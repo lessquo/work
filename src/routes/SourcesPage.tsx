@@ -1,3 +1,4 @@
+import { HomeLink } from '@/components/HomeLink';
 import { PageSwitcher } from '@/components/PageSwitcher';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
@@ -18,7 +19,7 @@ export function SourcesPage() {
       <div className='mx-auto w-full max-w-2xl p-6'>
         <div className='mb-4 flex items-center justify-between'>
           <h1 className='flex items-center gap-1 text-lg font-semibold'>
-            Work
+            <HomeLink />
             <PageSwitcher />
           </h1>
           <Link to='/sources/add' className='btn-md btn-neutral'>

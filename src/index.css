@@ -64,11 +64,11 @@
     @apply flex h-7 items-center gap-2 rounded-full px-2.5 text-xs font-medium uppercase;
   }
   /* Status */
+  .status-neutral {
+    @apply border border-gray-300 bg-gray-50 text-gray-700;
+  }
   .status-primary {
     @apply border border-indigo-200 bg-indigo-50/50 text-indigo-700;
-  }
-  .status-secondary {
-    @apply border border-gray-300 bg-gray-50 text-gray-700;
   }
   .status-success {
     @apply border border-emerald-200 bg-emerald-50/50 text-emerald-700;

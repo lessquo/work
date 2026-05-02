@@ -816,12 +816,12 @@ function NotesView({ session }: { session: Session | null }) {
 
 function StatusBadge({ status }: { status: Session['status'] }) {
   const map: Record<Session['status'], string> = {
-    draft: 'status-secondary',
-    queued: 'status-secondary',
+    draft: 'status-neutral',
+    queued: 'status-neutral',
     running: 'status-primary',
     succeeded: 'status-success',
     failed: 'status-danger',
-    aborted: 'status-secondary',
+    aborted: 'status-neutral',
   };
   return <span className={cn('chip-sm', map[status])}>{status}</span>;
 }

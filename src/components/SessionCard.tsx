@@ -69,12 +69,12 @@ function firstLine(text: string | null): string | null {
 
 function StatusBadge({ status }: { status: SourceSession['status'] }) {
   const map = {
-    draft: 'status-secondary',
-    queued: 'status-secondary',
+    draft: 'status-neutral',
+    queued: 'status-neutral',
     running: 'status-primary',
     succeeded: 'status-success',
     failed: 'status-danger',
-    aborted: 'status-secondary',
+    aborted: 'status-neutral',
   } as const satisfies Record<SourceSession['status'], string>;
   return <span className={cn('chip-sm', map[status])}>{status}</span>;
 }

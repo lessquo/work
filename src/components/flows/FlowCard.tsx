@@ -342,8 +342,8 @@ function ItemChip({
           <span className='truncate pr-4 text-xs font-medium text-gray-800'>{title}</span>
         </div>
         <div className='mt-1 flex items-center gap-1 text-[10px] text-gray-500'>
-          <span className='truncate'>{item.key}</span>
           <StatusBadge item={item} size='sm' />
+          <span className='truncate'>{item.key}</span>
         </div>
       </Link>
       <button

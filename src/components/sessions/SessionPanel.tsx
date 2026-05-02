@@ -3,13 +3,14 @@ import { InsertNoteButton } from '@/components/InsertNoteButton';
 import { DiffView } from '@/components/panels/DiffView';
 import { LogsView } from '@/components/panels/LogsView';
 import { Markdown } from '@/components/panels/Markdown';
+import { MarkdownEditor, type MarkdownEditorMode } from '@/components/panels/MarkdownEditor';
 import { PromptPicker } from '@/components/panels/PromptPicker';
 import { PromptTemplateEditor } from '@/components/panels/PromptTemplateEditor';
 import { RepoPicker } from '@/components/panels/RepoPicker';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Select, type SelectOption } from '@/components/ui/Select';
-import { PillTabsList, PillTabsTab, TabsList, TabsPanel, TabsRoot, TabsTab } from '@/components/ui/Tabs';
+import { TabsList, TabsPanel, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api, DEFAULT_PROMPT_ID, type Prompt, type PromptId, type Session, type Source } from '@/lib/api';
@@ -511,15 +512,28 @@ function UserContextSection({
   readOnly: boolean;
   onChange: (v: string) => Promise<unknown>;
 }) {
-  const { draft, setDraft } = useDraftEditor({
+  const { draft, setDraft, status, error } = useDraftEditor({
     queryKey: ['session', sessionId, 'user_context'],
     loaded: value,
     save: onChange,
     disabled: readOnly,
   });
 
+  const [mode, setMode] = useState<MarkdownEditorMode>('edit');
+
+  const statusText =
+    status === 'error' && error
+      ? `Save failed: ${error.message}`
+      : status === 'saving'
+        ? 'Saving…'
+        : status === 'unsaved'
+          ? 'Unsaved…'
+          : status === 'saved'
+            ? 'Saved ✓'
+            : null;
+
   return (
-    <section key={sessionId} className='flex h-56 shrink-0 flex-col border-b bg-white'>
+    <section key={sessionId} className='flex h-72 shrink-0 flex-col border-b bg-white'>
       <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
         <span className='text-gray-500'>What's this session about?</span>
         {!readOnly && (
@@ -538,13 +552,18 @@ function UserContextSection({
           </div>
         )}
       </div>
-      <textarea
+      <MarkdownEditor
         value={draft}
-        onChange={e => setDraft(e.target.value)}
+        onChange={setDraft}
+        mode={mode}
+        setMode={setMode}
+        readOnly={readOnly}
         disabled={readOnly}
         spellCheck
         placeholder='Describe the bug, feature, or chore. Include any relevant links, repro steps, affected users, deadlines, or constraints.'
-        className='min-h-0 flex-1 resize-none bg-white p-4 text-sm leading-relaxed text-gray-800 outline-none placeholder:text-gray-400 disabled:bg-gray-50 disabled:text-gray-500'
+        statusText={statusText}
+        statusError={status === 'error' && !!error}
+        className='min-h-0 flex-1'
       />
     </section>
   );
@@ -715,50 +734,36 @@ function DescriptionEditor({
     disabled,
   });
 
+  const statusText =
+    status === 'error' && error
+      ? `Save failed: ${error.message}`
+      : status === 'saving'
+        ? 'Saving…'
+        : status === 'unsaved'
+          ? 'Unsaved…'
+          : status === 'saved'
+            ? 'Saved ✓'
+            : active
+              ? 'Working — wait for the turn to finish'
+              : noClone
+                ? isJira
+                  ? 'No workspace path'
+                  : 'No clone path'
+                : null;
+
   return (
-    <div className='flex h-full flex-col bg-white'>
-      <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
-        <TabsRoot value={mode} onValueChange={v => setMode(v as DescriptionMode)}>
-          <PillTabsList>
-            <PillTabsTab value='preview' size='sm'>
-              Preview
-            </PillTabsTab>
-            <PillTabsTab value='edit' size='sm'>
-              Edit
-            </PillTabsTab>
-          </PillTabsList>
-        </TabsRoot>
-        <span className='shrink-0'>
-          {status === 'error' && error ? (
-            <span className='text-rose-600'>Save failed: {error.message}</span>
-          ) : status === 'saving' ? (
-            <span className='text-gray-500'>Saving…</span>
-          ) : status === 'unsaved' ? (
-            <span className='text-gray-500'>Unsaved…</span>
-          ) : status === 'saved' ? (
-            <span className='text-emerald-600'>Saved ✓</span>
-          ) : active ? (
-            <span className='text-gray-500'>Working — wait for the turn to finish</span>
-          ) : noClone ? (
-            <span className='text-gray-500'>{isJira ? 'No workspace path' : 'No clone path'}</span>
-          ) : null}
-        </span>
-      </div>
-      {mode === 'edit' ? (
-        <textarea
-          value={draft}
-          onChange={e => setDraft(e.target.value)}
-          disabled={disabled}
-          spellCheck
-          placeholder={isJira ? '### Context\n\n…' : '## Summary\n\n…'}
-          className='min-h-0 flex-1 resize-none bg-white p-4 font-mono text-xs leading-relaxed text-gray-800 outline-none disabled:bg-gray-50 disabled:text-gray-500'
-        />
-      ) : (
-        <div className='min-h-0 flex-1 overflow-auto bg-white p-4 text-sm text-gray-800'>
-          {draft.trim() ? <Markdown>{draft}</Markdown> : <p className='text-gray-400'>(empty)</p>}
-        </div>
-      )}
-    </div>
+    <MarkdownEditor
+      value={draft}
+      onChange={setDraft}
+      mode={mode}
+      setMode={setMode}
+      disabled={disabled}
+      spellCheck
+      placeholder={isJira ? '### Context\n\n…' : '## Summary\n\n…'}
+      statusText={statusText}
+      statusError={status === 'error' && !!error}
+      className='h-full'
+    />
   );
 }
 

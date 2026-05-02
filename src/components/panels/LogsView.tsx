@@ -20,16 +20,18 @@ export function LogsView({ text, isRunning = false }: { text: string; isRunning?
   }
   return (
     <div className='flex flex-col gap-1.5'>
-      <TabsRoot value={view} onValueChange={v => setView(v as View)} className='sticky top-0 z-10 self-start'>
-        <PillTabsList>
-          <PillTabsTab value='pretty' size='sm'>
-            Pretty
-          </PillTabsTab>
-          <PillTabsTab value='raw' size='sm'>
-            Raw
-          </PillTabsTab>
-        </PillTabsList>
-      </TabsRoot>
+      <div className='pointer-events-none sticky top-0 z-10 flex h-0 justify-end'>
+        <TabsRoot value={view} onValueChange={v => setView(v as View)} className='pointer-events-auto'>
+          <PillTabsList>
+            <PillTabsTab value='pretty' size='sm'>
+              Pretty
+            </PillTabsTab>
+            <PillTabsTab value='raw' size='sm'>
+              Raw
+            </PillTabsTab>
+          </PillTabsList>
+        </TabsRoot>
+      </div>
       {view === 'pretty' ? (
         parseBlocks(stripped).map((b, i) => <BlockRow key={i} block={b} />)
       ) : (

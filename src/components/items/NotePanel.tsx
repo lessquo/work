@@ -1,6 +1,5 @@
-import { Markdown } from '@/components/panels/Markdown';
+import { MarkdownEditor, type MarkdownEditorMode } from '@/components/panels/MarkdownEditor';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
-import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { api } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
@@ -9,8 +8,6 @@ import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-q
 import { FileText, Trash2 } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useState } from 'react';
-
-type NotePanelMode = 'edit' | 'preview';
 
 export function NotePanel({ noteId }: { noteId: number }) {
   const qc = useQueryClient();
@@ -61,7 +58,7 @@ export function NotePanel({ noteId }: { noteId: number }) {
     },
   });
 
-  const [mode, setMode] = useState<NotePanelMode>('preview');
+  const [mode, setMode] = useState<MarkdownEditorMode>('preview');
 
   const deleteMutation = useMutation({
     mutationFn: () => api.deleteNote(noteId),
@@ -121,44 +118,26 @@ export function NotePanel({ noteId }: { noteId: number }) {
         </button>
       </header>
 
-      <div className='flex min-h-0 flex-1 flex-col bg-white'>
-        <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
-          <TabsRoot value={mode} onValueChange={v => setMode(v as NotePanelMode)}>
-            <PillTabsList>
-              <PillTabsTab value='preview' size='sm'>
-                Preview
-              </PillTabsTab>
-              <PillTabsTab value='edit' size='sm'>
-                Edit
-              </PillTabsTab>
-            </PillTabsList>
-          </TabsRoot>
-          <span className='shrink-0'>
-            {status === 'error' && error ? (
-              <span className='text-rose-600'>Save failed: {error.message}</span>
-            ) : status === 'saving' ? (
-              <span className='text-gray-500'>Saving…</span>
-            ) : status === 'unsaved' ? (
-              <span className='text-gray-500'>Unsaved…</span>
-            ) : status === 'saved' ? (
-              <span className='text-emerald-600'>Saved ✓</span>
-            ) : null}
-          </span>
-        </div>
-        {mode === 'edit' ? (
-          <textarea
-            value={body}
-            onChange={e => setBody(e.target.value)}
-            spellCheck={false}
-            placeholder='Write your note in markdown…'
-            className='min-h-0 flex-1 resize-none bg-white p-4 font-mono text-xs leading-relaxed text-gray-800 outline-none'
-          />
-        ) : (
-          <div className='min-h-0 flex-1 overflow-auto bg-white p-4 text-sm text-gray-800'>
-            {body.trim() ? <Markdown>{body}</Markdown> : <p className='text-gray-400'>(empty)</p>}
-          </div>
-        )}
-      </div>
+      <MarkdownEditor
+        value={body}
+        onChange={setBody}
+        mode={mode}
+        setMode={setMode}
+        placeholder='Write your note in markdown…'
+        statusText={
+          status === 'error' && error
+            ? `Save failed: ${error.message}`
+            : status === 'saving'
+              ? 'Saving…'
+              : status === 'unsaved'
+                ? 'Unsaved…'
+                : status === 'saved'
+                  ? 'Saved ✓'
+                  : null
+        }
+        statusError={status === 'error' && !!error}
+        className='min-h-0 flex-1'
+      />
     </aside>
   );
 }

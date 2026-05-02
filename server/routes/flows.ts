@@ -104,7 +104,6 @@ flows.get('/', c => {
              'source_type',  sr.type,
              'status',       s.status,
              'prompt',       s.prompt,
-             'pr_url',       s.pr_url,
              'user_context', s.user_context,
              'created_at',   s.created_at,
              'item_ext_id', si.ext_id,

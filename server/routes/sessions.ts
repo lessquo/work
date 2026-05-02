@@ -389,7 +389,7 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
   const session = getSession(sessionId);
   if (!session) return c.json({ error: 'not found' }, 404);
   if (session.source_type !== 'jira_issue') return c.json({ error: 'session is not a Jira draft' }, 409);
-  if (session.pr_url) return c.json({ error: 'Jira issue already created' }, 409);
+  if (session.item_id) return c.json({ error: 'Jira issue already created' }, 409);
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no workspace path' }, 409);
 
   const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(session.source_id) as
@@ -402,7 +402,6 @@ sessions.post('/sessions/:id/create-jira-issue', async c => {
     const description = (await readMetaFile(session, 'JIRA_DESCRIPTION.md')).trim();
     if (!summary) return c.json({ error: 'JIRA_TITLE.txt is empty' }, 400);
     const created = await createJiraIssue(source.ext_id, summary, description);
-    db.prepare(`UPDATE sessions SET pr_url = ? WHERE id = ?`).run(created.url, sessionId);
     // Best-effort: pull the new issue into the local items table so it appears in the Items list
     // immediately. Don't fail the response if this call hiccups — the issue has been created.
     try {
@@ -432,8 +431,7 @@ sessions.post('/sessions/:id/update-jira-issue', async c => {
   const session = getSession(sessionId);
   if (!session) return c.json({ error: 'not found' }, 404);
   if (session.source_type !== 'jira_issue') return c.json({ error: 'session is not a Jira draft' }, 409);
-  if (!session.pr_url) return c.json({ error: 'Jira issue not created yet' }, 409);
-  if (!session.item_id) return c.json({ error: 'session not linked to Jira item' }, 409);
+  if (!session.item_id) return c.json({ error: 'Jira issue not created yet' }, 409);
   if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ error: 'no workspace path' }, 409);
 
   const item = db.prepare(`SELECT ext_id, source_id FROM items WHERE id = ?`).get(session.item_id) as
@@ -475,22 +473,24 @@ sessions.post('/sessions/:id/create-github-pr', async c => {
     }
     await pushBranch(session.clone_path, session.branch);
     const title = commitMsg.split(/\r?\n/)[0]?.trim() || 'claude: changes';
-    if (session.pr_url) {
-      await editPrViaGh(session.clone_path, session.pr_url, title, prBody);
-      const parsed = parseGithubPrUrl(session.pr_url);
-      if (parsed) {
-        try {
-          const ghSource = db
-            .prepare(`SELECT id FROM sources WHERE type = 'github_pr' AND ext_id = ?`)
-            .get(`${parsed.owner}/${parsed.repo}`) as { id: number } | undefined;
-          if (ghSource) await upsertGithubPr(ghSource.id, parsed.owner, parsed.repo, parsed.number);
-        } catch (e) {
-          console.warn(`[github] post-edit refresh failed for ${session.pr_url}:`, e);
-        }
+    if (session.item_id) {
+      const item = db
+        .prepare(
+          `SELECT i.url, i.key, sr.id AS source_id, sr.ext_id AS source_ext_id
+             FROM items i JOIN sources sr ON sr.id = i.source_id
+            WHERE i.id = ?`,
+        )
+        .get(session.item_id) as { url: string; key: string; source_id: number; source_ext_id: string } | undefined;
+      if (!item) return c.json({ error: 'session item not found' }, 500);
+      await editPrViaGh(session.clone_path, item.url, title, prBody);
+      try {
+        const [owner, repo] = item.source_ext_id.split('/');
+        await upsertGithubPr(item.source_id, owner, repo, Number(item.key));
+      } catch (e) {
+        console.warn(`[github] post-edit refresh failed for ${item.url}:`, e);
       }
     } else {
       const url = await createPrViaGh(session.clone_path, session.branch, title, prBody);
-      db.prepare(`UPDATE sessions SET pr_url = ? WHERE id = ?`).run(url, sessionId);
       // Best-effort: pull the new PR into the local items table so it appears in the Items list
       // immediately. Don't fail the response if this hiccups — the PR has been created.
       const parsed = parseGithubPrUrl(url);

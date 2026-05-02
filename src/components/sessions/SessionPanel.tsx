@@ -202,7 +202,7 @@ export function SessionPanel({
           {session?.status === 'succeeded' &&
             !isNotes &&
             (isJira ? (
-              session.pr_url ? (
+              session.item_id ? (
                 <button
                   disabled={updateJiraMutation.isPending}
                   onClick={() => updateJiraMutation.mutate()}
@@ -226,10 +226,10 @@ export function SessionPanel({
                 className='btn-sm btn-primary'
               >
                 {createPrMutation.isPending
-                  ? session.pr_url
+                  ? session.item_id
                     ? 'Pushing…'
                     : 'Creating PR…'
-                  : session.pr_url
+                  : session.item_id
                     ? 'Commit & push'
                     : 'Create PR'}
               </button>

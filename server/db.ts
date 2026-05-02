@@ -72,7 +72,6 @@ CREATE TABLE IF NOT EXISTS sessions (
   clone_path TEXT,
   log_path TEXT,
   error TEXT,
-  pr_url TEXT,
   prompt TEXT NOT NULL,
   claude_session_id TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -257,7 +256,6 @@ export type Session = {
   clone_path: string | null;
   log_path: string | null;
   error: string | null;
-  pr_url: string | null;
   prompt: string;
   claude_session_id: string | null;
   created_at: string;

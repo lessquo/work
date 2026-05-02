@@ -39,7 +39,6 @@ export type FlowSessionChild = {
   source_type: ItemType;
   status: SessionStatus;
   prompt: string;
-  pr_url: string | null;
   user_context: string | null;
   created_at: string;
   item_ext_id: string | null;
@@ -164,7 +163,6 @@ export type Session = {
   clone_path: string | null;
   log_path: string | null;
   error: string | null;
-  pr_url: string | null;
   prompt: string;
   claude_session_id: string | null;
   created_at: string;

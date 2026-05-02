@@ -16,27 +16,29 @@ export function SourcesPage() {
     <>
       <title>Sources · Work</title>
 
-      <div className='mx-auto w-full max-w-2xl p-6'>
-        <div className='mb-4 flex items-center justify-between'>
-          <h1 className='flex items-center gap-1 text-lg font-semibold'>
-            <HomeLink />
-            <PageSwitcher />
-          </h1>
-          <Link to='/sources/add' className='btn-md btn-neutral'>
-            <Plus />
-            Add source
-          </Link>
-        </div>
+      <div className='flex flex-1 overflow-y-scroll'>
+        <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
+          <div className='mb-4 flex items-center justify-between'>
+            <h1 className='flex items-center gap-1 text-lg font-semibold'>
+              <HomeLink />
+              <PageSwitcher />
+            </h1>
+            <Link to='/sources/add' className='btn-md btn-neutral'>
+              <Plus />
+              Add source
+            </Link>
+          </div>
 
-        {sources.length === 0 ? (
-          <div className='rounded-lg border bg-white p-8 text-center text-sm text-gray-500'>No sources yet.</div>
-        ) : (
-          <ul className='flex flex-col rounded-lg border bg-white'>
-            {sources.map(s => (
-              <SourceRow key={s.id} source={s} />
-            ))}
-          </ul>
-        )}
+          {sources.length === 0 ? (
+            <div className='rounded-lg border bg-white p-8 text-center text-sm text-gray-500'>No sources yet.</div>
+          ) : (
+            <ul className='flex flex-col rounded-lg border bg-white'>
+              {sources.map(s => (
+                <SourceRow key={s.id} source={s} />
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </>
   );

@@ -3,13 +3,13 @@ import { ItemPanel } from '@/components/items/ItemPanel';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { api, type Item } from '@/lib/api';
+import { useNumberParam } from '@/lib/useNumberParam';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 export function ItemsPageSlot() {
-  const { itemId } = useParams();
-  const itemIdNum = itemId ? Number(itemId) : null;
+  const itemId = useNumberParam('itemId');
   const navigate = useNavigate();
   const qc = useQueryClient();
   const confirm = useConfirm();
@@ -29,7 +29,7 @@ export function ItemsPageSlot() {
   const items = itemsQuery.data;
 
   const selection = new Set<number>(selectedIds);
-  if (itemIdNum !== null) selection.add(itemIdNum);
+  if (itemId !== null) selection.add(itemId);
 
   function clearSelection() {
     const params = new URLSearchParams(window.location.search);
@@ -163,7 +163,8 @@ export function ItemsPageSlot() {
   }
 
   if (selection.size === 1) {
-    return <ItemPanel />;
+    const [onlyId] = selection;
+    return <ItemPanel itemId={onlyId} />;
   }
 
   return (

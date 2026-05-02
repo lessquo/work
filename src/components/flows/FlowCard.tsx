@@ -13,16 +13,17 @@ import {
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { timeAgo } from '@/lib/time';
+import { useNumberParam } from '@/lib/useNumberParam';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useRef } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 
 type ItemColumn = { item: Item; sessions: FlowSessionChild[] };
 
 export function FlowCard({ flow }: { flow: FlowWithChildren }) {
-  const { flowId } = useParams();
+  const flowId = useNumberParam('flowId');
   const location = useLocation();
   const navigate = useNavigate();
   const wid = flow.id;
@@ -37,7 +38,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
-      if (flowId && Number(flowId) === wid) {
+      if (flowId === wid) {
         navigate({ pathname: `/flows`, search: location.search });
       }
       toast.add({ title: 'Flow deleted', type: 'success' });

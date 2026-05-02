@@ -307,6 +307,7 @@ export const api = {
   createGithubPr: (sessionId: number) => req<Session>(`/sessions/${sessionId}/create-github-pr`, { method: 'POST' }),
   createJiraIssue: (sessionId: number) => req<Session>(`/sessions/${sessionId}/create-jira-issue`, { method: 'POST' }),
   updateJiraIssue: (sessionId: number) => req<Session>(`/sessions/${sessionId}/update-jira-issue`, { method: 'POST' }),
+  listSessions: () => req<SourceSession[]>(`/sessions`),
   listSourceSessions: (sourceId: number) => req<SourceSession[]>(`/sources/${sourceId}/sessions`),
   listFlows: () => req<FlowWithChildren[]>(`/flows`),
   createFlow: () => req<Flow>(`/flows`, { method: 'POST' }),

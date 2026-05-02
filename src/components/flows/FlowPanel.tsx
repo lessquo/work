@@ -1,12 +1,11 @@
 import { api, itemCreationTime } from '@/lib/api';
+import { useNumberParam } from '@/lib/useNumberParam';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect } from 'react';
-import { useParams } from 'react-router';
 
 export function FlowPanel() {
-  const { flowId } = useParams();
-  const wid = flowId ? Number(flowId) : null;
+  const flowId = useNumberParam('flowId');
   const [, setOpenItemId] = useQueryState('item', parseAsInteger);
   const [, setOpenSessionId] = useQueryState('session', parseAsInteger);
 
@@ -14,7 +13,7 @@ export function FlowPanel() {
     queryKey: ['flows'],
     queryFn: api.listFlows,
   });
-  const flow = wid !== null ? flowsQuery.data.find(w => w.id === wid) : undefined;
+  const flow = flowsQuery.data.find(w => w.id === flowId);
   const latestSession = flow?.sessions.reduce<(typeof flow.sessions)[number] | null>(
     (acc, s) => (acc === null || s.created_at > acc.created_at ? s : acc),
     null,

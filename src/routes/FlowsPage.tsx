@@ -1,11 +1,12 @@
 import { FlowCard } from '@/components/flows/FlowCard';
 import { api } from '@/lib/api';
+import { useNumberParam } from '@/lib/useNumberParam';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo } from 'react';
-import { Outlet, useNavigate, useParams } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 
 export function FlowsPage() {
-  const { flowId } = useParams();
+  const flowId = useNumberParam('flowId');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -66,11 +67,9 @@ export function FlowsPage() {
             </ul>
           )}
         </div>
-        {flowId && (
-          <div className='h-full min-w-0 flex-1 overflow-y-scroll'>
-            <Outlet />
-          </div>
-        )}
+        <div className='h-full min-w-0 flex-1 overflow-y-scroll'>
+          <Outlet />
+        </div>
       </div>
     </>
   );

@@ -2,20 +2,13 @@ import { GithubPrPanel } from '@/components/items/GithubPrPanel';
 import { JiraIssuePanel } from '@/components/items/JiraIssuePanel';
 import { NotebookPanel } from '@/components/items/NotebookPanel';
 import { SentryIssuePanel } from '@/components/items/SentryIssuePanel';
-import { api, type Item } from '@/lib/api';
+import { api } from '@/lib/api';
 import { useSuspenseQuery } from '@tanstack/react-query';
-import { parseAsArrayOf, parseAsInteger, useQueryState } from 'nuqs';
-import { useParams } from 'react-router';
 
-export function ItemPanel({ itemId: itemIdProp }: { itemId?: number } = {}) {
-  const { itemId: itemIdParam } = useParams();
-  const [selectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
-  const itemId = itemIdProp ?? (itemIdParam ? Number(itemIdParam) : (selectedIds[0] ?? null));
-  const isFlowMode = itemIdProp !== undefined;
-
+export function ItemPanel({ itemId, isFlowMode = false }: { itemId: number; isFlowMode?: boolean }) {
   const itemQuery = useSuspenseQuery({
-    queryKey: itemId !== null ? ['item', itemId] : ['item-noop'],
-    queryFn: (): Promise<Item | null> => (itemId !== null ? api.getItem(itemId) : Promise.resolve(null)),
+    queryKey: ['item', itemId],
+    queryFn: () => api.getItem(itemId),
   });
   const item = itemQuery.data;
 

@@ -2,10 +2,11 @@ import { SessionCard } from '@/components/SessionCard';
 import { SourceSwitcher } from '@/components/SourceSwitcher';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, type ItemType, type SessionStatus, type SourceSession } from '@/lib/api';
+import { useNumberParam } from '@/lib/useNumberParam';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
 import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useState } from 'react';
-import { Outlet, useNavigate, useParams } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 
 type TypeFilter = 'all' | ItemType;
 type StatusFilter = 'all' | 'active' | 'finished';
@@ -27,27 +28,8 @@ function isActive(status: SessionStatus): boolean {
 }
 
 export function SessionsPage() {
-  const [source] = useQueryState('source', parseAsInteger);
-
-  return (
-    <>
-      <title>Sessions · Work</title>
-
-      {source !== null ? (
-        <SessionsContent sourceId={source} />
-      ) : (
-        <div className='flex flex-1 flex-col items-center justify-center gap-3 text-sm text-gray-500'>
-          <SourceSwitcher />
-          Select a source to view sessions.
-        </div>
-      )}
-    </>
-  );
-}
-
-function SessionsContent({ sourceId }: { sourceId: number }) {
-  const { sessionId } = useParams();
-  const openSessionId = sessionId ? Number(sessionId) : null;
+  const [sourceId] = useQueryState('source', parseAsInteger);
+  const sessionId = useNumberParam('sessionId');
   const navigate = useNavigate();
 
   function openSession(sid: number) {
@@ -56,13 +38,13 @@ function SessionsContent({ sourceId }: { sourceId: number }) {
 
   const sourceQuery = useSuspenseQuery({
     queryKey: ['source', sourceId],
-    queryFn: () => api.getSource(sourceId),
+    queryFn: () => (sourceId === null ? null : api.getSource(sourceId)),
   });
   const source = sourceQuery.data;
 
   const sessionsQuery = useQuery({
-    queryKey: ['source', sourceId, 'sessions'],
-    queryFn: () => api.listSourceSessions(sourceId),
+    queryKey: sourceId === null ? ['sessions'] : ['source', sourceId, 'sessions'],
+    queryFn: () => (sourceId === null ? api.listSessions() : api.listSourceSessions(sourceId)),
     refetchInterval: 5000,
   });
   const sessions = useMemo<SourceSession[]>(() => sessionsQuery.data ?? [], [sessionsQuery.data]);
@@ -83,14 +65,16 @@ function SessionsContent({ sourceId }: { sourceId: number }) {
 
   useEffect(() => {
     if (filtered.length === 0) return;
-    if (openSessionId !== null) return;
+    if (sessionId !== null) return;
     const params = new URLSearchParams(window.location.search);
     navigate({ pathname: `/sessions/${filtered[0].id}`, search: params.toString() }, { replace: true });
-  }, [filtered, openSessionId, navigate]);
+  }, [filtered, sessionId, navigate]);
+
+  const pageTitle = source ? `${source.ext_id} · Sessions` : 'Sessions · Work';
 
   return (
     <>
-      <title>{`${source.ext_id} · Sessions`}</title>
+      <title>{pageTitle}</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
@@ -133,18 +117,16 @@ function SessionsContent({ sourceId }: { sourceId: number }) {
                 <SessionCard
                   key={session.id}
                   session={session}
-                  selected={openSessionId === session.id}
+                  selected={sessionId === session.id}
                   onOpen={openSession}
                 />
               ))}
             </ul>
           )}
         </div>
-        {openSessionId !== null && (
-          <div className='h-full min-w-0 flex-1 overflow-y-scroll'>
-            <Outlet />
-          </div>
-        )}
+        <div className='h-full min-w-0 flex-1 overflow-y-scroll'>
+          <Outlet />
+        </div>
       </div>
     </>
   );

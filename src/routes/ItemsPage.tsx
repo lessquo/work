@@ -6,11 +6,12 @@ import { Select } from '@/components/ui/Select';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { api, type ItemStatus, type ItemType } from '@/lib/api';
 import { useFuzzySearch } from '@/lib/fuse';
+import { useNumberParam } from '@/lib/useNumberParam';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useEffect, useMemo } from 'react';
-import { Outlet, useNavigate, useParams } from 'react-router';
+import { Outlet, useNavigate } from 'react-router';
 
 type Filter = ItemStatus;
 type Sort = 'recency' | 'title';
@@ -60,8 +61,7 @@ export function ItemsPage() {
 }
 
 function ItemsContent({ sourceId }: { sourceId: number }) {
-  const { itemId } = useParams();
-  const itemIdNum = itemId ? Number(itemId) : null;
+  const itemId = useNumberParam('itemId');
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [filter, setFilter] = useQueryState(
@@ -77,7 +77,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
 
   function setSelection(newAnchor: number | null, newExtras: number[]) {
     const filtered = newExtras.filter(eid => eid !== newAnchor);
-    if (newAnchor === itemIdNum) {
+    if (newAnchor === itemId) {
       setSelectedIds(filtered.length === 0 ? null : filtered);
       return;
     }
@@ -112,12 +112,12 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
 
   const visibleIds = useMemo(() => new Set(items.map(i => i.id)), [items]);
   const validSelectedIds = useMemo(() => selectedIds.filter(eid => visibleIds.has(eid)), [selectedIds, visibleIds]);
-  const validItemIdNum = itemIdNum !== null && visibleIds.has(itemIdNum) ? itemIdNum : null;
+  const validItemId = itemId !== null && visibleIds.has(itemId) ? itemId : null;
   const selection = useMemo(() => {
     const set = new Set<number>(validSelectedIds);
-    if (validItemIdNum !== null) set.add(validItemIdNum);
+    if (validItemId !== null) set.add(validItemId);
     return set;
-  }, [validSelectedIds, validItemIdNum]);
+  }, [validSelectedIds, validItemId]);
 
   const countsQuery = useQuery({
     queryKey: ['itemCounts', sourceId],
@@ -132,10 +132,10 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
 
   useEffect(() => {
     if (items.length === 0) return;
-    if (validItemIdNum !== null) return;
+    if (validItemId !== null) return;
     const params = new URLSearchParams(window.location.search);
     navigate({ pathname: `/items/${items[0].id}`, search: params.toString() }, { replace: true });
-  }, [items, validItemIdNum, navigate]);
+  }, [items, validItemId, navigate]);
 
   const createNotebookMutation = useMutation({
     mutationFn: () => api.createNotebook(),
@@ -150,7 +150,7 @@ function ItemsContent({ sourceId }: { sourceId: number }) {
   const error = itemsQuery.error instanceof Error ? itemsQuery.error.message : null;
 
   function selectItem(clickedId: number, modifiers: { shiftKey: boolean; metaKey: boolean }) {
-    const anchor = validItemIdNum;
+    const anchor = validItemId;
     if (modifiers.shiftKey && anchor !== null && anchor !== clickedId) {
       const startIdx = items.findIndex(i => i.id === anchor);
       const endIdx = items.findIndex(i => i.id === clickedId);

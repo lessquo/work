@@ -1,11 +1,11 @@
 import { FlowPanel } from '@/components/flows/FlowPanel';
 import { ItemPanel } from '@/components/items/ItemPanel';
 import { SessionPanel } from '@/components/sessions/SessionPanel';
+import { useNumberParam } from '@/lib/useNumberParam';
 import { parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useParams } from 'react-router';
 
 export function FlowsPageSlot() {
-  const { flowId } = useParams();
+  const flowId = useNumberParam('flowId');
   const [itemId] = useQueryState('item', parseAsInteger);
   const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
   const [sessionTab, setSessionTab] = useQueryState(
@@ -18,7 +18,7 @@ export function FlowsPageSlot() {
   );
 
   if (itemId !== null) {
-    return <ItemPanel itemId={itemId} />;
+    return <ItemPanel itemId={itemId} isFlowMode />;
   }
 
   if (sessionId !== null) {

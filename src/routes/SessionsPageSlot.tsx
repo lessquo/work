@@ -1,9 +1,10 @@
 import { SessionPanel } from '@/components/sessions/SessionPanel';
+import { useNumberParam } from '@/lib/useNumberParam';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate } from 'react-router';
 
 export function SessionsPageSlot() {
-  const { sessionId } = useParams();
+  const sessionId = useNumberParam('sessionId');
   const navigate = useNavigate();
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
@@ -14,12 +15,12 @@ export function SessionsPageSlot() {
     parseAsStringLiteral(['edit', 'preview'] as const).withDefault('preview'),
   );
 
-  if (!sessionId) return null;
+  if (sessionId === null) return null;
 
   return (
     <SessionPanel
       key={sessionId}
-      sessionId={Number(sessionId)}
+      sessionId={sessionId}
       onClose={() => navigate({ pathname: `/sessions`, search: window.location.search })}
       tab={sessionTab}
       setTab={setSessionTab}

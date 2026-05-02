@@ -208,6 +208,25 @@ sessions.post('/items/:id/sessions', async c => {
   return c.json(session);
 });
 
+// GET /api/sessions — list all sessions across sources
+sessions.get('/sessions', c => {
+  const rows = db
+    .prepare(
+      `SELECT ${sessionColumns},
+              i.ext_id AS item_ext_id,
+              i.key    AS item_key,
+              i.title  AS item_title,
+              i.type   AS item_type,
+              i.url    AS item_url,
+              i.raw    AS item_raw
+         FROM ${sessionFrom}
+         LEFT JOIN items i ON i.id = s.item_id
+        ORDER BY s.id DESC`,
+    )
+    .all();
+  return c.json(rows);
+});
+
 // GET /api/items/:id/sessions — list all sessions for an item
 sessions.get('/items/:id/sessions', c => {
   const itemId = Number(c.req.param('id'));

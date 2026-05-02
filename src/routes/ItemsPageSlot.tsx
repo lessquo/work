@@ -94,25 +94,8 @@ export function ItemsPageSlot() {
     onError: onMutationError,
   });
 
-  const deleteSessionsMutation = useMutation({
-    mutationFn: (ids: number[]) => api.deleteItemSessions(sourceId, ids),
-    onSuccess: res => {
-      const parts: string[] = [`Deleted ${res.deleted} session${res.deleted === 1 ? '' : 's'}`];
-      if (res.skipped_active > 0) parts.push(`${res.skipped_active} skipped (active)`);
-      if (res.no_run > 0) parts.push(`${res.no_run} had no session`);
-      if (res.folder_errors.length > 0)
-        parts.push(`${res.folder_errors.length} folder error${res.folder_errors.length === 1 ? '' : 's'}`);
-      toast.add({ title: parts.join(' · ') + '.' });
-      clearSelection();
-      qc.invalidateQueries({ queryKey: ['items', sourceId] });
-      qc.invalidateQueries({ queryKey: ['itemCounts', sourceId] });
-    },
-    onError: onMutationError,
-  });
-
   const creatingSessions = createSessionsMutation.isPending;
   const resolving = resolveItemsMutation.isPending;
-  const deletingSessions = deleteSessionsMutation.isPending;
   const creatingFlows = createFlowsMutation.isPending;
 
   function createSelected() {
@@ -132,19 +115,6 @@ export function ItemsPageSlot() {
     resolveItemsMutation.mutate(Array.from(selection));
   }
 
-  async function deleteSelectedSessions() {
-    if (selection.size === 0) return;
-    const ok = await confirm({
-      title: `Delete sessions for ${selection.size} item${selection.size === 1 ? '' : 's'}?`,
-      description:
-        'The latest session for each selected item will be deleted along with its clone folder. Active (queued/running) sessions will be skipped.',
-      confirmText: 'Delete sessions',
-      destructive: true,
-    });
-    if (!ok) return;
-    deleteSessionsMutation.mutate(Array.from(selection));
-  }
-
   if (selection.size > 1) {
     return (
       <BatchPanel
@@ -152,11 +122,9 @@ export function ItemsPageSlot() {
         selectedItems={items.filter(i => selection.has(i.id))}
         onCreateSessions={createSelected}
         onResolve={resolveSelected}
-        onDeleteSessions={deleteSelectedSessions}
         onCreateFlows={() => createFlowsMutation.mutate(Array.from(selection))}
         creatingSessions={creatingSessions}
         resolving={resolving}
-        deletingSessions={deletingSessions}
         creatingFlows={creatingFlows}
       />
     );

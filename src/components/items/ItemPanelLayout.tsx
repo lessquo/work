@@ -82,19 +82,6 @@ export function ItemPanelLayout({
     },
   });
 
-  const deleteSessionMutation = useMutation({
-    mutationFn: () => api.deleteItemSessions(item.source_id, [item.id]),
-    onSuccess: res => {
-      const parts: string[] = [`Deleted ${res.deleted} session${res.deleted === 1 ? '' : 's'}`];
-      if (res.skipped_active > 0) parts.push(`${res.skipped_active} skipped (active)`);
-      if (res.no_run > 0) parts.push(`${res.no_run} had no session`);
-      if (res.folder_errors.length > 0)
-        parts.push(`${res.folder_errors.length} folder error${res.folder_errors.length === 1 ? '' : 's'}`);
-      toast.add({ title: parts.join(' · ') + '.' });
-      invalidateAfterMutation();
-    },
-  });
-
   async function copyLink() {
     const text = `[${item.key}](${item.url})`;
     try {
@@ -113,18 +100,6 @@ export function ItemPanelLayout({
     });
     if (!ok) return;
     resolveMutation.mutate();
-  }
-
-  async function handleDeleteSession() {
-    const ok = await confirm({
-      title: 'Delete sessions for this item?',
-      description:
-        'The latest session for this item will be deleted along with its clone folder. Active (queued/running) sessions will be skipped.',
-      confirmText: 'Delete sessions',
-      destructive: true,
-    });
-    if (!ok) return;
-    deleteSessionMutation.mutate();
   }
 
   const logo = TYPE_LOGO[item.type];
@@ -188,15 +163,6 @@ export function ItemPanelLayout({
             >
               <Workflow />
               {createFlowMutation.isPending ? 'Creating…' : 'Create flow'}
-            </button>
-          </Tooltip>
-          <Tooltip content='Delete the latest session for this issue (active sessions skipped)'>
-            <button
-              onClick={handleDeleteSession}
-              disabled={deleteSessionMutation.isPending}
-              className='btn-sm btn-danger'
-            >
-              {deleteSessionMutation.isPending ? 'Deleting…' : 'Delete sessions'}
             </button>
           </Tooltip>
         </div>

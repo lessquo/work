@@ -272,14 +272,6 @@ export const api = {
       body: JSON.stringify(patch),
     }),
   queueDraftSession: (sessionId: number) => req<Session>(`/sessions/${sessionId}/queue`, { method: 'POST' }),
-  deleteItemSessions: (sourceId: number, itemIds: number[]) =>
-    req<{ deleted: number; skipped_active: number; no_run: number; folder_errors: string[] }>(
-      `/sources/${sourceId}/delete-sessions`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ itemIds }),
-      },
-    ),
   resolveItems: (sourceId: number, itemIds: number[]) =>
     req<{ resolved: number; skipped: number; errors: string[] }>(`/sources/${sourceId}/resolve-items`, {
       method: 'POST',

@@ -10,22 +10,18 @@ export function BatchPanel({
   selectedItems,
   onCreateSessions,
   onResolve,
-  onDeleteSessions,
   onCreateFlows,
   creatingSessions,
   resolving,
-  deletingSessions,
   creatingFlows,
 }: {
   filter: Filter;
   selectedItems: Item[];
   onCreateSessions: () => void;
   onResolve: () => void;
-  onDeleteSessions: () => void;
   onCreateFlows: () => void;
   creatingSessions: boolean;
   resolving: boolean;
-  deletingSessions: boolean;
   creatingFlows: boolean;
 }) {
   const toast = useToast();
@@ -89,11 +85,6 @@ export function BatchPanel({
             <button onClick={onCreateFlows} disabled={creatingFlows || count === 0} className='btn-sm btn-neutral'>
               <Workflow />
               {creatingFlows ? 'Creating…' : count > 1 ? `Create ${count} flows` : 'Create flow'}
-            </button>
-          </Tooltip>
-          <Tooltip content='Delete the latest session for each selected issue (active sessions skipped)'>
-            <button onClick={onDeleteSessions} disabled={deletingSessions || count === 0} className='btn-sm btn-danger'>
-              {deletingSessions ? 'Deleting…' : 'Delete sessions'}
             </button>
           </Tooltip>
         </div>

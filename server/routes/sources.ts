@@ -6,7 +6,6 @@ import {
   sessionFrom,
   type Item,
   type ItemType,
-  type Session,
   type Source,
 } from '@server/db.js';
 import { syncGithubSource } from '@server/integrations/github.js';
@@ -19,7 +18,7 @@ import {
 } from '@server/integrations/sentry.js';
 import { getSyncLimit } from '@server/settings.js';
 import { DEFAULT_PROMPT_ID, isPromptId } from '@server/worker/prompt.js';
-import { deleteSessionFolder, enqueueSession } from '@server/worker/runner.js';
+import { enqueueSession } from '@server/worker/runner.js';
 import { Hono } from 'hono';
 
 const SOURCE_TYPES: ItemType[] = ['sentry_issue', 'jira_issue', 'github_pr'];
@@ -293,47 +292,6 @@ sources.get('/:id/sessions', c => {
     )
     .all(id, id);
   return c.json(rows);
-});
-
-sources.post('/:id/delete-sessions', async c => {
-  const id = Number(c.req.param('id'));
-  const source = db.prepare(`SELECT * FROM sources WHERE id = ?`).get(id) as Source | undefined;
-  if (!source) return c.json({ error: 'not found' }, 404);
-
-  const body = await c.req.json<{ itemIds?: number[] }>().catch(() => ({}) as { itemIds?: number[] });
-  const ids = Array.isArray(body.itemIds) ? body.itemIds.filter(n => Number.isInteger(n)) : [];
-  if (ids.length === 0) return c.json({ deleted: 0, skipped_active: 0, no_run: 0, folder_errors: [] });
-
-  const latestStmt = db.prepare(
-    `SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.item_id = ? ORDER BY s.id DESC LIMIT 1`,
-  );
-  const deleteStmt = db.prepare(`DELETE FROM sessions WHERE id = ?`);
-
-  let deleted = 0;
-  let skipped_active = 0;
-  let no_run = 0;
-  const folder_errors: string[] = [];
-
-  for (const itemId of ids) {
-    const session = latestStmt.get(itemId) as Session | undefined;
-    if (!session) {
-      no_run++;
-      continue;
-    }
-    if (session.status === 'queued' || session.status === 'running') {
-      skipped_active++;
-      continue;
-    }
-    try {
-      await deleteSessionFolder(session.id);
-    } catch (e) {
-      folder_errors.push(`session ${session.id}: ${e instanceof Error ? e.message : String(e)}`);
-    }
-    deleteStmt.run(session.id);
-    deleted++;
-  }
-
-  return c.json({ deleted, skipped_active, no_run, folder_errors });
 });
 
 async function resolveItemUpstream(source: Source, item: Item, assignTo: string | null): Promise<boolean> {

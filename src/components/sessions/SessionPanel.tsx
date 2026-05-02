@@ -16,7 +16,7 @@ import { api, DEFAULT_PROMPT_ID, type Prompt, type PromptId, type Session, type 
 import { cn } from '@/lib/cn';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { Copy } from 'lucide-react';
+import { Copy, Terminal } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
 export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'notes';
@@ -184,6 +184,7 @@ export function SessionPanel({
       <header className='flex h-12 items-center gap-2 border-b bg-gray-50 px-4'>
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2 text-sm'>
+            <Terminal className='size-3.5 shrink-0 text-gray-500' />
             <span className='font-semibold'>Session #{sessionId}</span>
             {session && <StatusBadge status={session.status} />}
             {session?.clone_path && (

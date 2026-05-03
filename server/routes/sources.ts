@@ -61,13 +61,12 @@ sources.get('/:id/items', c => {
          COALESCE((
            SELECT json_group_array(json_object('id', r.id, 'status', r.status))
            FROM (SELECT id, status FROM sessions WHERE item_id = i.id ORDER BY id DESC) r
-         ), '[]') AS sessions,
-         (SELECT COUNT(*) FROM notes WHERE item_id = i.id) AS note_count
+         ), '[]') AS sessions
        FROM items i
        WHERE i.source_id = ?
        ORDER BY ${recencyExpr(source.type)} DESC, i.id DESC`,
     )
-    .all(id) as Array<Item & { sessions: string; note_count: number }>;
+    .all(id) as Array<Item & { sessions: string }>;
   return c.json(
     rows.map(r => ({
       ...r,
@@ -82,7 +81,6 @@ sources.get('/:id/items', c => {
 function recencyExpr(type: ItemType): string {
   if (type === 'sentry_issue') return `json_extract(i.raw, '$.lastSeen')`;
   if (type === 'jira_issue') return `json_extract(i.raw, '$.updated')`;
-  if (type === 'notes') return `i.updated_at`;
   if (type === 'markdown') return `i.updated_at`;
   // github_pr: prefer mergedAt for closed-merged PRs, fall back to updatedAt.
   return `COALESCE(json_extract(i.raw, '$.mergedAt'), json_extract(i.raw, '$.updatedAt'))`;
@@ -230,7 +228,6 @@ function runSync(source: Source): Promise<number> {
       return syncGithubSource(source, limit);
     case 'jira_issue':
       return syncJiraSource(source, limit);
-    case 'notes':
     case 'markdown':
       // Local-only sources are user-authored; no upstream to sync.
       return Promise.resolve(0);

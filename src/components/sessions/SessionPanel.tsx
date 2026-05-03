@@ -1,6 +1,5 @@
 import { InsertJiraLinkButton } from '@/components/InsertJiraLinkButton';
 import { InsertMarkdownButton } from '@/components/InsertMarkdownButton';
-import { InsertNoteButton } from '@/components/InsertNoteButton';
 import { DiffView } from '@/components/panels/DiffView';
 import { LogsView } from '@/components/panels/LogsView';
 import { Markdown } from '@/components/panels/Markdown';
@@ -29,7 +28,7 @@ import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tansta
 import { Copy, Terminal, Trash2 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
-export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'notes' | 'markdown';
+export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'markdown';
 export type DescriptionMode = 'edit' | 'preview';
 
 export function SessionPanel({
@@ -173,9 +172,8 @@ export function SessionPanel({
 
   const active = session?.status === 'queued' || session?.status === 'running';
   const isJira = session?.source_type === 'jira_issue';
-  const isNotes = session?.source_type === 'notes';
   const isMarkdown = session?.source_type === 'markdown';
-  const canRun = isDraft && (isJira || isNotes || isMarkdown || !!session?.repo);
+  const canRun = isDraft && (isJira || isMarkdown || !!session?.repo);
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
     (createJiraMutation.error instanceof Error ? createJiraMutation.error.message : null) ??
@@ -221,7 +219,6 @@ export function SessionPanel({
             </Tooltip>
           )}
           {session?.status === 'succeeded' &&
-            !isNotes &&
             !isMarkdown &&
             (isJira ? (
               session.item_id ? (
@@ -294,7 +291,7 @@ export function SessionPanel({
       {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700'>{prError}</div>}
 
       <TabsRoot
-        value={resolveTabValue(tab, { isJira, isNotes, isMarkdown, isDraft })}
+        value={resolveTabValue(tab, { isJira, isMarkdown, isDraft })}
         onValueChange={v => setTab(v as SessionPanelTab)}
         className='flex min-h-0 flex-1 flex-col'
       >
@@ -303,9 +300,7 @@ export function SessionPanel({
           {!isDraft && (
             <>
               <TabsTab value='logs'>Logs</TabsTab>
-              {isNotes ? (
-                <TabsTab value='notes'>Notes</TabsTab>
-              ) : isMarkdown ? (
+              {isMarkdown ? (
                 <TabsTab value='markdown'>Markdown</TabsTab>
               ) : (
                 <>
@@ -332,11 +327,7 @@ export function SessionPanel({
                 <LogsView text={logs} isRunning={active} />
               </div>
             </TabsPanel>
-            {isNotes ? (
-              <TabsPanel value='notes' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
-                <NotesView session={session} />
-              </TabsPanel>
-            ) : isMarkdown ? (
+            {isMarkdown ? (
               <TabsPanel value='markdown' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
                 <MarkdownView session={session} />
               </TabsPanel>
@@ -390,9 +381,8 @@ function SetupTab({ session }: { session: Session | null }) {
 
   const isDraft = session?.status === 'draft';
   const isJira = session?.source_type === 'jira_issue';
-  const isNotes = session?.source_type === 'notes';
   const isMarkdown = session?.source_type === 'markdown';
-  const allowEmptyRepo = isJira || isNotes || isMarkdown;
+  const allowEmptyRepo = isJira || isMarkdown;
 
   const updateMutation = useMutation({
     mutationFn: (patch: { prompt?: PromptId; repo?: string; userContext?: string; sourceId?: number }) =>
@@ -559,12 +549,6 @@ function UserContextSection({
             <InsertJiraLinkButton
               onInsert={url => {
                 setDraft(draft.trim().length === 0 ? url : `${draft.trim()}\n\n${url}`);
-              }}
-            />
-            <InsertNoteButton
-              onInsert={({ title, body_md }) => {
-                const block = `### ${title}\n\n${body_md.trim()}`;
-                setDraft(draft.trim().length === 0 ? block : `${draft.trim()}\n\n${block}`);
               }}
             />
             <InsertMarkdownButton
@@ -803,71 +787,14 @@ function DescriptionEditor({
 
 function resolveTabValue(
   tab: SessionPanelTab,
-  kind: { isJira: boolean; isNotes: boolean; isMarkdown: boolean; isDraft: boolean },
+  kind: { isJira: boolean; isMarkdown: boolean; isDraft: boolean },
 ): SessionPanelTab {
   if (kind.isDraft) return 'setup';
   if (tab === 'setup') return 'setup';
-  if (kind.isNotes) return tab === 'logs' ? 'logs' : 'notes';
   if (kind.isMarkdown) return tab === 'logs' ? 'logs' : 'markdown';
   if (kind.isJira && tab === 'diff') return 'pr';
-  if (tab === 'notes' || tab === 'markdown') return 'logs';
+  if (tab === 'markdown') return 'logs';
   return tab;
-}
-
-function NotesView({ session }: { session: Session | null }) {
-  const notebookId = session?.item_id ?? null;
-  const notebookQuery = useQuery({
-    queryKey: notebookId !== null ? ['notebook', notebookId] : ['notebook-noop'],
-    queryFn: () => (notebookId !== null ? api.getNotebook(notebookId) : Promise.resolve(null)),
-    enabled: notebookId !== null,
-  });
-
-  if (notebookId === null) {
-    return <div className='p-4 text-sm text-gray-500'>This notes session is not bound to a notebook.</div>;
-  }
-  if (notebookQuery.isPending) {
-    return <div className='p-4 text-sm text-gray-500'>Loading notes…</div>;
-  }
-  if (notebookQuery.isError || !notebookQuery.data) {
-    return (
-      <div className='p-4 text-sm text-rose-600'>
-        Failed to load notes
-        {notebookQuery.error instanceof Error ? `: ${notebookQuery.error.message}` : '.'}
-      </div>
-    );
-  }
-
-  const notebook = notebookQuery.data;
-  const active = session?.status === 'queued' || session?.status === 'running';
-
-  return (
-    <div className='h-full overflow-auto bg-white p-4'>
-      <div className='mb-3 flex items-center justify-between text-xs text-gray-500'>
-        <span>
-          Notebook: <span className='font-medium text-gray-700'>{notebook.title}</span>
-        </span>
-        <span>
-          {notebook.notes.length} note{notebook.notes.length === 1 ? '' : 's'}
-        </span>
-      </div>
-      {notebook.notes.length === 0 ? (
-        <p className='text-sm text-gray-500'>
-          {active ? 'Waiting for the session to produce notes…' : 'No notes were produced in this notebook yet.'}
-        </p>
-      ) : (
-        <ul className='flex flex-col gap-3'>
-          {notebook.notes.map(note => (
-            <li key={note.id} className='rounded-md border border-gray-200 bg-white p-3'>
-              <h4 className='text-sm font-semibold'>{note.title}</h4>
-              <div className='prose prose-sm mt-2 max-w-none text-sm text-gray-700'>
-                <Markdown>{note.body_md}</Markdown>
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 function MarkdownView({ session }: { session: Session | null }) {

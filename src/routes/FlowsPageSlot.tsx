@@ -1,6 +1,5 @@
 import { FlowPanel } from '@/components/flows/FlowPanel';
 import { ItemPanel } from '@/components/items/ItemPanel';
-import { NotePanel } from '@/components/items/NotePanel';
 import { SessionPanel } from '@/components/sessions/SessionPanel';
 import { useNumberParam } from '@/lib/router';
 import { parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
@@ -9,10 +8,9 @@ export function FlowsPageSlot() {
   const flowId = useNumberParam('flowId');
   const [itemId] = useQueryState('item', parseAsInteger);
   const [sessionId, setSessionId] = useQueryState('session', parseAsInteger);
-  const [noteId] = useQueryState('note', parseAsInteger);
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
-    parseAsStringLiteral(['setup', 'logs', 'diff', 'pr', 'notes', 'markdown'] as const).withDefault('logs'),
+    parseAsStringLiteral(['setup', 'logs', 'diff', 'pr', 'markdown'] as const).withDefault('logs'),
   );
   const [descriptionMode, setDescriptionMode] = useQueryState(
     'descriptionMode',
@@ -40,10 +38,6 @@ export function FlowsPageSlot() {
         setDescriptionMode={setDescriptionMode}
       />
     );
-  }
-
-  if (noteId !== null) {
-    return <NotePanel key={noteId} noteId={noteId} />;
   }
 
   if (flowId) return <FlowPanel />;

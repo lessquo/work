@@ -10,16 +10,15 @@ import {
   type FlowWithChildren,
   type Item,
   type ItemType,
-  type Note,
   type SessionStatus,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useNumberParam } from '@/lib/router';
 import { timeAgo } from '@/lib/time';
-import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
-import { FileText, Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
 import { parseAsInteger, useQueryState } from 'nuqs';
-import { Suspense, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
 type ItemColumn = { item: Item; sessions: FlowSessionChild[] };
@@ -31,7 +30,6 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   const wid = flow.id;
   const [openItemId] = useQueryState('item', parseAsInteger);
   const [openSessionId] = useQueryState('session', parseAsInteger);
-  const [openNoteId] = useQueryState('note', parseAsInteger);
   const confirm = useConfirm();
   const toast = useToast();
   const qc = useQueryClient();
@@ -108,9 +106,9 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     },
   });
 
-  const addLocalItemMutation = useMutation({
-    mutationFn: async ({ kind, sessionIds }: { kind: 'notes' | 'markdown'; sessionIds: number[] }) => {
-      const item = await (kind === 'notes' ? api.createNotebook() : api.createMarkdown());
+  const addMarkdownMutation = useMutation({
+    mutationFn: async (sessionIds: number[]) => {
+      const item = await api.createMarkdown();
       await api.setItemFlow(item.id, wid);
       await Promise.all(sessionIds.map(id => api.updateDraftSession(id, { itemId: item.id })));
       return item;
@@ -121,12 +119,11 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
       const params = new URLSearchParams(location.search);
       params.set('item', String(item.id));
       params.delete('session');
-      params.delete('note');
       navigate({ pathname: `/flows/${wid}`, search: params.toString() });
     },
     onError: e => {
       toast.add({
-        title: 'Failed to add item',
+        title: 'Failed to add markdown',
         description: e instanceof Error ? e.message : String(e),
         type: 'error',
       });
@@ -160,11 +157,10 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     detachMutation.mutate(item.id);
   }
 
-  function chipHref(kind: 'item' | 'session' | 'note', id: number): string {
+  function chipHref(kind: 'item' | 'session', id: number): string {
     const params = new URLSearchParams(location.search);
     params.delete('item');
     params.delete('session');
-    params.delete('note');
     params.set(kind, String(id));
     const search = params.toString();
     return `/flows/${wid}${search ? `?${search}` : ''}`;
@@ -266,15 +262,14 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                         <PlaceholderItemChip
                           type={orphanSessions[0].source_type}
                           onCreate={
-                            orphanSessions[0].source_type === 'notes' || orphanSessions[0].source_type === 'markdown'
+                            orphanSessions[0].source_type === 'markdown'
                               ? () =>
-                                  addLocalItemMutation.mutate({
-                                    kind: orphanSessions[0].source_type as 'notes' | 'markdown',
-                                    sessionIds: orphanSessions.filter(s => s.status === 'draft').map(s => s.id),
-                                  })
+                                  addMarkdownMutation.mutate(
+                                    orphanSessions.filter(s => s.status === 'draft').map(s => s.id),
+                                  )
                               : undefined
                           }
-                          pending={addLocalItemMutation.isPending}
+                          pending={addMarkdownMutation.isPending}
                         />
                       ),
                       sessions: orphanSessions,
@@ -282,15 +277,9 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                   ]
                 : []),
             ].flatMap((col, idx) => {
-              const isNotebook = col.item?.type === 'notes';
               const column = (
                 <li key={col.key} className='flex shrink-0 flex-col gap-1.5'>
                   {col.head}
-                  {isNotebook && col.item && (
-                    <Suspense fallback={null}>
-                      <NotesColumn notebookId={col.item.id} chipHref={chipHref} openNoteId={openNoteId} />
-                    </Suspense>
-                  )}
                   {col.sessions.length > 0 && (
                     <ol className='flex flex-col gap-1.5'>
                       {col.sessions.map(s => (
@@ -375,18 +364,17 @@ function PlaceholderItemChip({
 }) {
   const logo = TYPE_LOGO[type];
   if (onCreate) {
-    const noun = type === 'markdown' ? 'markdown' : 'notebook';
     return (
       <button
         type='button'
         onClick={onCreate}
         disabled={pending}
-        title={`Create a new ${noun} in this flow`}
+        title='Create a new markdown in this flow'
         className='block w-44 shrink-0 cursor-pointer rounded-md border border-dashed border-gray-300 bg-white p-2 text-left hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60'
       >
         <div className='flex items-center gap-1.5'>
           <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0 opacity-50' />
-          <span className='truncate text-xs text-gray-500'>{pending ? 'Creating…' : `New ${noun}`}</span>
+          <span className='truncate text-xs text-gray-500'>{pending ? 'Creating…' : 'New markdown'}</span>
         </div>
         <div className='mt-1 text-[10px] text-gray-400'>{logo.alt}</div>
       </button>
@@ -403,48 +391,6 @@ function PlaceholderItemChip({
       </div>
       <div className='mt-1 text-[10px] text-gray-400'>{logo.alt}</div>
     </div>
-  );
-}
-
-function NotesColumn({
-  notebookId,
-  chipHref,
-  openNoteId,
-}: {
-  notebookId: number;
-  chipHref: (kind: 'item' | 'session' | 'note', id: number) => string;
-  openNoteId: number | null;
-}) {
-  const notebookQuery = useSuspenseQuery({
-    queryKey: ['notebook', notebookId],
-    queryFn: () => api.getNotebook(notebookId),
-  });
-  const notes = notebookQuery.data.notes;
-  if (notes.length === 0) return null;
-  return (
-    <ol className='flex flex-col gap-1.5'>
-      {notes.map(n => (
-        <NoteChip key={`n-${n.id}`} note={n} to={chipHref('note', n.id)} selected={openNoteId === n.id} />
-      ))}
-    </ol>
-  );
-}
-
-function NoteChip({ note, to, selected }: { note: Note; to: string; selected?: boolean }) {
-  return (
-    <li className='shrink-0'>
-      <Link
-        to={to}
-        title={`${note.title} · updated ${timeAgo(note.updated_at)}`}
-        className={cn(
-          'selectable flex w-44 items-center gap-1.5 rounded-md border px-2 py-1.5',
-          selected && 'selected',
-        )}
-      >
-        <FileText className='size-3 shrink-0 text-gray-500' />
-        <span className='min-w-0 flex-1 truncate text-[11px] text-gray-700'>{note.title}</span>
-      </Link>
-    </li>
   );
 }
 

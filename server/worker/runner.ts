@@ -1,11 +1,11 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import { db, listNotes, sessionColumns, sessionFrom, syncNotesForItem, type Item, type Session } from '@server/db.js';
+import { db, sessionColumns, sessionFrom, type Item, type Session } from '@server/db.js';
 import { getMaxParallel } from '@server/settings.js';
 import { emitSessionEnd, emitSessionLog, registerSessionAbort, unregisterSessionAbort } from '@server/worker/events.js';
 import { checkoutNewBranch, hasChanges, intentToAddAll, prepareClone } from '@server/worker/git.js';
 import { renderPrompt } from '@server/worker/prompt.js';
 import { existsSync, mkdirSync } from 'node:fs';
-import { appendFile, readdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { appendFile, readFile, rm, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import PQueue from 'p-queue';
 
@@ -213,11 +213,6 @@ async function runJob(sessionId: number): Promise<void> {
     return;
   }
 
-  if (session.source_type === 'notes') {
-    await runNotesJob(sessionId, session);
-    return;
-  }
-
   if (session.source_type === 'markdown') {
     await runMarkdownJob(sessionId, session);
     return;
@@ -341,133 +336,6 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
       );
       await log(`[${new Date().toISOString()}] prompt: ${session.prompt}\n---\n${promptText}\n---\n`);
       return promptText;
-    },
-  });
-}
-
-const NOTES_DIRNAME = '.notes';
-
-function noteIdFromFilename(filename: string): string {
-  return filename.replace(/\.md$/i, '');
-}
-
-function parseNoteFile(content: string, extId: string): { title: string; body_md: string } {
-  const trimmed = content.replace(/^\uFEFF/, '');
-  const lines = trimmed.split(/\r?\n/);
-  let title = extId;
-  let bodyStart = 0;
-  for (let i = 0; i < lines.length; i++) {
-    const ln = lines[i].trim();
-    if (ln === '') continue;
-    const m = ln.match(/^#\s+(.+)$/);
-    if (m) {
-      title = m[1].trim();
-      bodyStart = i + 1;
-    }
-    break;
-  }
-  const body = lines.slice(bodyStart).join('\n').replace(/^\s+/, '');
-  return { title, body_md: body };
-}
-
-function noteFileContent(title: string, body: string): string {
-  return `# ${title}\n\n${body.trim()}\n`;
-}
-
-async function materializeNotesIntoDir(itemId: number, notesDir: string): Promise<number> {
-  mkdirSync(notesDir, { recursive: true });
-  const rows = listNotes(itemId);
-  for (const r of rows) {
-    await writeFile(resolve(notesDir, `${r.ext_id}.md`), noteFileContent(r.title, r.body_md), 'utf8');
-  }
-  return rows.length;
-}
-
-async function syncNotesWorkspace(itemId: number, workspace: string): Promise<number> {
-  const notesDir = resolve(workspace, NOTES_DIRNAME);
-  if (!existsSync(notesDir)) {
-    syncNotesForItem(itemId, []);
-    return 0;
-  }
-  const entries = await readdir(notesDir, { withFileTypes: true });
-  const rows: Array<{ ext_id: string; title: string; body_md: string }> = [];
-  for (const e of entries) {
-    if (!e.isFile()) continue;
-    if (!e.name.toLowerCase().endsWith('.md')) continue;
-    const content = await readFile(resolve(notesDir, e.name), 'utf8').catch(() => '');
-    const extId = noteIdFromFilename(e.name);
-    rows.push({ ext_id: extId, ...parseNoteFile(content, extId) });
-  }
-  syncNotesForItem(itemId, rows);
-  return rows.length;
-}
-
-async function runNotesJob(sessionId: number, session: Session): Promise<void> {
-  if (!session.item_id) {
-    db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
-      'item_id is required for notes sessions',
-      sessionId,
-    );
-    emitSessionEnd(sessionId);
-    return;
-  }
-  const itemId = session.item_id;
-
-  mkdirSync(CLONES_ROOT, { recursive: true });
-
-  const workspace = clonePathFor(sessionId);
-  const notesDir = resolve(workspace, NOTES_DIRNAME);
-  const logPath = logPathFor(sessionId);
-
-  await runSDKTurn({
-    sessionId,
-    cwd: workspace,
-    logPath,
-    skipGit: true,
-    setRunning: () => {
-      db.prepare(
-        `UPDATE sessions
-           SET status = 'running', clone_path = ?, log_path = ?
-         WHERE id = ?`,
-      ).run(workspace, logPath, sessionId);
-    },
-    preflight: async log => {
-      // Fresh workspace per session — matches the Jira/PR pattern. Workspace must exist before
-      // the first log() call since the log file lives inside it.
-      if (existsSync(workspace)) {
-        await rm(workspace, { recursive: true, force: true });
-      }
-
-      let repoNote = 'No repo cloned — base your notes on the user context alone.';
-      if (session.repo) {
-        const { defaultBranch } = await prepareClone(workspace, session.repo);
-        await log(
-          `[${new Date().toISOString()}] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
-        );
-        repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground your notes — but do NOT modify any files in the cloned repo.`;
-      } else {
-        mkdirSync(workspace, { recursive: true });
-        await log(`[${new Date().toISOString()}] workspace ${workspace} (no repo)\n`);
-      }
-
-      const existingCount = await materializeNotesIntoDir(itemId, notesDir);
-      await log(
-        `[${new Date().toISOString()}] materialized ${existingCount} existing note(s) into ./${NOTES_DIRNAME}/\n`,
-      );
-
-      const promptText = await renderPrompt(
-        {
-          user_context: session.user_context ?? '',
-          repo_note: repoNote,
-        },
-        session.prompt,
-      );
-      await log(`[${new Date().toISOString()}] prompt: ${session.prompt}\n---\n${promptText}\n---\n`);
-      return promptText;
-    },
-    postSuccess: async log => {
-      const count = await syncNotesWorkspace(itemId, workspace);
-      await log(`[${new Date().toISOString()}] synced ${count} note(s) into the notebook\n`);
     },
   });
 }
@@ -629,9 +497,8 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     return;
   }
 
-  const isNotes = session.source_type === 'notes' && session.item_id !== null;
   const isMarkdown = session.source_type === 'markdown' && session.item_id !== null;
-  const localItemId = isNotes || isMarkdown ? session.item_id! : null;
+  const markdownItemId = isMarkdown ? session.item_id! : null;
   const workspace = session.clone_path;
 
   await runSDKTurn({
@@ -640,7 +507,7 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     logPath: session.log_path ?? logPathFor(sessionId),
     resume: session.claude_session_id,
     initialClaudeSessionId: session.claude_session_id,
-    skipGit: isNotes || isMarkdown,
+    skipGit: isMarkdown,
     setRunning: () => {
       db.prepare(`UPDATE sessions SET status = 'running', error = NULL WHERE id = ?`).run(sessionId);
     },
@@ -649,21 +516,16 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
       return message;
     },
     postSuccess:
-      localItemId === null
+      markdownItemId === null
         ? undefined
-        : isNotes
-          ? async log => {
-              const count = await syncNotesWorkspace(localItemId, workspace);
-              await log(`[${new Date().toISOString()}] synced ${count} note(s) into the notebook\n`);
-            }
-          : async log => {
-              const ok = await syncMarkdownWorkspace(localItemId, workspace);
-              await log(
-                ok
-                  ? `[${new Date().toISOString()}] synced ./${MARKDOWN_FILENAME} back into the markdown item\n`
-                  : `[${new Date().toISOString()}] no ./${MARKDOWN_FILENAME} found — nothing synced\n`,
-              );
-            },
+        : async log => {
+            const ok = await syncMarkdownWorkspace(markdownItemId, workspace);
+            await log(
+              ok
+                ? `[${new Date().toISOString()}] synced ./${MARKDOWN_FILENAME} back into the markdown item\n`
+                : `[${new Date().toISOString()}] no ./${MARKDOWN_FILENAME} found — nothing synced\n`,
+            );
+          },
   });
 }
 

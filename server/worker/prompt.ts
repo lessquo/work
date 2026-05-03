@@ -5,10 +5,10 @@ import { resolve } from 'node:path';
 export type PromptContext = Record<string, string>;
 
 export type PromptId = string;
-export type PromptSourceType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes' | 'markdown';
+export type PromptSourceType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'markdown';
 export type PromptMeta = { label: string; hint: string; applies_to: PromptSourceType | null };
 
-const PROMPT_SOURCE_TYPES: PromptSourceType[] = ['sentry_issue', 'jira_issue', 'github_pr', 'notes', 'markdown'];
+const PROMPT_SOURCE_TYPES: PromptSourceType[] = ['sentry_issue', 'jira_issue', 'github_pr', 'markdown'];
 
 export const DEFAULT_PROMPT_ID: PromptId = 'fix-sentry-issue';
 

@@ -48,18 +48,6 @@ CREATE TABLE IF NOT EXISTS items (
 CREATE INDEX IF NOT EXISTS idx_items_source_type ON items(source_id, type);
 CREATE INDEX IF NOT EXISTS idx_items_flow ON items(flow_id);
 
-CREATE TABLE IF NOT EXISTS notes (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-  ext_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  body_md TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE(item_id, ext_id)
-);
-CREATE INDEX IF NOT EXISTS idx_notes_item ON notes(item_id);
-
 CREATE TABLE IF NOT EXISTS sessions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   item_id INTEGER REFERENCES items(id) ON DELETE CASCADE,
@@ -83,7 +71,6 @@ CREATE INDEX IF NOT EXISTS idx_sessions_source ON sessions(source_id);
 `);
 
 db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES ('max_parallel', '2')`).run();
-db.prepare(`INSERT OR IGNORE INTO sources (type, ext_id) VALUES ('notes', 'local')`).run();
 db.prepare(`INSERT OR IGNORE INTO sources (type, ext_id) VALUES ('markdown', 'local')`).run();
 
 // ---------- flows ----------
@@ -124,7 +111,7 @@ export const createFlowForSession = db.transaction(
 
 // ---------- sources ----------
 
-export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes' | 'markdown';
+export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'markdown';
 
 export type Source = {
   id: number;
@@ -132,14 +119,6 @@ export type Source = {
   ext_id: string;
   created_at: string;
 };
-
-export function getLocalNotesSourceId(): number {
-  const row = db.prepare(`SELECT id FROM sources WHERE type = 'notes' AND ext_id = 'local'`).get() as
-    | { id: number }
-    | undefined;
-  if (!row) throw new Error('local notes source missing');
-  return row.id;
-}
 
 export function getLocalMarkdownSourceId(): number {
   const row = db.prepare(`SELECT id FROM sources WHERE type = 'markdown' AND ext_id = 'local'`).get() as
@@ -196,48 +175,6 @@ export const upsertItems = db.transaction(
         url: r.url,
         raw: r.raw,
       });
-    }
-  },
-);
-
-// ---------- notes ----------
-
-export type Note = {
-  id: number;
-  item_id: number;
-  ext_id: string;
-  title: string;
-  body_md: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export function listNotes(itemId: number): Note[] {
-  return db.prepare(`SELECT * FROM notes WHERE item_id = ? ORDER BY id ASC`).all(itemId) as Note[];
-}
-
-const upsertNoteStmt = db.prepare(`
-  INSERT INTO notes (item_id, ext_id, title, body_md, updated_at)
-  VALUES (@item_id, @ext_id, @title, @body_md, datetime('now'))
-  ON CONFLICT(item_id, ext_id) DO UPDATE SET
-    title = excluded.title,
-    body_md = excluded.body_md,
-    updated_at = datetime('now')
-`);
-
-const deleteNoteByExtStmt = db.prepare(`DELETE FROM notes WHERE item_id = ? AND ext_id = ?`);
-
-export const syncNotesForItem = db.transaction(
-  (itemId: number, rows: Array<{ ext_id: string; title: string; body_md: string }>) => {
-    const keep = new Set(rows.map(r => r.ext_id));
-    for (const r of rows) {
-      upsertNoteStmt.run({ item_id: itemId, ext_id: r.ext_id, title: r.title, body_md: r.body_md });
-    }
-    const existing = db.prepare(`SELECT ext_id FROM notes WHERE item_id = ?`).all(itemId) as Array<{
-      ext_id: string;
-    }>;
-    for (const e of existing) {
-      if (!keep.has(e.ext_id)) deleteNoteByExtStmt.run(itemId, e.ext_id);
     }
   },
 );

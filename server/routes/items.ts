@@ -14,11 +14,10 @@ items.get('/', c => {
          COALESCE((
            SELECT json_group_array(json_object('id', r.id, 'status', r.status))
            FROM (SELECT id, status FROM sessions WHERE item_id = i.id ORDER BY id DESC) r
-         ), '[]') AS sessions,
-         (SELECT COUNT(*) FROM notes WHERE item_id = i.id) AS note_count
+         ), '[]') AS sessions
        FROM items i`,
     )
-    .all() as Array<Item & { sessions: string; note_count: number }>;
+    .all() as Array<Item & { sessions: string }>;
   return c.json(rows.map(r => ({ ...r, sessions: JSON.parse(r.sessions) })));
 });
 
@@ -73,8 +72,6 @@ items.post('/:id/sync', async c => {
       case 'sentry_issue':
         await upsertSentryIssue(source.id, item.ext_id);
         break;
-      case 'notes':
-        return c.json({ error: 'notes have no upstream to sync' }, 400);
       case 'markdown':
         return c.json({ error: 'markdown items have no upstream to sync' }, 400);
     }

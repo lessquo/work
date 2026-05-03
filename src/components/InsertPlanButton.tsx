@@ -1,6 +1,6 @@
 import { HighlightMatch } from '@/components/HighlightMatch';
 import { Input } from '@/components/ui/Input';
-import { api, parseMarkdownRaw, type Item } from '@/lib/api';
+import { api, parsePlanRaw, type Item } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useFuzzySearch } from '@/lib/fuse';
 import { Combobox } from '@base-ui/react/combobox';
@@ -8,10 +8,10 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { FileText } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
-type SectionItem = { id: string; mdId: number; mdTitle: string; key: string; title: string; body: string };
+type SectionItem = { id: string; planId: number; planTitle: string; key: string; title: string; body: string };
 type SectionGroup = { id: number; label: string; items: SectionItem[] };
 
-const SEARCH_KEYS = ['key', 'title', 'mdTitle'];
+const SEARCH_KEYS = ['key', 'title', 'planTitle'];
 
 function splitLevel2Sections(body: string): Array<{ title: string; body: string }> {
   const lines = body.split('\n');
@@ -30,33 +30,33 @@ function splitLevel2Sections(body: string): Array<{ title: string; body: string 
   return sections;
 }
 
-export function InsertMarkdownButton({ onInsert }: { onInsert: (section: { title: string; body: string }) => void }) {
-  const markdownsQuery = useQuery({ queryKey: ['markdowns'], queryFn: api.listMarkdowns });
-  const markdowns = markdownsQuery.data ?? [];
+export function InsertPlanButton({ onInsert }: { onInsert: (section: { title: string; body: string }) => void }) {
+  const plansQuery = useQuery({ queryKey: ['plans'], queryFn: api.listPlans });
+  const plans = plansQuery.data ?? [];
 
   const detailQueries = useQueries({
-    queries: markdowns.map(md => ({
-      queryKey: ['markdown', md.id],
-      queryFn: () => api.getMarkdown(md.id),
-      enabled: markdowns.length > 0,
+    queries: plans.map(p => ({
+      queryKey: ['plan', p.id],
+      queryFn: () => api.getPlan(p.id),
+      enabled: plans.length > 0,
     })),
   });
 
   const groups = useMemo<SectionGroup[]>(() => {
     const out: SectionGroup[] = [];
     for (const q of detailQueries) {
-      const md: Item | undefined = q.data;
-      if (!md) continue;
-      const body = parseMarkdownRaw(md.raw).body ?? '';
+      const plan: Item | undefined = q.data;
+      if (!plan) continue;
+      const body = parsePlanRaw(plan.raw).body ?? '';
       const sections = splitLevel2Sections(body);
       if (sections.length === 0) continue;
       out.push({
-        id: md.id,
-        label: md.title,
+        id: plan.id,
+        label: plan.title,
         items: sections.map((s, i) => ({
-          id: `${md.id}-${i}`,
-          mdId: md.id,
-          mdTitle: md.title,
+          id: `${plan.id}-${i}`,
+          planId: plan.id,
+          planTitle: plan.title,
           key: String(i + 1),
           title: s.title,
           body: s.body,
@@ -100,21 +100,21 @@ export function InsertMarkdownButton({ onInsert }: { onInsert: (section: { title
     >
       <Combobox.Trigger className={cn('btn-sm btn-neutral', 'data-popup-open:bg-gray-100')}>
         <FileText />
-        Insert markdown
+        Insert plan
       </Combobox.Trigger>
       <Combobox.Portal>
         <Combobox.Positioner sideOffset={4}>
-          <Combobox.Popup className='popup flex max-h-128 w-lg flex-col overflow-hidden' aria-label='Insert markdown'>
+          <Combobox.Popup className='popup flex max-h-128 w-lg flex-col overflow-hidden' aria-label='Insert plan'>
             <div className='p-2'>
               <Combobox.Input
-                placeholder='Search by markdown or section heading…'
+                placeholder='Search by plan or section heading…'
                 render={<Input type='search' className='w-full' />}
               />
             </div>
             <div className='min-h-0 flex-1 overflow-y-auto'>
               <Combobox.Empty className='px-3 py-2 text-xs text-gray-400'>
-                {markdowns.length === 0
-                  ? 'No markdown items yet.'
+                {plans.length === 0
+                  ? 'No plans yet.'
                   : flatItems.length === 0
                     ? '(no level-2 sections)'
                     : 'No sections match your search.'}
@@ -125,7 +125,7 @@ export function InsertMarkdownButton({ onInsert }: { onInsert: (section: { title
                   return (
                     <Combobox.Group key={group.id} items={group.items}>
                       <Combobox.GroupLabel className='combobox-group-label'>
-                        <HighlightMatch text={group.label} matches={labelMatches} field='mdTitle' />
+                        <HighlightMatch text={group.label} matches={labelMatches} field='planTitle' />
                       </Combobox.GroupLabel>
                       <Combobox.Collection>
                         {(item: SectionItem) => {

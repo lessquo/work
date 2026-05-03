@@ -48,7 +48,7 @@ function SourceRow({ source }: { source: Source }) {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const logo = TYPE_LOGO[source.type];
-  const isLocal = source.type === 'markdown';
+  const isLocal = source.type === 'plan';
 
   const deleteMutation = useMutation({
     mutationFn: () => api.deleteSource(source.id),

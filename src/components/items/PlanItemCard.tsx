@@ -5,8 +5,8 @@ import { MetaRow } from '@/components/MetaRow';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { timeAgo } from '@/lib/time';
 
-export function MarkdownItemCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
-  const logo = TYPE_LOGO.markdown;
+export function PlanItemCard({ item, selected = false, matches, onSelect, onOpenSession }: ItemCardProps) {
+  const logo = TYPE_LOGO.plan;
 
   return (
     <ItemCardLayout

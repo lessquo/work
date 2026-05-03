@@ -213,8 +213,8 @@ async function runJob(sessionId: number): Promise<void> {
     return;
   }
 
-  if (session.source_type === 'markdown') {
-    await runMarkdownJob(sessionId, session);
+  if (session.source_type === 'plan') {
+    await runPlanJob(sessionId, session);
     return;
   }
 
@@ -340,9 +340,9 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
   });
 }
 
-const MARKDOWN_FILENAME = 'markdown.md';
+const PLAN_FILENAME = 'plan.md';
 
-function parseMarkdownRaw(raw: string): { title: string; body: string } {
+function parsePlanRaw(raw: string): { title: string; body: string } {
   try {
     const v = JSON.parse(raw);
     if (v && typeof v === 'object') {
@@ -358,11 +358,11 @@ function parseMarkdownRaw(raw: string): { title: string; body: string } {
   return { title: '', body: '' };
 }
 
-function markdownFileContent(title: string, body: string): string {
+function planFileContent(title: string, body: string): string {
   return `# ${title}\n\n${body.trim()}\n`;
 }
 
-function parseMarkdownFile(content: string, fallbackTitle: string): { title: string; body: string } {
+function parsePlanFile(content: string, fallbackTitle: string): { title: string; body: string } {
   const trimmed = content.replace(/^\uFEFF/, '');
   const lines = trimmed.split(/\r?\n/);
   let title = fallbackTitle;
@@ -381,14 +381,14 @@ function parseMarkdownFile(content: string, fallbackTitle: string): { title: str
   return { title, body };
 }
 
-async function syncMarkdownWorkspace(itemId: number, workspace: string): Promise<boolean> {
-  const filePath = resolve(workspace, MARKDOWN_FILENAME);
+async function syncPlanWorkspace(itemId: number, workspace: string): Promise<boolean> {
+  const filePath = resolve(workspace, PLAN_FILENAME);
   if (!existsSync(filePath)) return false;
   const content = await readFile(filePath, 'utf8').catch(() => '');
   const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(itemId) as Item | undefined;
   if (!item) return false;
-  const fallbackTitle = parseMarkdownRaw(item.raw).title || item.title;
-  const { title, body } = parseMarkdownFile(content, fallbackTitle);
+  const fallbackTitle = parsePlanRaw(item.raw).title || item.title;
+  const { title, body } = parsePlanFile(content, fallbackTitle);
   const finalTitle = title.trim() || fallbackTitle;
   db.prepare(`UPDATE items SET title = ?, raw = ?, updated_at = datetime('now') WHERE id = ?`).run(
     finalTitle,
@@ -398,10 +398,10 @@ async function syncMarkdownWorkspace(itemId: number, workspace: string): Promise
   return true;
 }
 
-async function runMarkdownJob(sessionId: number, session: Session): Promise<void> {
+async function runPlanJob(sessionId: number, session: Session): Promise<void> {
   if (!session.item_id) {
     db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
-      'item_id is required for markdown sessions',
+      'item_id is required for plan sessions',
       sessionId,
     );
     emitSessionEnd(sessionId);
@@ -412,7 +412,7 @@ async function runMarkdownJob(sessionId: number, session: Session): Promise<void
   mkdirSync(CLONES_ROOT, { recursive: true });
 
   const workspace = clonePathFor(sessionId);
-  const filePath = resolve(workspace, MARKDOWN_FILENAME);
+  const filePath = resolve(workspace, PLAN_FILENAME);
   const logPath = logPathFor(sessionId);
 
   await runSDKTurn({
@@ -447,10 +447,10 @@ async function runMarkdownJob(sessionId: number, session: Session): Promise<void
       }
 
       const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(itemId) as Item | undefined;
-      const existing = item ? parseMarkdownRaw(item.raw) : { title: '', body: '' };
+      const existing = item ? parsePlanRaw(item.raw) : { title: '', body: '' };
       const seedTitle = existing.title || item?.title || 'Untitled';
-      await writeFile(filePath, markdownFileContent(seedTitle, existing.body), 'utf8');
-      await log(`[${new Date().toISOString()}] materialized existing markdown into ./${MARKDOWN_FILENAME}\n`);
+      await writeFile(filePath, planFileContent(seedTitle, existing.body), 'utf8');
+      await log(`[${new Date().toISOString()}] materialized existing plan into ./${PLAN_FILENAME}\n`);
 
       const promptText = await renderPrompt(
         {
@@ -463,11 +463,11 @@ async function runMarkdownJob(sessionId: number, session: Session): Promise<void
       return promptText;
     },
     postSuccess: async log => {
-      const ok = await syncMarkdownWorkspace(itemId, workspace);
+      const ok = await syncPlanWorkspace(itemId, workspace);
       await log(
         ok
-          ? `[${new Date().toISOString()}] synced ./${MARKDOWN_FILENAME} back into the markdown item\n`
-          : `[${new Date().toISOString()}] no ./${MARKDOWN_FILENAME} found — nothing synced\n`,
+          ? `[${new Date().toISOString()}] synced ./${PLAN_FILENAME} back into the plan\n`
+          : `[${new Date().toISOString()}] no ./${PLAN_FILENAME} found — nothing synced\n`,
       );
     },
   });
@@ -497,8 +497,8 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     return;
   }
 
-  const isMarkdown = session.source_type === 'markdown' && session.item_id !== null;
-  const markdownItemId = isMarkdown ? session.item_id! : null;
+  const isPlan = session.source_type === 'plan' && session.item_id !== null;
+  const planItemId = isPlan ? session.item_id! : null;
   const workspace = session.clone_path;
 
   await runSDKTurn({
@@ -507,7 +507,7 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     logPath: session.log_path ?? logPathFor(sessionId),
     resume: session.claude_session_id,
     initialClaudeSessionId: session.claude_session_id,
-    skipGit: isMarkdown,
+    skipGit: isPlan,
     setRunning: () => {
       db.prepare(`UPDATE sessions SET status = 'running', error = NULL WHERE id = ?`).run(sessionId);
     },
@@ -516,14 +516,14 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
       return message;
     },
     postSuccess:
-      markdownItemId === null
+      planItemId === null
         ? undefined
         : async log => {
-            const ok = await syncMarkdownWorkspace(markdownItemId, workspace);
+            const ok = await syncPlanWorkspace(planItemId, workspace);
             await log(
               ok
-                ? `[${new Date().toISOString()}] synced ./${MARKDOWN_FILENAME} back into the markdown item\n`
-                : `[${new Date().toISOString()}] no ./${MARKDOWN_FILENAME} found — nothing synced\n`,
+                ? `[${new Date().toISOString()}] synced ./${PLAN_FILENAME} back into the plan\n`
+                : `[${new Date().toISOString()}] no ./${PLAN_FILENAME} found — nothing synced\n`,
             );
           },
   });

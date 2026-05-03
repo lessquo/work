@@ -1,5 +1,5 @@
 import { InsertJiraLinkButton } from '@/components/InsertJiraLinkButton';
-import { InsertMarkdownButton } from '@/components/InsertMarkdownButton';
+import { InsertPlanButton } from '@/components/InsertPlanButton';
 import { DiffView } from '@/components/panels/DiffView';
 import { LogsView } from '@/components/panels/LogsView';
 import { Markdown } from '@/components/panels/Markdown';
@@ -13,22 +13,14 @@ import { Select, type SelectOption } from '@/components/ui/Select';
 import { TabsList, TabsPanel, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import {
-  api,
-  DEFAULT_PROMPT_ID,
-  parseMarkdownRaw,
-  type Prompt,
-  type PromptId,
-  type Session,
-  type Source,
-} from '@/lib/api';
+import { api, DEFAULT_PROMPT_ID, parsePlanRaw, type Prompt, type PromptId, type Session, type Source } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Copy, Terminal, Trash2 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
-export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'markdown';
+export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'plan';
 export type DescriptionMode = 'edit' | 'preview';
 
 export function SessionPanel({
@@ -172,8 +164,8 @@ export function SessionPanel({
 
   const active = session?.status === 'queued' || session?.status === 'running';
   const isJira = session?.source_type === 'jira_issue';
-  const isMarkdown = session?.source_type === 'markdown';
-  const canRun = isDraft && (isJira || isMarkdown || !!session?.repo);
+  const isPlan = session?.source_type === 'plan';
+  const canRun = isDraft && (isJira || isPlan || !!session?.repo);
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
     (createJiraMutation.error instanceof Error ? createJiraMutation.error.message : null) ??
@@ -219,7 +211,7 @@ export function SessionPanel({
             </Tooltip>
           )}
           {session?.status === 'succeeded' &&
-            !isMarkdown &&
+            !isPlan &&
             (isJira ? (
               session.item_id ? (
                 <button
@@ -291,7 +283,7 @@ export function SessionPanel({
       {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700'>{prError}</div>}
 
       <TabsRoot
-        value={resolveTabValue(tab, { isJira, isMarkdown, isDraft })}
+        value={resolveTabValue(tab, { isJira, isPlan, isDraft })}
         onValueChange={v => setTab(v as SessionPanelTab)}
         className='flex min-h-0 flex-1 flex-col'
       >
@@ -300,8 +292,8 @@ export function SessionPanel({
           {!isDraft && (
             <>
               <TabsTab value='logs'>Logs</TabsTab>
-              {isMarkdown ? (
-                <TabsTab value='markdown'>Markdown</TabsTab>
+              {isPlan ? (
+                <TabsTab value='plan'>Plan</TabsTab>
               ) : (
                 <>
                   {!isJira && <TabsTab value='diff'>Diff</TabsTab>}
@@ -327,9 +319,9 @@ export function SessionPanel({
                 <LogsView text={logs} isRunning={active} />
               </div>
             </TabsPanel>
-            {isMarkdown ? (
-              <TabsPanel value='markdown' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
-                <MarkdownView session={session} />
+            {isPlan ? (
+              <TabsPanel value='plan' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+                <PlanView session={session} />
               </TabsPanel>
             ) : (
               <>
@@ -381,8 +373,8 @@ function SetupTab({ session }: { session: Session | null }) {
 
   const isDraft = session?.status === 'draft';
   const isJira = session?.source_type === 'jira_issue';
-  const isMarkdown = session?.source_type === 'markdown';
-  const allowEmptyRepo = isJira || isMarkdown;
+  const isPlan = session?.source_type === 'plan';
+  const allowEmptyRepo = isJira || isPlan;
 
   const updateMutation = useMutation({
     mutationFn: (patch: { prompt?: PromptId; repo?: string; userContext?: string; sourceId?: number }) =>
@@ -551,7 +543,7 @@ function UserContextSection({
                 setDraft(draft.trim().length === 0 ? url : `${draft.trim()}\n\n${url}`);
               }}
             />
-            <InsertMarkdownButton
+            <InsertPlanButton
               onInsert={({ title, body }) => {
                 const block = `### ${title}\n\n${body.trim()}`;
                 setDraft(draft.trim().length === 0 ? block : `${draft.trim()}\n\n${block}`);
@@ -787,52 +779,52 @@ function DescriptionEditor({
 
 function resolveTabValue(
   tab: SessionPanelTab,
-  kind: { isJira: boolean; isMarkdown: boolean; isDraft: boolean },
+  kind: { isJira: boolean; isPlan: boolean; isDraft: boolean },
 ): SessionPanelTab {
   if (kind.isDraft) return 'setup';
   if (tab === 'setup') return 'setup';
-  if (kind.isMarkdown) return tab === 'logs' ? 'logs' : 'markdown';
+  if (kind.isPlan) return tab === 'logs' ? 'logs' : 'plan';
   if (kind.isJira && tab === 'diff') return 'pr';
-  if (tab === 'markdown') return 'logs';
+  if (tab === 'plan') return 'logs';
   return tab;
 }
 
-function MarkdownView({ session }: { session: Session | null }) {
-  const markdownId = session?.item_id ?? null;
-  const markdownQuery = useQuery({
-    queryKey: markdownId !== null ? ['markdown', markdownId] : ['markdown-noop'],
-    queryFn: () => (markdownId !== null ? api.getMarkdown(markdownId) : Promise.resolve(null)),
-    enabled: markdownId !== null,
+function PlanView({ session }: { session: Session | null }) {
+  const planId = session?.item_id ?? null;
+  const planQuery = useQuery({
+    queryKey: planId !== null ? ['plan', planId] : ['plan-noop'],
+    queryFn: () => (planId !== null ? api.getPlan(planId) : Promise.resolve(null)),
+    enabled: planId !== null,
   });
 
-  if (markdownId === null) {
-    return <div className='p-4 text-sm text-gray-500'>This markdown session is not bound to an item.</div>;
+  if (planId === null) {
+    return <div className='p-4 text-sm text-gray-500'>This plan session is not bound to an item.</div>;
   }
-  if (markdownQuery.isPending) {
-    return <div className='p-4 text-sm text-gray-500'>Loading markdown…</div>;
+  if (planQuery.isPending) {
+    return <div className='p-4 text-sm text-gray-500'>Loading plan…</div>;
   }
-  if (markdownQuery.isError || !markdownQuery.data) {
+  if (planQuery.isError || !planQuery.data) {
     return (
       <div className='p-4 text-sm text-rose-600'>
-        Failed to load markdown
-        {markdownQuery.error instanceof Error ? `: ${markdownQuery.error.message}` : '.'}
+        Failed to load plan
+        {planQuery.error instanceof Error ? `: ${planQuery.error.message}` : '.'}
       </div>
     );
   }
 
-  const md = markdownQuery.data;
-  const parsed = parseMarkdownRaw(md.raw);
+  const plan = planQuery.data;
+  const parsed = parsePlanRaw(plan.raw);
   const body = parsed.body ?? '';
   const active = session?.status === 'queued' || session?.status === 'running';
 
   return (
     <div className='h-full overflow-auto bg-white p-4'>
       <div className='mb-3 text-xs text-gray-500'>
-        Markdown: <span className='font-medium text-gray-700'>{md.title}</span>
+        Plan: <span className='font-medium text-gray-700'>{plan.title}</span>
       </div>
       {body.trim().length === 0 ? (
         <p className='text-sm text-gray-500'>
-          {active ? 'Waiting for the session to write the markdown…' : 'This markdown is empty.'}
+          {active ? 'Waiting for the session to write the plan…' : 'This plan is empty.'}
         </p>
       ) : (
         <div className='prose prose-sm max-w-none text-sm text-gray-800'>

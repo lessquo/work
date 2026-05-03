@@ -1,4 +1,4 @@
-export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'markdown';
+export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'plan';
 
 export type Source = {
   id: number;
@@ -130,17 +130,17 @@ export function itemCreationTime(item: Pick<Item, 'type' | 'raw' | 'created_at'>
       return parseGithubPrRaw(item.raw).createdAt ?? item.created_at;
     case 'jira_issue':
       return parseJiraRaw(item.raw).created ?? item.created_at;
-    case 'markdown':
+    case 'plan':
       return item.created_at;
   }
 }
 
-export type MarkdownRaw = { title?: string; body?: string };
+export type PlanRaw = { title?: string; body?: string };
 
-export function parseMarkdownRaw(raw: string): MarkdownRaw {
+export function parsePlanRaw(raw: string): PlanRaw {
   try {
     const v = JSON.parse(raw);
-    return v && typeof v === 'object' ? (v as MarkdownRaw) : {};
+    return v && typeof v === 'object' ? (v as PlanRaw) : {};
   } catch {
     return {};
   }
@@ -335,11 +335,10 @@ export const api = {
   listSentryProjects: () => req<SentryProject[]>('/sentry/projects'),
   listGithubRepos: () => req<GithubRepo[]>('/github/repos'),
   listJiraProjects: () => req<JiraProject[]>('/jira/projects'),
-  listMarkdowns: () => req<Item[]>('/markdown'),
-  createMarkdown: (title?: string) =>
-    req<Item>('/markdown', { method: 'POST', body: JSON.stringify({ title: title ?? '' }) }),
-  getMarkdown: (id: number) => req<Item>(`/markdown/${id}`),
-  updateMarkdown: (id: number, patch: { title?: string; body?: string }) =>
-    req<Item>(`/markdown/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
-  deleteMarkdown: (id: number) => req<{ ok: true }>(`/markdown/${id}`, { method: 'DELETE' }),
+  listPlans: () => req<Item[]>('/plan'),
+  createPlan: (title?: string) => req<Item>('/plan', { method: 'POST', body: JSON.stringify({ title: title ?? '' }) }),
+  getPlan: (id: number) => req<Item>(`/plan/${id}`),
+  updatePlan: (id: number, patch: { title?: string; body?: string }) =>
+    req<Item>(`/plan/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deletePlan: (id: number) => req<{ ok: true }>(`/plan/${id}`, { method: 'DELETE' }),
 };

@@ -8,7 +8,7 @@ export function SessionsPageSlot() {
   const navigate = useNavigate();
   const [sessionTab, setSessionTab] = useQueryState(
     'sessionTab',
-    parseAsStringLiteral(['setup', 'logs', 'diff', 'pr', 'markdown'] as const).withDefault('logs'),
+    parseAsStringLiteral(['setup', 'logs', 'diff', 'pr', 'plan'] as const).withDefault('logs'),
   );
   const [descriptionMode, setDescriptionMode] = useQueryState(
     'descriptionMode',

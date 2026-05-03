@@ -72,8 +72,8 @@ items.post('/:id/sync', async c => {
       case 'sentry_issue':
         await upsertSentryIssue(source.id, item.ext_id);
         break;
-      case 'markdown':
-        return c.json({ error: 'markdown items have no upstream to sync' }, 400);
+      case 'plan':
+        return c.json({ error: 'plans have no upstream to sync' }, 400);
     }
   } catch (e) {
     return c.json({ error: String(e) }, 500);

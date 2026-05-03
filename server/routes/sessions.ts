@@ -79,7 +79,7 @@ sessions.post('/sessions/draft', async c => {
     const firstSource = db
       .prepare(
         `SELECT id FROM sources
-          WHERE type IN ('github_pr','jira_issue','markdown')
+          WHERE type IN ('github_pr','jira_issue','plan')
           ORDER BY id ASC LIMIT 1`,
       )
       .get() as { id: number } | undefined;
@@ -164,11 +164,11 @@ sessions.post('/sessions/:id/queue', c => {
   if (!session) return c.json({ error: 'not found' }, 404);
   if (session.status !== 'draft') return c.json({ error: 'session is not a draft' }, 409);
   // Jira-creating drafts need user_context; PR-style sessions need a repo to clone.
-  // Markdown sessions pull context from the bound item, not a repo.
+  // Plan sessions pull context from the bound item, not a repo.
   if (session.source_type === 'jira_issue' && !session.user_context) {
     return c.json({ error: 'user_context is required for jira sessions' }, 400);
   }
-  if (session.source_type !== 'jira_issue' && session.source_type !== 'markdown' && !session.repo) {
+  if (session.source_type !== 'jira_issue' && session.source_type !== 'plan' && !session.repo) {
     return c.json({ error: 'repo is required' }, 400);
   }
 

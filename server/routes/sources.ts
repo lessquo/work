@@ -81,7 +81,7 @@ sources.get('/:id/items', c => {
 function recencyExpr(type: ItemType): string {
   if (type === 'sentry_issue') return `json_extract(i.raw, '$.lastSeen')`;
   if (type === 'jira_issue') return `json_extract(i.raw, '$.updated')`;
-  if (type === 'markdown') return `i.updated_at`;
+  if (type === 'plan') return `i.updated_at`;
   // github_pr: prefer mergedAt for closed-merged PRs, fall back to updatedAt.
   return `COALESCE(json_extract(i.raw, '$.mergedAt'), json_extract(i.raw, '$.updatedAt'))`;
 }
@@ -228,7 +228,7 @@ function runSync(source: Source): Promise<number> {
       return syncGithubSource(source, limit);
     case 'jira_issue':
       return syncJiraSource(source, limit);
-    case 'markdown':
+    case 'plan':
       // Local-only sources are user-authored; no upstream to sync.
       return Promise.resolve(0);
   }

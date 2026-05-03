@@ -1,6 +1,6 @@
 import { GithubPrCard } from '@/components/items/GithubPrCard';
 import { JiraIssueCard } from '@/components/items/JiraIssueCard';
-import { MarkdownItemCard } from '@/components/items/MarkdownItemCard';
+import { PlanItemCard } from '@/components/items/PlanItemCard';
 import { SentryIssueCard } from '@/components/items/SentryIssueCard';
 import type { ItemWithSessions } from '@/lib/api';
 import type { FuseResultMatch } from 'fuse.js';
@@ -21,7 +21,7 @@ export function ItemCard(props: ItemCardProps) {
       return <JiraIssueCard {...props} />;
     case 'github_pr':
       return <GithubPrCard {...props} />;
-    case 'markdown':
-      return <MarkdownItemCard {...props} />;
+    case 'plan':
+      return <PlanItemCard {...props} />;
   }
 }

@@ -128,7 +128,7 @@ export function ItemPanelLayout({
           </div>
         </div>
         <div className='flex shrink-0 items-center gap-2'>
-          {item.type !== 'markdown' && (
+          {item.type !== 'plan' && (
             <Tooltip content='Sync this item from upstream'>
               <button
                 onClick={() => syncMutation.mutate()}

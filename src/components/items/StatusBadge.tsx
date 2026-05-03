@@ -40,7 +40,7 @@ function computeBadge(item: Item): { label: string; color: string } | null {
       const level = s.level ?? 'issue';
       return { label: level, color: SENTRY_LEVEL_COLOR[level] ?? FALLBACK };
     }
-    case 'markdown':
+    case 'plan':
       return null;
   }
 }

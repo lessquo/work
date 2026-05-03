@@ -218,6 +218,11 @@ async function runJob(sessionId: number): Promise<void> {
     return;
   }
 
+  if (session.source_type === 'markdown') {
+    await runMarkdownJob(sessionId, session);
+    return;
+  }
+
   if (!session.repo) {
     db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
       'repo is required for PR sessions',
@@ -467,6 +472,139 @@ async function runNotesJob(sessionId: number, session: Session): Promise<void> {
   });
 }
 
+const MARKDOWN_FILENAME = 'markdown.md';
+
+function parseMarkdownRaw(raw: string): { title: string; body: string } {
+  try {
+    const v = JSON.parse(raw);
+    if (v && typeof v === 'object') {
+      const o = v as { title?: unknown; body?: unknown };
+      return {
+        title: typeof o.title === 'string' ? o.title : '',
+        body: typeof o.body === 'string' ? o.body : '',
+      };
+    }
+  } catch {
+    /* fall through */
+  }
+  return { title: '', body: '' };
+}
+
+function markdownFileContent(title: string, body: string): string {
+  return `# ${title}\n\n${body.trim()}\n`;
+}
+
+function parseMarkdownFile(content: string, fallbackTitle: string): { title: string; body: string } {
+  const trimmed = content.replace(/^\uFEFF/, '');
+  const lines = trimmed.split(/\r?\n/);
+  let title = fallbackTitle;
+  let bodyStart = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const ln = lines[i].trim();
+    if (ln === '') continue;
+    const m = ln.match(/^#\s+(.+)$/);
+    if (m) {
+      title = m[1].trim();
+      bodyStart = i + 1;
+    }
+    break;
+  }
+  const body = lines.slice(bodyStart).join('\n').replace(/^\s+/, '').trimEnd();
+  return { title, body };
+}
+
+async function syncMarkdownWorkspace(itemId: number, workspace: string): Promise<boolean> {
+  const filePath = resolve(workspace, MARKDOWN_FILENAME);
+  if (!existsSync(filePath)) return false;
+  const content = await readFile(filePath, 'utf8').catch(() => '');
+  const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(itemId) as Item | undefined;
+  if (!item) return false;
+  const fallbackTitle = parseMarkdownRaw(item.raw).title || item.title;
+  const { title, body } = parseMarkdownFile(content, fallbackTitle);
+  const finalTitle = title.trim() || fallbackTitle;
+  db.prepare(`UPDATE items SET title = ?, raw = ?, updated_at = datetime('now') WHERE id = ?`).run(
+    finalTitle,
+    JSON.stringify({ title: finalTitle, body }),
+    itemId,
+  );
+  return true;
+}
+
+async function runMarkdownJob(sessionId: number, session: Session): Promise<void> {
+  if (!session.item_id) {
+    db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(
+      'item_id is required for markdown sessions',
+      sessionId,
+    );
+    emitSessionEnd(sessionId);
+    return;
+  }
+  const itemId = session.item_id;
+
+  mkdirSync(CLONES_ROOT, { recursive: true });
+
+  const workspace = clonePathFor(sessionId);
+  const filePath = resolve(workspace, MARKDOWN_FILENAME);
+  const logPath = logPathFor(sessionId);
+
+  await runSDKTurn({
+    sessionId,
+    cwd: workspace,
+    logPath,
+    skipGit: true,
+    setRunning: () => {
+      db.prepare(
+        `UPDATE sessions
+           SET status = 'running', clone_path = ?, log_path = ?
+         WHERE id = ?`,
+      ).run(workspace, logPath, sessionId);
+    },
+    preflight: async log => {
+      // Fresh workspace per session — matches the notes pattern. Workspace must exist before
+      // the first log() call since the log file lives inside it.
+      if (existsSync(workspace)) {
+        await rm(workspace, { recursive: true, force: true });
+      }
+
+      let repoNote = 'No repo cloned — base the plan on the user context alone.';
+      if (session.repo) {
+        const { defaultBranch } = await prepareClone(workspace, session.repo);
+        await log(
+          `[${new Date().toISOString()}] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
+        );
+        repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground the plan — but do NOT modify any files in the cloned repo.`;
+      } else {
+        mkdirSync(workspace, { recursive: true });
+        await log(`[${new Date().toISOString()}] workspace ${workspace} (no repo)\n`);
+      }
+
+      const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(itemId) as Item | undefined;
+      const existing = item ? parseMarkdownRaw(item.raw) : { title: '', body: '' };
+      const seedTitle = existing.title || item?.title || 'Untitled';
+      await writeFile(filePath, markdownFileContent(seedTitle, existing.body), 'utf8');
+      await log(`[${new Date().toISOString()}] materialized existing markdown into ./${MARKDOWN_FILENAME}\n`);
+
+      const promptText = await renderPrompt(
+        {
+          user_context: session.user_context ?? '',
+          repo_note: repoNote,
+        },
+        session.prompt,
+      );
+      await log(`[${new Date().toISOString()}] prompt: ${session.prompt}\n---\n${promptText}\n---\n`);
+      return promptText;
+    },
+    postSuccess: async log => {
+      const ok = await syncMarkdownWorkspace(itemId, workspace);
+      await log(
+        ok
+          ? `[${new Date().toISOString()}] synced ./${MARKDOWN_FILENAME} back into the markdown item\n`
+          : `[${new Date().toISOString()}] no ./${MARKDOWN_FILENAME} found — nothing synced\n`,
+      );
+    },
+  });
+}
+
 async function runFollowupJob(sessionId: number, message: string): Promise<void> {
   const session = db.prepare(`SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.id = ?`).get(sessionId) as
     | Session
@@ -492,7 +630,8 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
   }
 
   const isNotes = session.source_type === 'notes' && session.item_id !== null;
-  const notesItemId = isNotes ? session.item_id! : null;
+  const isMarkdown = session.source_type === 'markdown' && session.item_id !== null;
+  const localItemId = isNotes || isMarkdown ? session.item_id! : null;
   const workspace = session.clone_path;
 
   await runSDKTurn({
@@ -501,7 +640,7 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
     logPath: session.log_path ?? logPathFor(sessionId),
     resume: session.claude_session_id,
     initialClaudeSessionId: session.claude_session_id,
-    skipGit: isNotes,
+    skipGit: isNotes || isMarkdown,
     setRunning: () => {
       db.prepare(`UPDATE sessions SET status = 'running', error = NULL WHERE id = ?`).run(sessionId);
     },
@@ -509,12 +648,22 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
       await log(`\n[${new Date().toISOString()}] follow-up: ${message}\n`);
       return message;
     },
-    postSuccess: notesItemId
-      ? async log => {
-          const count = await syncNotesWorkspace(notesItemId, workspace);
-          await log(`[${new Date().toISOString()}] synced ${count} note(s) into the notebook\n`);
-        }
-      : undefined,
+    postSuccess:
+      localItemId === null
+        ? undefined
+        : isNotes
+          ? async log => {
+              const count = await syncNotesWorkspace(localItemId, workspace);
+              await log(`[${new Date().toISOString()}] synced ${count} note(s) into the notebook\n`);
+            }
+          : async log => {
+              const ok = await syncMarkdownWorkspace(localItemId, workspace);
+              await log(
+                ok
+                  ? `[${new Date().toISOString()}] synced ./${MARKDOWN_FILENAME} back into the markdown item\n`
+                  : `[${new Date().toISOString()}] no ./${MARKDOWN_FILENAME} found — nothing synced\n`,
+              );
+            },
   });
 }
 

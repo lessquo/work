@@ -1,5 +1,6 @@
 import { GithubPrCard } from '@/components/items/GithubPrCard';
 import { JiraIssueCard } from '@/components/items/JiraIssueCard';
+import { MarkdownItemCard } from '@/components/items/MarkdownItemCard';
 import { NotesItemCard } from '@/components/items/NotesItemCard';
 import { SentryIssueCard } from '@/components/items/SentryIssueCard';
 import type { ItemWithSessions } from '@/lib/api';
@@ -23,5 +24,7 @@ export function ItemCard(props: ItemCardProps) {
       return <GithubPrCard {...props} />;
     case 'notes':
       return <NotesItemCard {...props} />;
+    case 'markdown':
+      return <MarkdownItemCard {...props} />;
   }
 }

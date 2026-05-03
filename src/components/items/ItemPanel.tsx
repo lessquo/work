@@ -1,5 +1,6 @@
 import { GithubPrPanel } from '@/components/items/GithubPrPanel';
 import { JiraIssuePanel } from '@/components/items/JiraIssuePanel';
+import { MarkdownPanel } from '@/components/items/MarkdownPanel';
 import { NotebookPanel } from '@/components/items/NotebookPanel';
 import { SentryIssuePanel } from '@/components/items/SentryIssuePanel';
 import { api } from '@/lib/api';
@@ -23,5 +24,7 @@ export function ItemPanel({ itemId, isFlowMode = false }: { itemId: number; isFl
       return <SentryIssuePanel item={item} isFlowMode={isFlowMode} />;
     case 'notes':
       return <NotebookPanel item={item} />;
+    case 'markdown':
+      return <MarkdownPanel item={item} />;
   }
 }

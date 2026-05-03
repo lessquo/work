@@ -1,4 +1,4 @@
-export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes';
+export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes' | 'markdown';
 
 export type Source = {
   id: number;
@@ -132,7 +132,19 @@ export function itemCreationTime(item: Pick<Item, 'type' | 'raw' | 'created_at'>
     case 'jira_issue':
       return parseJiraRaw(item.raw).created ?? item.created_at;
     case 'notes':
+    case 'markdown':
       return item.created_at;
+  }
+}
+
+export type MarkdownRaw = { title?: string; body?: string };
+
+export function parseMarkdownRaw(raw: string): MarkdownRaw {
+  try {
+    const v = JSON.parse(raw);
+    return v && typeof v === 'object' ? (v as MarkdownRaw) : {};
+  } catch {
+    return {};
   }
 }
 
@@ -355,4 +367,16 @@ export const api = {
   updateNote: (id: number, patch: { title?: string; body_md?: string }) =>
     req<Note>(`/notes/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteNote: (id: number) => req<{ ok: true }>(`/notes/${id}`, { method: 'DELETE' }),
+  listMarkdowns: () => req<Item[]>('/markdown'),
+  createMarkdown: (title?: string) =>
+    req<Item>('/markdown', { method: 'POST', body: JSON.stringify({ title: title ?? '' }) }),
+  getMarkdown: (id: number) => req<Item>(`/markdown/${id}`),
+  updateMarkdown: (id: number, patch: { title?: string; body?: string }) =>
+    req<Item>(`/markdown/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  deleteMarkdown: (id: number) => req<{ ok: true }>(`/markdown/${id}`, { method: 'DELETE' }),
+  startMarkdownSession: (markdownId: number, opts: { context?: string; repo?: string } = {}) =>
+    req<Session>(`/markdown/${markdownId}/sessions`, {
+      method: 'POST',
+      body: JSON.stringify({ context: opts.context ?? '', repo: opts.repo ?? '' }),
+    }),
 };

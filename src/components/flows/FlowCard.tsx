@@ -108,9 +108,9 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     },
   });
 
-  const addNotebookMutation = useMutation({
-    mutationFn: async (sessionIds: number[]) => {
-      const item = await api.createNotebook();
+  const addLocalItemMutation = useMutation({
+    mutationFn: async ({ kind, sessionIds }: { kind: 'notes' | 'markdown'; sessionIds: number[] }) => {
+      const item = await (kind === 'notes' ? api.createNotebook() : api.createMarkdown());
       await api.setItemFlow(item.id, wid);
       await Promise.all(sessionIds.map(id => api.updateDraftSession(id, { itemId: item.id })));
       return item;
@@ -126,7 +126,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     },
     onError: e => {
       toast.add({
-        title: 'Failed to add notebook',
+        title: 'Failed to add item',
         description: e instanceof Error ? e.message : String(e),
         type: 'error',
       });
@@ -266,14 +266,15 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                         <PlaceholderItemChip
                           type={orphanSessions[0].source_type}
                           onCreate={
-                            orphanSessions[0].source_type === 'notes'
+                            orphanSessions[0].source_type === 'notes' || orphanSessions[0].source_type === 'markdown'
                               ? () =>
-                                  addNotebookMutation.mutate(
-                                    orphanSessions.filter(s => s.status === 'draft').map(s => s.id),
-                                  )
+                                  addLocalItemMutation.mutate({
+                                    kind: orphanSessions[0].source_type as 'notes' | 'markdown',
+                                    sessionIds: orphanSessions.filter(s => s.status === 'draft').map(s => s.id),
+                                  })
                               : undefined
                           }
-                          pending={addNotebookMutation.isPending}
+                          pending={addLocalItemMutation.isPending}
                         />
                       ),
                       sessions: orphanSessions,
@@ -374,17 +375,18 @@ function PlaceholderItemChip({
 }) {
   const logo = TYPE_LOGO[type];
   if (onCreate) {
+    const noun = type === 'markdown' ? 'markdown' : 'notebook';
     return (
       <button
         type='button'
         onClick={onCreate}
         disabled={pending}
-        title='Create a new notebook in this flow'
+        title={`Create a new ${noun} in this flow`}
         className='block w-44 shrink-0 cursor-pointer rounded-md border border-dashed border-gray-300 bg-white p-2 text-left hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60'
       >
         <div className='flex items-center gap-1.5'>
           <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0 opacity-50' />
-          <span className='truncate text-xs text-gray-500'>{pending ? 'Creating…' : 'New notebook'}</span>
+          <span className='truncate text-xs text-gray-500'>{pending ? 'Creating…' : `New ${noun}`}</span>
         </div>
         <div className='mt-1 text-[10px] text-gray-400'>{logo.alt}</div>
       </button>

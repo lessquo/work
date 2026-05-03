@@ -41,6 +41,7 @@ function computeBadge(item: Item): { label: string; color: string } | null {
       return { label: level, color: SENTRY_LEVEL_COLOR[level] ?? FALLBACK };
     }
     case 'notes':
+    case 'markdown':
       return null;
   }
 }

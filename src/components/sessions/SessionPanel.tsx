@@ -13,14 +13,22 @@ import { Select, type SelectOption } from '@/components/ui/Select';
 import { TabsList, TabsPanel, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { api, DEFAULT_PROMPT_ID, type Prompt, type PromptId, type Session, type Source } from '@/lib/api';
+import {
+  api,
+  DEFAULT_PROMPT_ID,
+  parseMarkdownRaw,
+  type Prompt,
+  type PromptId,
+  type Session,
+  type Source,
+} from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Copy, Terminal, Trash2 } from 'lucide-react';
 import { Suspense, useEffect, useRef, useState } from 'react';
 
-export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'notes';
+export type SessionPanelTab = 'setup' | 'logs' | 'diff' | 'pr' | 'notes' | 'markdown';
 export type DescriptionMode = 'edit' | 'preview';
 
 export function SessionPanel({
@@ -165,7 +173,8 @@ export function SessionPanel({
   const active = session?.status === 'queued' || session?.status === 'running';
   const isJira = session?.source_type === 'jira_issue';
   const isNotes = session?.source_type === 'notes';
-  const canRun = isDraft && (isJira || isNotes || !!session?.repo);
+  const isMarkdown = session?.source_type === 'markdown';
+  const canRun = isDraft && (isJira || isNotes || isMarkdown || !!session?.repo);
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
     (createJiraMutation.error instanceof Error ? createJiraMutation.error.message : null) ??
@@ -212,6 +221,7 @@ export function SessionPanel({
           )}
           {session?.status === 'succeeded' &&
             !isNotes &&
+            !isMarkdown &&
             (isJira ? (
               session.item_id ? (
                 <button
@@ -283,7 +293,7 @@ export function SessionPanel({
       {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700'>{prError}</div>}
 
       <TabsRoot
-        value={resolveTabValue(tab, { isJira, isNotes, isDraft })}
+        value={resolveTabValue(tab, { isJira, isNotes, isMarkdown, isDraft })}
         onValueChange={v => setTab(v as SessionPanelTab)}
         className='flex min-h-0 flex-1 flex-col'
       >
@@ -294,6 +304,8 @@ export function SessionPanel({
               <TabsTab value='logs'>Logs</TabsTab>
               {isNotes ? (
                 <TabsTab value='notes'>Notes</TabsTab>
+              ) : isMarkdown ? (
+                <TabsTab value='markdown'>Markdown</TabsTab>
               ) : (
                 <>
                   {!isJira && <TabsTab value='diff'>Diff</TabsTab>}
@@ -322,6 +334,10 @@ export function SessionPanel({
             {isNotes ? (
               <TabsPanel value='notes' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
                 <NotesView session={session} />
+              </TabsPanel>
+            ) : isMarkdown ? (
+              <TabsPanel value='markdown' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+                <MarkdownView session={session} />
               </TabsPanel>
             ) : (
               <>
@@ -374,7 +390,8 @@ function SetupTab({ session }: { session: Session | null }) {
   const isDraft = session?.status === 'draft';
   const isJira = session?.source_type === 'jira_issue';
   const isNotes = session?.source_type === 'notes';
-  const allowEmptyRepo = isJira || isNotes;
+  const isMarkdown = session?.source_type === 'markdown';
+  const allowEmptyRepo = isJira || isNotes || isMarkdown;
 
   const updateMutation = useMutation({
     mutationFn: (patch: { prompt?: PromptId; repo?: string; userContext?: string; sourceId?: number }) =>
@@ -779,13 +796,14 @@ function DescriptionEditor({
 
 function resolveTabValue(
   tab: SessionPanelTab,
-  kind: { isJira: boolean; isNotes: boolean; isDraft: boolean },
+  kind: { isJira: boolean; isNotes: boolean; isMarkdown: boolean; isDraft: boolean },
 ): SessionPanelTab {
   if (kind.isDraft) return 'setup';
   if (tab === 'setup') return 'setup';
   if (kind.isNotes) return tab === 'logs' ? 'logs' : 'notes';
+  if (kind.isMarkdown) return tab === 'logs' ? 'logs' : 'markdown';
   if (kind.isJira && tab === 'diff') return 'pr';
-  if (tab === 'notes') return 'logs';
+  if (tab === 'notes' || tab === 'markdown') return 'logs';
   return tab;
 }
 
@@ -840,6 +858,52 @@ function NotesView({ session }: { session: Session | null }) {
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+function MarkdownView({ session }: { session: Session | null }) {
+  const markdownId = session?.item_id ?? null;
+  const markdownQuery = useQuery({
+    queryKey: markdownId !== null ? ['markdown', markdownId] : ['markdown-noop'],
+    queryFn: () => (markdownId !== null ? api.getMarkdown(markdownId) : Promise.resolve(null)),
+    enabled: markdownId !== null,
+  });
+
+  if (markdownId === null) {
+    return <div className='p-4 text-sm text-gray-500'>This markdown session is not bound to an item.</div>;
+  }
+  if (markdownQuery.isPending) {
+    return <div className='p-4 text-sm text-gray-500'>Loading markdown…</div>;
+  }
+  if (markdownQuery.isError || !markdownQuery.data) {
+    return (
+      <div className='p-4 text-sm text-rose-600'>
+        Failed to load markdown
+        {markdownQuery.error instanceof Error ? `: ${markdownQuery.error.message}` : '.'}
+      </div>
+    );
+  }
+
+  const md = markdownQuery.data;
+  const parsed = parseMarkdownRaw(md.raw);
+  const body = parsed.body ?? '';
+  const active = session?.status === 'queued' || session?.status === 'running';
+
+  return (
+    <div className='h-full overflow-auto bg-white p-4'>
+      <div className='mb-3 text-xs text-gray-500'>
+        Markdown: <span className='font-medium text-gray-700'>{md.title}</span>
+      </div>
+      {body.trim().length === 0 ? (
+        <p className='text-sm text-gray-500'>
+          {active ? 'Waiting for the session to write the markdown…' : 'This markdown is empty.'}
+        </p>
+      ) : (
+        <div className='prose prose-sm max-w-none text-sm text-gray-800'>
+          <Markdown>{body}</Markdown>
+        </div>
       )}
     </div>
   );

@@ -84,6 +84,7 @@ CREATE INDEX IF NOT EXISTS idx_sessions_source ON sessions(source_id);
 
 db.prepare(`INSERT OR IGNORE INTO settings (key, value) VALUES ('max_parallel', '2')`).run();
 db.prepare(`INSERT OR IGNORE INTO sources (type, ext_id) VALUES ('notes', 'local')`).run();
+db.prepare(`INSERT OR IGNORE INTO sources (type, ext_id) VALUES ('markdown', 'local')`).run();
 
 // ---------- flows ----------
 
@@ -123,7 +124,7 @@ export const createFlowForSession = db.transaction(
 
 // ---------- sources ----------
 
-export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes';
+export type ItemType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'notes' | 'markdown';
 
 export type Source = {
   id: number;
@@ -137,6 +138,14 @@ export function getLocalNotesSourceId(): number {
     | { id: number }
     | undefined;
   if (!row) throw new Error('local notes source missing');
+  return row.id;
+}
+
+export function getLocalMarkdownSourceId(): number {
+  const row = db.prepare(`SELECT id FROM sources WHERE type = 'markdown' AND ext_id = 'local'`).get() as
+    | { id: number }
+    | undefined;
+  if (!row) throw new Error('local markdown source missing');
   return row.id;
 }
 

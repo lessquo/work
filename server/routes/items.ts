@@ -75,6 +75,8 @@ items.post('/:id/sync', async c => {
         break;
       case 'notes':
         return c.json({ error: 'notes have no upstream to sync' }, 400);
+      case 'markdown':
+        return c.json({ error: 'markdown items have no upstream to sync' }, 400);
     }
   } catch (e) {
     return c.json({ error: String(e) }, 500);

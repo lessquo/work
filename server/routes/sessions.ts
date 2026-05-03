@@ -79,7 +79,7 @@ sessions.post('/sessions/draft', async c => {
     const firstSource = db
       .prepare(
         `SELECT id FROM sources
-          WHERE type IN ('github_pr','jira_issue','notes')
+          WHERE type IN ('github_pr','jira_issue','notes','markdown')
           ORDER BY id ASC LIMIT 1`,
       )
       .get() as { id: number } | undefined;
@@ -163,12 +163,17 @@ sessions.post('/sessions/:id/queue', c => {
   const session = getSession(sessionId);
   if (!session) return c.json({ error: 'not found' }, 404);
   if (session.status !== 'draft') return c.json({ error: 'session is not a draft' }, 409);
-  // Jira-creating drafts need user_context; PR-style and notes sessions don't (notes
-  // pulls context from the bound notebook). PR sessions need a repo to clone.
+  // Jira-creating drafts need user_context; PR-style sessions need a repo to clone.
+  // Local-only sessions (notes, markdown) pull context from the bound item, not a repo.
   if (session.source_type === 'jira_issue' && !session.user_context) {
     return c.json({ error: 'user_context is required for jira sessions' }, 400);
   }
-  if (session.source_type !== 'jira_issue' && session.source_type !== 'notes' && !session.repo) {
+  if (
+    session.source_type !== 'jira_issue' &&
+    session.source_type !== 'notes' &&
+    session.source_type !== 'markdown' &&
+    !session.repo
+  ) {
     return c.json({ error: 'repo is required' }, 400);
   }
 

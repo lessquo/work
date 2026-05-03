@@ -27,7 +27,7 @@ export function FlowsPage() {
     () =>
       flows
         .flatMap(f => f.items)
-        .filter(i => i.type !== 'notes')
+        .filter(i => i.type !== 'notes' && i.type !== 'markdown')
         .map(i => i.id),
     [flows],
   );

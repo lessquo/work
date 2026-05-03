@@ -41,7 +41,7 @@ prompts.get('/prompts', async c => {
   return c.json(valid);
 });
 
-const APPLIES_TO_VALUES = ['sentry_issue', 'jira_issue', 'github_pr', 'notes'] as const;
+const APPLIES_TO_VALUES = ['sentry_issue', 'jira_issue', 'github_pr', 'notes', 'markdown'] as const;
 type AppliesTo = (typeof APPLIES_TO_VALUES)[number];
 function asAppliesTo(v: unknown): AppliesTo | null {
   return typeof v === 'string' && (APPLIES_TO_VALUES as readonly string[]).includes(v) ? (v as AppliesTo) : null;

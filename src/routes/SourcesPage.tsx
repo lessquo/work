@@ -48,7 +48,7 @@ function SourceRow({ source }: { source: Source }) {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const logo = TYPE_LOGO[source.type];
-  const isNotes = source.type === 'notes';
+  const isLocal = source.type === 'notes' || source.type === 'markdown';
 
   const deleteMutation = useMutation({
     mutationFn: () => api.deleteSource(source.id),
@@ -59,7 +59,7 @@ function SourceRow({ source }: { source: Source }) {
     <button
       type='button'
       onClick={async () => {
-        if (isNotes) return;
+        if (isLocal) return;
         const ok = await confirm({
           title: `Delete source "${source.ext_id}"?`,
           description: 'All items, sessions, and resources for this source will be deleted.',
@@ -69,7 +69,7 @@ function SourceRow({ source }: { source: Source }) {
         if (!ok) return;
         deleteMutation.mutate();
       }}
-      disabled={isNotes || deleteMutation.isPending}
+      disabled={isLocal || deleteMutation.isPending}
       aria-label={`Delete ${source.ext_id}`}
       className='btn-md btn-ghost mr-2 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 disabled:opacity-100'
     >
@@ -84,8 +84,8 @@ function SourceRow({ source }: { source: Source }) {
         <span className='min-w-0 flex-1 truncate font-medium'>{source.ext_id}</span>
         <span className='text-xs text-gray-500'>Added {timeAgo(source.created_at)}</span>
       </Link>
-      {isNotes ? (
-        <Tooltip content='The local notes source is built in and cannot be deleted.'>{deleteButton}</Tooltip>
+      {isLocal ? (
+        <Tooltip content={`The local ${source.type} source is built in and cannot be deleted.`}>{deleteButton}</Tooltip>
       ) : (
         deleteButton
       )}

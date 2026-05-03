@@ -534,9 +534,6 @@ function UserContextSection({
 
   return (
     <section key={sessionId} className='flex h-72 shrink-0 flex-col border-b bg-white'>
-      <div className='flex items-center gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
-        <span className='text-gray-500'>What's this session about?</span>
-      </div>
       <MarkdownEditor
         value={draft}
         onChange={setDraft}
@@ -545,7 +542,7 @@ function UserContextSection({
         readOnly={readOnly}
         disabled={readOnly}
         spellCheck
-        placeholder='Describe the bug, feature, or chore. Include any relevant links, repro steps, affected users, deadlines, or constraints.'
+        placeholder='{{user_context}}'
         statusText={statusText}
         statusError={status === 'error' && !!error}
         toolbar={

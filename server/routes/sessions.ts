@@ -327,6 +327,19 @@ sessions.get('/sessions/:id/log', c => {
   });
 });
 
+// GET /api/sessions/:id/has-changes — true if the worktree has uncommitted/untracked changes
+sessions.get('/sessions/:id/has-changes', async c => {
+  const sessionId = Number(c.req.param('id'));
+  const session = getSession(sessionId);
+  if (!session) return c.json({ error: 'not found' }, 404);
+  if (!session.clone_path || !existsSync(session.clone_path)) return c.json({ hasChanges: false });
+  try {
+    return c.json({ hasChanges: await hasChanges(session.clone_path) });
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : String(e) }, 500);
+  }
+});
+
 // GET /api/sessions/:id/diff — combined diff vs default base
 sessions.get('/sessions/:id/diff', async c => {
   const sessionId = Number(c.req.param('id'));

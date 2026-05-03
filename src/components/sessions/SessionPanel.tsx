@@ -78,6 +78,7 @@ export function SessionPanel({
       qc.invalidateQueries({ queryKey: ['items'] });
       qc.invalidateQueries({ queryKey: ['itemCounts'] });
       qc.invalidateQueries({ queryKey: ['flows'] });
+      qc.invalidateQueries({ queryKey: ['session-has-changes', sessionId] });
     },
   });
 
@@ -174,6 +175,13 @@ export function SessionPanel({
   const isJira = session?.source_type === 'jira_issue';
   const isPlan = session?.source_type === 'plan';
   const canRun = isDraft && (isJira || isPlan || !!session?.repo);
+  const showPrButton = session?.status === 'succeeded' && !isPlan && !isJira;
+  const hasChangesQuery = useQuery({
+    queryKey: ['session-has-changes', sessionId],
+    queryFn: () => api.getSessionHasChanges(sessionId),
+    enabled: showPrButton && !!session?.item_id,
+  });
+  const prHasChanges = hasChangesQuery.data?.hasChanges ?? true;
   const prError =
     (createPrMutation.error instanceof Error ? createPrMutation.error.message : null) ??
     (createJiraMutation.error instanceof Error ? createJiraMutation.error.message : null) ??
@@ -259,10 +267,14 @@ export function SessionPanel({
               >
                 {createPrMutation.isPending
                   ? session.item_id
-                    ? 'Pushing…'
+                    ? prHasChanges
+                      ? 'Pushing…'
+                      : 'Updating PR…'
                     : 'Creating PR…'
                   : session.item_id
-                    ? 'Commit & push'
+                    ? prHasChanges
+                      ? 'Commit & push'
+                      : 'Update PR'
                     : 'Create PR'}
               </button>
             ))}

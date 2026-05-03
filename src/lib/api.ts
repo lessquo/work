@@ -301,6 +301,7 @@ export const api = {
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     return res.text();
   },
+  getSessionHasChanges: (sessionId: number) => req<{ hasChanges: boolean }>(`/sessions/${sessionId}/has-changes`),
   getSessionCommitMessage: async (sessionId: number): Promise<string> => {
     const res = await fetch(`/api/sessions/${sessionId}/commit-message`);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);

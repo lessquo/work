@@ -342,9 +342,4 @@ export const api = {
   updateMarkdown: (id: number, patch: { title?: string; body?: string }) =>
     req<Item>(`/markdown/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   deleteMarkdown: (id: number) => req<{ ok: true }>(`/markdown/${id}`, { method: 'DELETE' }),
-  startMarkdownSession: (markdownId: number, opts: { context?: string; repo?: string } = {}) =>
-    req<Session>(`/markdown/${markdownId}/sessions`, {
-      method: 'POST',
-      body: JSON.stringify({ context: opts.context ?? '', repo: opts.repo ?? '' }),
-    }),
 };

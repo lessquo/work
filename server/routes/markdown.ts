@@ -1,19 +1,7 @@
-import {
-  createFlowForSession,
-  db,
-  getLocalMarkdownSourceId,
-  sessionColumns,
-  sessionFrom,
-  type Item,
-  type Session,
-} from '@server/db.js';
-import { isPromptId } from '@server/worker/prompt.js';
-import { enqueueSession } from '@server/worker/runner.js';
+import { db, getLocalMarkdownSourceId, type Item } from '@server/db.js';
 import { Hono } from 'hono';
 
 export const markdown = new Hono();
-
-const MARKDOWN_PROMPT_ID = 'write-plans-md';
 
 function generateMarkdownExtId(): string {
   return `md-${Date.now().toString(36)}`;
@@ -96,35 +84,4 @@ markdown.delete('/:id', c => {
   if (!item) return c.json({ error: 'markdown not found' }, 404);
   db.prepare(`DELETE FROM items WHERE id = ?`).run(id);
   return c.json({ ok: true });
-});
-
-// POST /api/markdown/:id/sessions — start a write-plans-md session on this item
-markdown.post('/:id/sessions', async c => {
-  const id = Number(c.req.param('id'));
-  const item = getMarkdown(id);
-  if (!item) return c.json({ error: 'markdown not found' }, 404);
-
-  const active = db
-    .prepare(`SELECT 1 FROM sessions WHERE item_id = ? AND status IN ('queued','running') LIMIT 1`)
-    .get(id);
-  if (active) return c.json({ error: 'markdown already has an active session' }, 409);
-
-  const body = await c.req
-    .json<{ context?: string; prompt?: string; repo?: string }>()
-    .catch(() => ({}) as { context?: string; prompt?: string; repo?: string });
-  const userContext = (body.context ?? '').trim();
-  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : MARKDOWN_PROMPT_ID;
-  const repo = (body.repo ?? '').trim() || null;
-
-  const res = db
-    .prepare(
-      `INSERT INTO sessions (item_id, source_id, user_context, repo, status, prompt)
-       VALUES (?, ?, ?, ?, 'queued', ?)`,
-    )
-    .run(id, item.source_id, userContext || null, repo, prompt);
-  const sessionId = Number(res.lastInsertRowid);
-  createFlowForSession(sessionId, id);
-  enqueueSession(sessionId);
-  const session = db.prepare(`SELECT ${sessionColumns} FROM ${sessionFrom} WHERE s.id = ?`).get(sessionId) as Session;
-  return c.json(session, 201);
 });

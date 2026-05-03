@@ -21,7 +21,10 @@ import { parseAsInteger, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router';
 
-type ItemColumn = { item: Item; sessions: FlowSessionChild[] };
+type ItemGroup = { item: Item; sessions: FlowSessionChild[] };
+type TypeColumn = { type: ItemType; items: ItemGroup[]; orphanSessions: FlowSessionChild[] };
+
+const COLUMN_ORDER: ItemType[] = ['plan', 'sentry_issue', 'jira_issue', 'github_pr'];
 
 export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   const flowId = useNumberParam('flowId');
@@ -166,27 +169,44 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     return `/flows/${wid}${search ? `?${search}` : ''}`;
   }
 
-  const { columns, orphanSessions } = useMemo(() => {
+  const typeColumns = useMemo<TypeColumn[]>(() => {
     const itemIds = new Set(flow.items.map(i => i.id));
     const sessionsByItem = new Map<number, FlowSessionChild[]>();
-    const orphans: FlowSessionChild[] = [];
+    const orphansByType = new Map<ItemType, FlowSessionChild[]>();
     for (const s of flow.sessions) {
       if (s.item_id != null && itemIds.has(s.item_id)) {
         const list = sessionsByItem.get(s.item_id) ?? [];
         list.push(s);
         sessionsByItem.set(s.item_id, list);
       } else {
-        orphans.push(s);
+        const list = orphansByType.get(s.source_type) ?? [];
+        list.push(s);
+        orphansByType.set(s.source_type, list);
       }
     }
     for (const list of sessionsByItem.values()) {
       list.sort((a, b) => a.created_at.localeCompare(b.created_at));
     }
-    orphans.sort((a, b) => a.created_at.localeCompare(b.created_at));
-    const cols: ItemColumn[] = [...flow.items]
-      .sort((a, b) => itemCreationTime(a).localeCompare(itemCreationTime(b)))
-      .map(item => ({ item, sessions: sessionsByItem.get(item.id) ?? [] }));
-    return { columns: cols, orphanSessions: orphans };
+    for (const list of orphansByType.values()) {
+      list.sort((a, b) => a.created_at.localeCompare(b.created_at));
+    }
+    const itemsByType = new Map<ItemType, Item[]>();
+    for (const item of flow.items) {
+      const list = itemsByType.get(item.type) ?? [];
+      list.push(item);
+      itemsByType.set(item.type, list);
+    }
+    for (const list of itemsByType.values()) {
+      list.sort((a, b) => itemCreationTime(a).localeCompare(itemCreationTime(b)));
+    }
+    return COLUMN_ORDER.map(type => ({
+      type,
+      items: (itemsByType.get(type) ?? []).map(item => ({
+        item,
+        sessions: sessionsByItem.get(item.id) ?? [],
+      })),
+      orphanSessions: orphansByType.get(type) ?? [],
+    })).filter(c => c.items.length > 0 || c.orphanSessions.length > 0);
   }, [flow.items, flow.sessions]);
 
   const title = flow.name ?? '';
@@ -234,55 +254,51 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
           </button>
         </div>
       </div>
-      {columns.length === 0 && orphanSessions.length === 0 ? (
+      {typeColumns.length === 0 ? (
         <p className='text-xs text-gray-500'>No items or sessions.</p>
       ) : (
         <div className='flex items-start overflow-x-auto'>
-          <ol className='flex items-start'>
-            {[
-              ...columns.map(col => ({
-                key: `col-${col.item.id}`,
-                item: col.item,
-                head: (
-                  <ItemChip
-                    item={col.item}
-                    to={chipHref('item', col.item.id)}
-                    selected={openItemId === col.item.id}
-                    onDetach={() => handleDetach(col.item)}
-                  />
-                ),
-                sessions: col.sessions,
-              })),
-              ...(orphanSessions.length > 0
-                ? [
-                    {
-                      key: 'orphans',
-                      item: null as Item | null,
-                      head: (
-                        <PlaceholderItemChip
-                          type={orphanSessions[0].source_type}
-                          onCreate={
-                            orphanSessions[0].source_type === 'plan'
-                              ? () =>
-                                  addPlanMutation.mutate(
-                                    orphanSessions.filter(s => s.status === 'draft').map(s => s.id),
-                                  )
-                              : undefined
-                          }
-                          pending={addPlanMutation.isPending}
-                        />
-                      ),
-                      sessions: orphanSessions,
-                    },
-                  ]
-                : []),
-            ].flatMap((col, idx) => {
-              const column = (
-                <li key={col.key} className='flex shrink-0 flex-col gap-1.5'>
-                  {col.head}
-                  {col.sessions.length > 0 && (
+          <ol className='flex items-start gap-3'>
+            {typeColumns.map(col => (
+              <li key={`col-${col.type}`} className='flex shrink-0 flex-col gap-3'>
+                {col.items.map(({ item, sessions }) => (
+                  <div key={`item-${item.id}`} className='flex flex-col gap-1.5'>
+                    <ItemChip
+                      item={item}
+                      to={chipHref('item', item.id)}
+                      selected={openItemId === item.id}
+                      onDetach={() => handleDetach(item)}
+                    />
+                    {sessions.length > 0 && (
+                      <ol className='flex flex-col gap-1.5'>
+                        {sessions.map(s => (
+                          <SessionChip
+                            key={`s-${s.id}`}
+                            session={s}
+                            to={chipHref('session', s.id)}
+                            selected={openSessionId === s.id}
+                          />
+                        ))}
+                      </ol>
+                    )}
+                  </div>
+                ))}
+                {col.orphanSessions.length > 0 && (
+                  <div className='flex flex-col gap-1.5'>
+                    <PlaceholderItemChip
+                      type={col.type}
+                      onCreate={
+                        col.type === 'plan'
+                          ? () =>
+                              addPlanMutation.mutate(
+                                col.orphanSessions.filter(s => s.status === 'draft').map(s => s.id),
+                              )
+                          : undefined
+                      }
+                      pending={addPlanMutation.isPending}
+                    />
                     <ol className='flex flex-col gap-1.5'>
-                      {col.sessions.map(s => (
+                      {col.orphanSessions.map(s => (
                         <SessionChip
                           key={`s-${s.id}`}
                           session={s}
@@ -291,15 +307,10 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                         />
                       ))}
                     </ol>
-                  )}
-                </li>
-              );
-              if (idx === 0) return [column];
-              const sep = (
-                <li key={`sep-${col.key}`} aria-hidden className='mt-6 h-px w-3 shrink-0 self-start bg-gray-300' />
-              );
-              return [sep, column];
-            })}
+                  </div>
+                )}
+              </li>
+            ))}
           </ol>
         </div>
       )}

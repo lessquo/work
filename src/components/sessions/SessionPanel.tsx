@@ -119,11 +119,19 @@ export function SessionPanel({
   });
 
   const queueMutation = useMutation({
-    mutationFn: () => api.queueDraftSession(sessionId),
+    mutationFn: async () => {
+      if (session?.source_type === 'plan' && session.item_id == null) {
+        const plan = await api.createPlan();
+        if (session.flow_id != null) await api.setItemFlow(plan.id, session.flow_id);
+        await api.updateDraftSession(sessionId, { itemId: plan.id });
+      }
+      return api.queueDraftSession(sessionId);
+    },
     onSuccess: updated => {
       qc.setQueryData(['session', sessionId], updated);
       qc.invalidateQueries({ queryKey: ['items'] });
       qc.invalidateQueries({ queryKey: ['itemCounts'] });
+      qc.invalidateQueries({ queryKey: ['allItems'] });
       qc.invalidateQueries({ queryKey: ['flows'] });
       setLogs('');
       setStreamEpoch(e => e + 1);

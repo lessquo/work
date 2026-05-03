@@ -1,6 +1,8 @@
 import { Markdown } from '@/components/panels/Markdown';
+import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
+import { Trash2 } from 'lucide-react';
 
 export type MarkdownEditorMode = 'edit' | 'preview';
 
@@ -66,9 +68,97 @@ export function MarkdownEditor({
         />
       ) : (
         <div className='min-h-0 flex-1 overflow-auto bg-white p-4 text-sm text-gray-800'>
-          {value.trim() ? <Markdown>{value}</Markdown> : <p className='text-gray-400'>(empty)</p>}
+          {value.trim() ? (
+            readOnly ? (
+              <Markdown>{value}</Markdown>
+            ) : (
+              <EditablePreview value={value} onChange={onChange} />
+            )
+          ) : (
+            <p className='text-gray-400'>(empty)</p>
+          )}
         </div>
       )}
     </div>
   );
+}
+
+function EditablePreview({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const sections = splitSections(value);
+  const confirm = useConfirm();
+
+  async function handleDelete(index: number, headingText: string) {
+    const ok = await confirm({
+      title: `Delete section "${headingText}"?`,
+      description: 'This removes the heading and all of its content from the markdown.',
+      destructive: true,
+      confirmText: 'Delete',
+    });
+    if (!ok) return;
+    const next = sections
+      .filter((_, i) => i !== index)
+      .map(s => s.text)
+      .join('\n');
+    onChange(next);
+  }
+
+  return (
+    <>
+      {sections.map((s, i) =>
+        s.kind === 'preamble' ? (
+          <Markdown key={i}>{s.text}</Markdown>
+        ) : (
+          <div key={i} className='group/section relative'>
+            <button
+              type='button'
+              onClick={() => handleDelete(i, s.heading)}
+              aria-label={`Delete section "${s.heading}"`}
+              className='btn-sm btn-ghost absolute top-0 right-0 opacity-0 group-hover/section:opacity-100 focus-visible:opacity-100'
+            >
+              <Trash2 />
+            </button>
+            <Markdown>{s.text}</Markdown>
+          </div>
+        ),
+      )}
+    </>
+  );
+}
+
+type Section = { kind: 'preamble'; text: string } | { kind: 'section'; text: string; heading: string };
+
+function splitSections(md: string): Section[] {
+  const lines = md.split('\n');
+  const headingLineIndices: number[] = [];
+  let inFence = false;
+  let fenceMarker = '';
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fence = line.match(/^(```|~~~)/);
+    if (fence) {
+      if (!inFence) {
+        inFence = true;
+        fenceMarker = fence[1];
+      } else if (line.startsWith(fenceMarker)) {
+        inFence = false;
+      }
+      continue;
+    }
+    if (!inFence && /^## /.test(line)) headingLineIndices.push(i);
+  }
+
+  if (headingLineIndices.length === 0) return [{ kind: 'preamble', text: md }];
+
+  const sections: Section[] = [];
+  if (headingLineIndices[0] > 0) {
+    sections.push({ kind: 'preamble', text: lines.slice(0, headingLineIndices[0]).join('\n') });
+  }
+  for (let s = 0; s < headingLineIndices.length; s++) {
+    const start = headingLineIndices[s];
+    const end = headingLineIndices[s + 1] ?? lines.length;
+    const text = lines.slice(start, end).join('\n');
+    const heading = lines[start].replace(/^##\s+/, '').trim();
+    sections.push({ kind: 'section', text, heading });
+  }
+  return sections;
 }

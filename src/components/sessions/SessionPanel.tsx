@@ -188,8 +188,15 @@ export function SessionPanel({
     followupMutation.mutate(msg);
   }
 
+  function onPanelKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+    if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return;
+    if (!isDraft || !canRun || queueMutation.isPending) return;
+    e.preventDefault();
+    queueMutation.mutate();
+  }
+
   return (
-    <aside className='flex h-full flex-col border-l bg-white'>
+    <aside onKeyDown={onPanelKeyDown} className='flex h-full flex-col border-l bg-white'>
       <header className='flex h-12 items-center gap-2 border-b bg-gray-50 px-4'>
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-2 text-sm'>
@@ -208,13 +215,19 @@ export function SessionPanel({
         </div>
         <div className='flex shrink-0 items-center gap-2'>
           {isDraft && (
-            <Tooltip content={canRun ? 'Queue this session' : 'Pick a repo first'}>
+            <Tooltip content={canRun ? 'Queue this session · ⌘↵' : 'Pick a repo first'}>
               <button
                 onClick={() => queueMutation.mutate()}
                 disabled={!canRun || queueMutation.isPending}
                 className='btn-sm btn-primary'
               >
-                {queueMutation.isPending ? 'Queuing…' : 'Run'}
+                {queueMutation.isPending ? (
+                  'Queuing…'
+                ) : (
+                  <>
+                    Run <span className='ml-1 opacity-60'>⌘↵</span>
+                  </>
+                )}
               </button>
             </Tooltip>
           )}

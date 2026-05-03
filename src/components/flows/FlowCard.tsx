@@ -212,7 +212,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   const title = flow.name ?? '';
 
   return (
-    <li className='rounded-lg border bg-white p-3'>
+    <li className='group/flowcard rounded-lg border bg-white p-3'>
       <div className='mb-2 flex items-center justify-between gap-2'>
         <div className='flex min-w-0 items-baseline gap-2'>
           <h2 className='flex items-baseline gap-2 text-sm' title={title}>
@@ -221,7 +221,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
           </h2>
           <span className='shrink-0 text-xs text-gray-500'>{timeAgo(flow.created_at)}</span>
         </div>
-        <div className='flex shrink-0 items-center gap-2'>
+        <div className='flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover/flowcard:opacity-100 focus-within:opacity-100'>
           <AttachItemButton flowId={wid} />
           <button
             type='button'

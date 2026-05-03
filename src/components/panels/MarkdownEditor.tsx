@@ -31,8 +31,8 @@ export function MarkdownEditor({
 }) {
   const effectiveMode: MarkdownEditorMode = readOnly ? 'preview' : mode;
   return (
-    <div className={cn('relative flex flex-col bg-white', className)}>
-      <div className='pointer-events-none sticky top-0 z-10 flex h-0 translate-y-4 items-start justify-end gap-2 px-4'>
+    <div className={cn('group relative flex flex-col bg-white', className)}>
+      <div className='pointer-events-none sticky top-0 z-10 flex h-0 translate-y-4 items-start justify-end gap-2 px-4 opacity-0 group-hover:opacity-100'>
         {statusText && (
           <span
             className={cn(

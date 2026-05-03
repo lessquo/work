@@ -1,4 +1,5 @@
 import { InsertJiraLinkButton } from '@/components/InsertJiraLinkButton';
+import { InsertMarkdownButton } from '@/components/InsertMarkdownButton';
 import { InsertNoteButton } from '@/components/InsertNoteButton';
 import { DiffView } from '@/components/panels/DiffView';
 import { LogsView } from '@/components/panels/LogsView';
@@ -563,6 +564,12 @@ function UserContextSection({
             <InsertNoteButton
               onInsert={({ title, body_md }) => {
                 const block = `### ${title}\n\n${body_md.trim()}`;
+                setDraft(draft.trim().length === 0 ? block : `${draft.trim()}\n\n${block}`);
+              }}
+            />
+            <InsertMarkdownButton
+              onInsert={({ title, body }) => {
+                const block = `### ${title}\n\n${body.trim()}`;
                 setDraft(draft.trim().length === 0 ? block : `${draft.trim()}\n\n${block}`);
               }}
             />

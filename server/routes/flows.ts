@@ -11,8 +11,7 @@ function sanitizeName(s: string): string {
       .find(l => l.trim().length > 0)
       ?.trim()
       .replace(/^["'`]+|["'`]+$/g, '')
-      .replace(/[.!?]+$/, '')
-      .slice(0, 40) ?? ''
+      .replace(/[.!?]+$/, '') ?? ''
   );
 }
 

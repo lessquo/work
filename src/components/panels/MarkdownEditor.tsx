@@ -15,6 +15,7 @@ export function MarkdownEditor({
   spellCheck = false,
   statusText,
   statusError = false,
+  toolbar,
   className,
 }: {
   value: string;
@@ -27,6 +28,7 @@ export function MarkdownEditor({
   spellCheck?: boolean;
   statusText?: React.ReactNode;
   statusError?: boolean;
+  toolbar?: React.ReactNode;
   className?: string;
 }) {
   const effectiveMode: MarkdownEditorMode = readOnly ? 'preview' : mode;
@@ -43,15 +45,12 @@ export function MarkdownEditor({
             {statusText}
           </span>
         )}
+        {toolbar && <div className='pointer-events-auto flex items-center gap-2'>{toolbar}</div>}
         {!readOnly && (
           <TabsRoot value={mode} onValueChange={v => setMode(v as MarkdownEditorMode)} className='pointer-events-auto'>
             <PillTabsList>
-              <PillTabsTab value='preview' size='sm'>
-                Preview
-              </PillTabsTab>
-              <PillTabsTab value='edit' size='sm'>
-                Edit
-              </PillTabsTab>
+              <PillTabsTab value='preview'>Preview</PillTabsTab>
+              <PillTabsTab value='edit'>Edit</PillTabsTab>
             </PillTabsList>
           </TabsRoot>
         )}

@@ -32,15 +32,16 @@ export function TabsTab({ className, ...props }: TabProps) {
 }
 
 export function PillTabsList({ className, ...props }: ListProps) {
-  return <Base.List className={cn('inline-flex overflow-hidden rounded-md border bg-white', className)} {...props} />;
+  return (
+    <Base.List className={cn('inline-flex h-7 overflow-hidden rounded-md border bg-white', className)} {...props} />
+  );
 }
 
-type PillTabProps = TabProps & { size?: 'sm' | 'md' };
-export function PillTabsTab({ className, size = 'md', ...props }: PillTabProps) {
+export function PillTabsTab({ className, ...props }: TabProps) {
   return (
     <Base.Tab
       className={cn(
-        size === 'sm' ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1 text-sm',
+        'px-2.5 text-xs',
         'text-gray-500 not-disabled:hover:bg-gray-50 not-disabled:hover:text-gray-700',
         'data-active:bg-gray-100 data-active:font-medium data-active:text-gray-900',
         className,

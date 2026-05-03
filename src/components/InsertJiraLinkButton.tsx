@@ -47,7 +47,6 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
     >
       <Combobox.Trigger className={cn('btn-sm btn-neutral', 'data-popup-open:bg-gray-100')}>
         <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-        Insert Jira link
       </Combobox.Trigger>
       <Combobox.Portal>
         <Combobox.Positioner sideOffset={4}>

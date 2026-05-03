@@ -534,23 +534,8 @@ function UserContextSection({
 
   return (
     <section key={sessionId} className='flex h-72 shrink-0 flex-col border-b bg-white'>
-      <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
+      <div className='flex items-center gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
         <span className='text-gray-500'>What's this session about?</span>
-        {!readOnly && (
-          <div className='flex items-center gap-2'>
-            <InsertJiraLinkButton
-              onInsert={url => {
-                setDraft(draft.trim().length === 0 ? url : `${draft.trim()}\n\n${url}`);
-              }}
-            />
-            <InsertPlanButton
-              onInsert={({ title, body }) => {
-                const block = `### ${title}\n\n${body.trim()}`;
-                setDraft(draft.trim().length === 0 ? block : `${draft.trim()}\n\n${block}`);
-              }}
-            />
-          </div>
-        )}
       </div>
       <MarkdownEditor
         value={draft}
@@ -563,6 +548,23 @@ function UserContextSection({
         placeholder='Describe the bug, feature, or chore. Include any relevant links, repro steps, affected users, deadlines, or constraints.'
         statusText={statusText}
         statusError={status === 'error' && !!error}
+        toolbar={
+          !readOnly && (
+            <>
+              <InsertPlanButton
+                onInsert={({ title, body }) => {
+                  const block = `### ${title}\n\n${body.trim()}`;
+                  setDraft(draft.trim().length === 0 ? block : `${draft.trim()}\n\n${block}`);
+                }}
+              />
+              <InsertJiraLinkButton
+                onInsert={url => {
+                  setDraft(draft.trim().length === 0 ? url : `${draft.trim()}\n\n${url}`);
+                }}
+              />
+            </>
+          )
+        }
         className='min-h-0 flex-1'
       />
     </section>

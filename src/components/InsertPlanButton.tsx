@@ -100,7 +100,6 @@ export function InsertPlanButton({ onInsert }: { onInsert: (section: { title: st
     >
       <Combobox.Trigger className={cn('btn-sm btn-neutral', 'data-popup-open:bg-gray-100')}>
         <FileText />
-        Insert plan
       </Combobox.Trigger>
       <Combobox.Portal>
         <Combobox.Positioner sideOffset={4}>

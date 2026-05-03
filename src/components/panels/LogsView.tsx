@@ -23,12 +23,8 @@ export function LogsView({ text, isRunning = false }: { text: string; isRunning?
       <div className='pointer-events-none sticky top-0 z-10 flex h-0 justify-end opacity-0 group-hover:opacity-100'>
         <TabsRoot value={view} onValueChange={v => setView(v as View)} className='pointer-events-auto'>
           <PillTabsList>
-            <PillTabsTab value='pretty' size='sm'>
-              Pretty
-            </PillTabsTab>
-            <PillTabsTab value='raw' size='sm'>
-              Raw
-            </PillTabsTab>
+            <PillTabsTab value='pretty'>Pretty</PillTabsTab>
+            <PillTabsTab value='raw'>Raw</PillTabsTab>
           </PillTabsList>
         </TabsRoot>
       </div>

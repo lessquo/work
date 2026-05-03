@@ -83,12 +83,13 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
 
   const autoNamedRef = useRef(false);
   const hasContext = flow.items.length > 0 || flow.sessions.length > 0;
+  const hasSucceededSession = flow.sessions.some(s => s.status === 'succeeded');
   useEffect(() => {
-    if (flow.name == null && hasContext && !autoNamedRef.current && !autoNameMutation.isPending) {
+    if (flow.name == null && hasSucceededSession && !autoNamedRef.current && !autoNameMutation.isPending) {
       autoNamedRef.current = true;
       autoNameMutation.mutate();
     }
-  }, [flow.name, hasContext, autoNameMutation]);
+  }, [flow.name, hasSucceededSession, autoNameMutation]);
 
   const addSessionMutation = useMutation({
     mutationFn: () => api.createDraftSession({ flowId: wid }),

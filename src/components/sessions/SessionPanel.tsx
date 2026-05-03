@@ -669,6 +669,15 @@ function FollowupComposer({
   onSend: () => void;
   pending: boolean;
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
+
   if (!session) return null;
   if (!session.claude_session_id) return null;
   const active = session.status === 'queued' || session.status === 'running';
@@ -685,13 +694,14 @@ function FollowupComposer({
     <div className='border-t bg-gray-50 p-2'>
       <div className='flex items-end gap-2'>
         <textarea
+          ref={textareaRef}
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={onKey}
           rows={2}
           placeholder={active ? 'Working — wait for this turn to finish…' : 'Ask a follow-up · ⌘↵ to send'}
           disabled={active || pending}
-          className='min-h-0 flex-1 resize-none rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-800 placeholder:text-gray-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500'
+          className='max-h-60 min-h-0 flex-1 resize-none overflow-y-auto rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-800 placeholder:text-gray-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500'
         />
         <Tooltip content='Continue this session with a follow-up turn'>
           <button onClick={onSend} disabled={!canSend} className='btn-sm btn-primary'>

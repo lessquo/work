@@ -219,7 +219,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
             <span className='truncate font-light text-gray-500'>{flow.id}</span>
             <span className='font-medium'>{flow.name}</span>
           </h2>
-          <span className='shrink-0 text-[11px] text-gray-500'>{timeAgo(flow.created_at)}</span>
+          <span className='shrink-0 text-xs text-gray-500'>{timeAgo(flow.created_at)}</span>
         </div>
         <div className='flex shrink-0 items-center gap-2'>
           <AttachItemButton flowId={wid} />
@@ -227,7 +227,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
             type='button'
             onClick={() => addSessionMutation.mutate()}
             disabled={addSessionMutation.isPending}
-            className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
+            className='btn-sm btn-ghost flex items-center gap-1 text-xs'
             title='Add a draft session to configure and run'
           >
             <SquarePlus />
@@ -237,7 +237,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
             type='button'
             onClick={() => autoNameMutation.mutate()}
             disabled={!hasContext || autoNameMutation.isPending}
-            className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
+            className='btn-sm btn-ghost flex items-center gap-1 text-xs'
             title='Auto-rename via Claude'
             aria-label='Auto-rename flow'
           >
@@ -246,7 +246,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
           <button
             type='button'
             onClick={handleDelete}
-            className='btn-sm btn-ghost flex items-center gap-1 text-[11px]'
+            className='btn-sm btn-ghost flex items-center gap-1 text-xs'
             title='Delete flow'
             aria-label='Delete flow'
           >
@@ -255,7 +255,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
         </div>
       </div>
       {typeColumns.length === 0 ? (
-        <p className='text-xs text-gray-500'>No items or sessions.</p>
+        <p className='text-sm text-gray-500'>No items or sessions.</p>
       ) : (
         <div className='flex items-start overflow-x-auto'>
           <ol className='flex items-start gap-3'>
@@ -336,13 +336,13 @@ function ItemChip({
       <Link
         to={to}
         title={title}
-        className={cn('selectable block w-44 rounded-md p-2 text-left', selected && 'selected')}
+        className={cn('selectable block w-48 rounded-md p-2 text-left', selected && 'selected')}
       >
         <div className='flex items-center gap-1.5'>
           <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
           <span className='truncate pr-4 text-xs font-medium text-gray-800'>{title}</span>
         </div>
-        <div className='mt-1 flex items-center gap-1 text-[10px] text-gray-500'>
+        <div className='mt-1 flex items-center gap-1 text-xs text-gray-500'>
           <StatusBadge item={item} size='sm' />
           <span className='truncate'>{item.key}</span>
         </div>
@@ -381,26 +381,26 @@ function PlaceholderItemChip({
         onClick={onCreate}
         disabled={pending}
         title='Create a new plan in this flow'
-        className='block w-44 shrink-0 cursor-pointer rounded-md border border-dashed border-gray-300 bg-white p-2 text-left hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60'
+        className='block w-48 shrink-0 cursor-pointer rounded-md border border-dashed border-gray-300 bg-white p-2 text-left hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60'
       >
         <div className='flex items-center gap-1.5'>
           <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0 opacity-50' />
           <span className='truncate text-xs text-gray-500'>{pending ? 'Creating…' : 'New plan'}</span>
         </div>
-        <div className='mt-1 text-[10px] text-gray-400'>{logo.alt}</div>
+        <div className='mt-1 text-xs text-gray-400'>{logo.alt}</div>
       </button>
     );
   }
   return (
     <div
       aria-hidden
-      className='block w-44 shrink-0 rounded-md border border-dashed border-gray-300 bg-white p-2 text-left'
+      className='block w-48 shrink-0 rounded-md border border-dashed border-gray-300 bg-white p-2 text-left'
     >
       <div className='flex items-center gap-1.5'>
         <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0 opacity-50' />
         <span className='truncate text-xs text-gray-400 italic'>No item</span>
       </div>
-      <div className='mt-1 text-[10px] text-gray-400'>{logo.alt}</div>
+      <div className='mt-1 text-xs text-gray-400'>{logo.alt}</div>
     </div>
   );
 }
@@ -413,12 +413,12 @@ function SessionChip({ session, to, selected }: { session: FlowSessionChild; to:
         to={to}
         title={`${heading} · #${session.id} · ${timeAgo(session.created_at)}`}
         className={cn(
-          'selectable flex w-44 items-center gap-1.5 rounded-md border px-2 py-1.5',
+          'selectable flex w-48 items-center gap-1.5 rounded-md border px-2 py-1.5',
           selected && 'selected',
         )}
       >
         <StatusDot status={session.status} />
-        <span className='min-w-0 flex-1 truncate text-[11px] text-gray-700'>{heading}</span>
+        <span className='min-w-0 flex-1 truncate text-xs text-gray-700'>{heading}</span>
       </Link>
     </li>
   );

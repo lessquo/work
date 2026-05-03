@@ -141,7 +141,7 @@ function Body({
             onChange={e => setLimit(Number(e.target.value))}
             className='font-mono'
           />
-          <span className='text-xs text-gray-500'>Saved as your default for next time. Higher values take longer.</span>
+          <span className='text-sm text-gray-500'>Saved as your default for next time. Higher values take longer.</span>
         </label>
       </div>
 

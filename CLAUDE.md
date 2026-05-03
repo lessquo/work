@@ -27,6 +27,11 @@ This is a personal local only app. Keep clean code and prefer refactoring.
 - [cn](src/lib/cn.ts): This exports `twMerge` as `cn`
 - [time](src/lib/time.ts): Time utils
 
+## Font size
+
+- `text-xs`: Minimal font size for body and UI text.
+- `text-2xs`: Reserved for badges, chips, and uppercase status pills.
+
 ## CSS utility classes
 
 - `btn-ghost`: Use for icon-only buttons or when small buttons are placed close together.

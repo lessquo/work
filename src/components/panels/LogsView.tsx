@@ -76,7 +76,7 @@ function ToolRow({ name, input }: { name: string; input: string }) {
   return (
     <details className='rounded border border-gray-300 bg-gray-50'>
       <summary className='flex cursor-pointer items-center gap-2 px-2 py-1'>
-        <span className='shrink-0 text-[11px] font-semibold tracking-wide text-gray-700 uppercase'>{name}</span>
+        <span className='shrink-0 text-xs font-semibold tracking-wide text-gray-700 uppercase'>{name}</span>
         {summary && <span className='truncate text-gray-500'>{summary}</span>}
       </summary>
       <pre className='overflow-x-auto border-t border-gray-300 px-2 py-1.5 leading-relaxed whitespace-pre-wrap text-gray-700'>
@@ -119,7 +119,7 @@ function ResultRow({ ok, message }: { ok: boolean; message: string }) {
     : { border: 'border-rose-300', bg: 'bg-rose-50', label: 'text-rose-700' };
   return (
     <div className={cn('rounded border-l-2', tone.border, tone.bg)}>
-      <div className={cn('px-2 py-1 text-[11px] font-semibold tracking-wide uppercase', tone.label)}>
+      <div className={cn('px-2 py-1 text-xs font-semibold tracking-wide uppercase', tone.label)}>
         {ok ? 'Result' : 'Result · error'}
       </div>
       {message && <div className='px-2 pb-1.5 leading-relaxed whitespace-pre-wrap text-gray-800'>{message}</div>}
@@ -131,7 +131,7 @@ function PromptRow({ promptId, body }: { promptId: string; body: string }) {
   return (
     <details className='rounded border border-purple-100 bg-purple-50/40'>
       <summary className='flex cursor-pointer items-center gap-2 px-2 py-1'>
-        <span className='text-[11px] font-semibold tracking-wide text-purple-700 uppercase'>Prompt</span>
+        <span className='text-xs font-semibold tracking-wide text-purple-700 uppercase'>Prompt</span>
         <span className='text-gray-500'>{promptId}</span>
       </summary>
       <pre className='overflow-x-auto border-t border-purple-100 px-2 py-1.5 leading-relaxed whitespace-pre-wrap text-gray-700'>

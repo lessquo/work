@@ -20,7 +20,7 @@ export function GithubPrCard({ item, selected = false, matches, onSelect, onOpen
       selected={selected}
       onSelect={onSelect}
       onOpenSession={onOpenSession}
-      rightMeta={pr.number ? <div className='text-[11px] text-gray-400'>#{pr.number}</div> : null}
+      rightMeta={pr.number ? <div className='text-xs text-gray-400'>#{pr.number}</div> : null}
       body={
         <>
           <div className='flex items-center gap-2'>

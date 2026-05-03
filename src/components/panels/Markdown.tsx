@@ -2,10 +2,10 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 const COMPONENTS: React.ComponentProps<typeof ReactMarkdown>['components'] = {
-  h1: ({ children }) => <h3 className='mt-4 mb-2 text-base font-semibold'>{children}</h3>,
-  h2: ({ children }) => <h3 className='mt-4 mb-2 text-base font-semibold'>{children}</h3>,
-  h3: ({ children }) => <h3 className='mt-4 mb-2 text-base font-semibold'>{children}</h3>,
-  p: ({ children }) => <p className='my-2 leading-relaxed'>{children}</p>,
+  h1: ({ children }) => <h3 className='mt-6 mb-2 text-xl font-semibold'>{children}</h3>,
+  h2: ({ children }) => <h3 className='mt-6 mb-2 text-lg font-medium'>{children}</h3>,
+  h3: ({ children }) => <h3 className='mt-6 mb-2 text-base font-medium'>{children}</h3>,
+  p: ({ children }) => <p className='my-2 text-base leading-relaxed'>{children}</p>,
   ul: ({ children }) => <ul className='my-2 ml-5 list-disc space-y-1'>{children}</ul>,
   ol: ({ children }) => <ol className='my-2 ml-5 list-decimal space-y-1'>{children}</ol>,
   li: ({ children }) => <li className='leading-relaxed'>{children}</li>,

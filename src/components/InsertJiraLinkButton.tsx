@@ -70,7 +70,7 @@ export function InsertJiraLinkButton({ onInsert }: { onInsert: (url: string) => 
                   const matches = matchesById.get(item.id);
                   return (
                     <Combobox.Item key={item.id} value={item} className='combobox-item'>
-                      <span className='shrink-0 font-mono text-[11px] text-gray-500'>
+                      <span className='shrink-0 font-mono text-xs text-gray-500'>
                         <HighlightMatch text={item.key} matches={matches} field='key' />
                       </span>
                       <span className='truncate'>

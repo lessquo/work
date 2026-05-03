@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn';
 export function StatusBadge({ item, size = 'md' }: { item: Item; size?: 'sm' | 'md' }) {
   const badge = computeBadge(item);
   if (!badge) return null;
-  const sizeClasses = size === 'sm' ? 'rounded px-1 py-px text-[9px]' : 'rounded px-1.5 py-0.5 text-[10px]';
+  const sizeClasses = size === 'sm' ? 'rounded px-1 py-px text-2xs' : 'rounded px-1.5 py-0.5 text-2xs';
   return (
     <span className={cn('shrink-0 font-semibold tracking-wide uppercase', sizeClasses, badge.color)}>
       {badge.label}

@@ -19,7 +19,7 @@ export function SentryIssueCard({ item, selected = false, matches, onSelect, onO
       selected={selected}
       onSelect={onSelect}
       onOpenSession={onOpenSession}
-      rightMeta={sentry.shortId ? <div className='text-[11px] text-gray-400'>{sentry.shortId}</div> : null}
+      rightMeta={sentry.shortId ? <div className='text-xs text-gray-400'>{sentry.shortId}</div> : null}
       body={
         <>
           <div className='flex items-center gap-2'>

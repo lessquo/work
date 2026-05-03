@@ -118,7 +118,7 @@ function SentryProjectField({ value, onChange }: FieldProps) {
     return (
       <div className='flex flex-col gap-1.5'>
         <Input value={value} onChange={e => onChange(e.target.value)} placeholder='webapp' autoFocus />
-        <div className='text-xs text-amber-700'>
+        <div className='text-sm text-amber-700'>
           Couldn't load Sentry projects ({projectsQuery.error instanceof Error ? projectsQuery.error.message : 'error'}
           ). Make sure the Sentry org slug and token are set in Settings → Sentry, then enter the slug manually.
         </div>
@@ -142,7 +142,7 @@ function SentryProjectField({ value, onChange }: FieldProps) {
           ...projects.map(p => ({ value: p.slug, label: `${p.name} (${p.slug})` })),
         ]}
       />
-      {projects.length === 0 && <div className='text-xs text-gray-500'>No projects found in your Sentry org.</div>}
+      {projects.length === 0 && <div className='text-sm text-gray-500'>No projects found in your Sentry org.</div>}
     </div>
   );
 }
@@ -158,7 +158,7 @@ function JiraProjectField({ value, onChange }: FieldProps) {
     return (
       <div className='flex flex-col gap-1.5'>
         <Input value={value} onChange={e => onChange(e.target.value)} placeholder='PROJ' autoFocus />
-        <div className='text-xs text-amber-700'>
+        <div className='text-sm text-amber-700'>
           Couldn't load Jira projects ({projectsQuery.error instanceof Error ? projectsQuery.error.message : 'error'}).
           Make sure the Jira organization, email, and API token are set in Settings → Jira, then enter the project key
           manually.
@@ -183,7 +183,7 @@ function JiraProjectField({ value, onChange }: FieldProps) {
           ...projects.map(p => ({ value: p.key, label: `${p.name} (${p.key})` })),
         ]}
       />
-      {projects.length === 0 && <div className='text-xs text-gray-500'>No projects found in your Jira site.</div>}
+      {projects.length === 0 && <div className='text-sm text-gray-500'>No projects found in your Jira site.</div>}
     </div>
   );
 }
@@ -199,7 +199,7 @@ function GithubRepoField({ value, onChange }: FieldProps) {
     return (
       <div className='flex flex-col gap-1.5'>
         <Input value={value} onChange={e => onChange(e.target.value)} placeholder='owner/repo' autoFocus />
-        <div className='text-xs text-amber-700'>
+        <div className='text-sm text-amber-700'>
           Couldn't load GitHub repos ({reposQuery.error instanceof Error ? reposQuery.error.message : 'error'}). Make
           sure <code className='rounded bg-gray-100 px-1 py-0.5 font-mono'>gh auth login</code> is set up, then enter{' '}
           <code className='rounded bg-gray-100 px-1 py-0.5 font-mono'>owner/repo</code> manually.
@@ -224,7 +224,7 @@ function GithubRepoField({ value, onChange }: FieldProps) {
           ...repos.map(r => ({ value: r.nameWithOwner, label: r.nameWithOwner })),
         ]}
       />
-      {repos.length === 0 && <div className='text-xs text-gray-500'>No repos found in your GitHub org.</div>}
+      {repos.length === 0 && <div className='text-sm text-gray-500'>No repos found in your GitHub org.</div>}
     </div>
   );
 }

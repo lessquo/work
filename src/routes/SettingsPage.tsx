@@ -78,7 +78,7 @@ export function SettingsPage() {
                       once.
                     </li>
                   </Steps>
-                  <p className='mt-3 text-xs text-gray-500'>
+                  <p className='mt-3 text-sm text-gray-500'>
                     When you resolve an issue, the token's owner is auto-assigned, and if the issue has a linked GitHub
                     PR, that URL is posted as a comment on the Sentry issue.
                   </p>
@@ -127,7 +127,7 @@ export function SettingsPage() {
                     </li>
                     <li>Copy the token — shown only once.</li>
                   </Steps>
-                  <p className='mt-3 text-xs text-gray-500'>Only links on the configured host can be attached.</p>
+                  <p className='mt-3 text-sm text-gray-500'>Only links on the configured host can be attached.</p>
                 </>
               }
               form={
@@ -210,14 +210,14 @@ export function SettingsPage() {
                       complete the login.
                     </li>
                   </Steps>
-                  <p className='mt-3 text-xs text-gray-500'>
+                  <p className='mt-3 text-sm text-gray-500'>
                     The worker runs Claude with <code className={codeCls}>permissionMode: 'bypassPermissions'</code> and{' '}
                     <code className={codeCls}>allowDangerouslySkipPermissions: true</code> — inside the per-session
                     clone Claude can read, edit, and run anything (shell commands included) without prompting. The blast
                     radius is the throwaway clone in <code className={codeCls}>clones/session-&lt;id&gt;/</code>; you
                     still review every change via the <b>Diff</b> tab and create the PR yourself.
                   </p>
-                  <p className='mt-3 text-xs text-gray-500'>
+                  <p className='mt-3 text-sm text-gray-500'>
                     MCP connectors you've authorized at{' '}
                     <ExtLink href='https://claude.ai/settings/connectors'>claude.ai/settings/connectors</ExtLink> (Jira,
                     Sentry, etc.) ride along with your account auth and are available to the spawned agent automatically
@@ -229,13 +229,8 @@ export function SettingsPage() {
             />
 
             <section className='mb-8 rounded-md border bg-white p-4'>
-              <div className='mb-1 flex items-center gap-2'>
-                <h2 className='text-sm font-semibold'>Parallelism</h2>
-                <span className='rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-[10px] font-medium tracking-wide text-gray-600 uppercase'>
-                  Global
-                </span>
-              </div>
-              <p className='mb-3 text-xs text-gray-500'>
+              <h2 className='mb-1 text-sm font-semibold'>Parallelism</h2>
+              <p className='mb-3 text-sm text-gray-500'>
                 Maximum number of Claude sessions executing in parallel across all sources. Changes apply to queued work
                 immediately; running jobs keep going.
               </p>
@@ -297,7 +292,7 @@ function IdentifierField({
   return (
     <div className='flex flex-col gap-1.5'>
       <span className='text-sm font-medium text-gray-700'>{label}</span>
-      <p className='text-xs text-gray-400'>{hint}</p>
+      <p className='text-sm text-gray-400'>{hint}</p>
       <div className='flex items-center gap-2'>
         <Input
           type='text'
@@ -318,7 +313,7 @@ function IdentifierField({
         </button>
       </div>
       {error && (
-        <div className='rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700'>{error}</div>
+        <div className='rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700'>{error}</div>
       )}
     </div>
   );
@@ -364,7 +359,7 @@ function SecretField({
         <span className='text-sm font-medium text-gray-700'>{label}</span>
         <span
           className={cn(
-            'rounded-full px-2 py-0.5 text-[10px] font-medium tracking-wide uppercase',
+            'text-2xs rounded-full px-2 py-0.5 font-medium tracking-wide uppercase',
             configured
               ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border border-gray-200 bg-gray-50 text-gray-500',
@@ -373,7 +368,7 @@ function SecretField({
           {configured ? 'Configured' : 'Not set'}
         </span>
       </div>
-      <p className='text-xs text-gray-400'>{hint}</p>
+      <p className='text-sm text-gray-400'>{hint}</p>
       <div className='flex items-center gap-2'>
         <Input
           type='password'
@@ -412,7 +407,7 @@ function SecretField({
         )}
       </div>
       {error && (
-        <div className='rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700'>{error}</div>
+        <div className='rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700'>{error}</div>
       )}
     </div>
   );

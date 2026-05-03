@@ -40,7 +40,7 @@ export function MarkdownEditor({
         {statusText && (
           <span
             className={cn(
-              'pointer-events-auto rounded bg-white/90 px-1.5 py-0.5 text-[11px]',
+              'pointer-events-auto rounded bg-white/90 px-1.5 py-0.5 text-xs',
               statusError ? 'text-rose-600' : 'text-gray-500',
             )}
           >
@@ -64,10 +64,10 @@ export function MarkdownEditor({
           disabled={disabled}
           spellCheck={spellCheck}
           placeholder={placeholder}
-          className='min-h-0 flex-1 resize-none bg-white p-4 font-mono text-xs leading-relaxed text-gray-800 outline-none disabled:bg-gray-50 disabled:text-gray-500'
+          className='min-h-0 flex-1 resize-none bg-white p-4 font-mono text-sm leading-relaxed text-gray-800 outline-none disabled:bg-gray-50 disabled:text-gray-500'
         />
       ) : (
-        <div className='min-h-0 flex-1 overflow-auto bg-white p-4 text-sm text-gray-800'>
+        <div className='min-h-0 flex-1 overflow-auto bg-white p-4 text-gray-800'>
           {value.trim() ? (
             readOnly ? (
               <Markdown>{value}</Markdown>

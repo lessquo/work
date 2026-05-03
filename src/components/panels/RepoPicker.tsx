@@ -45,7 +45,7 @@ export function RepoPicker({
         className='min-w-0 flex-1 text-xs'
       />
       {repos.length === 0 && !sourcesQuery.isLoading && (
-        <span className='text-[11px] text-gray-400'>(no GitHub sources)</span>
+        <span className='text-xs text-gray-400'>(no GitHub sources)</span>
       )}
     </label>
   );

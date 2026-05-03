@@ -80,7 +80,7 @@ function SessionBadge({
         onOpenSession?.(sessionId);
       }}
       className={cn(
-        'rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase hover:brightness-95',
+        'text-2xs rounded-full border px-2 py-0.5 font-medium uppercase hover:brightness-95',
         tone[status],
         !isLatest && 'opacity-60',
       )}

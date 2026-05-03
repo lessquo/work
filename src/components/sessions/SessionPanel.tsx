@@ -196,7 +196,7 @@ export function SessionPanel({
               </Tooltip>
             )}
           </div>
-          {session?.error && <div className='mt-0.5 truncate text-xs text-rose-600'>{session.error}</div>}
+          {session?.error && <div className='mt-0.5 truncate text-sm text-rose-600'>{session.error}</div>}
         </div>
         <div className='flex shrink-0 items-center gap-2'>
           {isDraft && (
@@ -280,7 +280,7 @@ export function SessionPanel({
           )}
         </div>
       </header>
-      {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-xs text-rose-700'>{prError}</div>}
+      {prError && <div className='border-b border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-700'>{prError}</div>}
 
       <TabsRoot
         value={resolveTabValue(tab, { isJira, isPlan, isDraft })}
@@ -426,7 +426,7 @@ function SetupTab({ session }: { session: Session | null }) {
           }}
           allowEmpty={allowEmptyRepo}
         />
-        {!isDraft && <p className='mt-2 text-xs text-gray-500'>Read-only — session already started.</p>}
+        {!isDraft && <p className='mt-2 text-sm text-gray-500'>Read-only — session already started.</p>}
       </section>
 
       <SetupPromptPicker
@@ -620,7 +620,7 @@ function TitleEditor({ sessionId, session, isJira }: { sessionId: number; sessio
 
   return (
     <div className='flex h-full flex-col bg-white'>
-      <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
+      <div className='flex items-center justify-between gap-3 border-b bg-gray-50 px-3 py-1.5 text-xs'>
         <div className='text-gray-500'>
           {hint}{' '}
           <span className={cn(overLimit ? 'font-medium text-rose-600' : 'text-gray-400')}>
@@ -649,7 +649,7 @@ function TitleEditor({ sessionId, session, isJira }: { sessionId: number; sessio
         disabled={disabled}
         spellCheck
         placeholder={placeholder}
-        className='min-h-0 flex-1 resize-none bg-white p-4 font-mono text-xs leading-relaxed text-gray-800 outline-none disabled:bg-gray-50 disabled:text-gray-500'
+        className='min-h-0 flex-1 resize-none bg-white p-4 font-mono text-sm leading-relaxed text-gray-800 outline-none disabled:bg-gray-50 disabled:text-gray-500'
       />
     </div>
   );
@@ -700,7 +700,7 @@ function FollowupComposer({
           rows={2}
           placeholder={active ? 'Working — wait for this turn to finish…' : 'Ask a follow-up · ⌘↵ to send'}
           disabled={active || pending}
-          className='max-h-60 min-h-0 flex-1 resize-none overflow-y-auto rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs text-gray-800 placeholder:text-gray-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500'
+          className='max-h-60 min-h-0 flex-1 resize-none overflow-y-auto rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500'
         />
         <Tooltip content='Continue this session with a follow-up turn'>
           <button onClick={onSend} disabled={!canSend} className='btn-sm btn-primary'>
@@ -818,7 +818,7 @@ function PlanView({ session }: { session: Session | null }) {
 
   return (
     <div className='h-full overflow-auto bg-white p-4'>
-      <div className='mb-3 text-xs text-gray-500'>
+      <div className='mb-3 text-sm text-gray-500'>
         Plan: <span className='font-medium text-gray-700'>{plan.title}</span>
       </div>
       {body.trim().length === 0 ? (
@@ -826,7 +826,7 @@ function PlanView({ session }: { session: Session | null }) {
           {active ? 'Waiting for the session to write the plan…' : 'This plan is empty.'}
         </p>
       ) : (
-        <div className='prose prose-sm max-w-none text-sm text-gray-800'>
+        <div className='prose prose-sm max-w-none text-gray-800'>
           <Markdown>{body}</Markdown>
         </div>
       )}

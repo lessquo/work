@@ -3,6 +3,8 @@
 @theme {
   --default-font-family: 'Inter', var(--font-sans);
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --text-2xs: 0.625rem;
+  --text-2xs--line-height: 0.875rem;
   --blur-2xs: 2px;
   --spacing-header: 3rem;
 }
@@ -58,10 +60,10 @@
   }
   /* chip */
   .chip-sm {
-    @apply flex h-5 items-center gap-1 rounded-full px-1.5 text-[10px] font-medium uppercase;
+    @apply text-2xs flex h-5 items-center gap-1 rounded-full px-1.5 font-medium uppercase;
   }
   .chip-md {
-    @apply flex h-7 items-center gap-2 rounded-full px-2.5 text-xs font-medium uppercase;
+    @apply text-2xs flex h-7 items-center gap-2 rounded-full px-2.5 font-medium uppercase;
   }
   /* Status */
   .status-neutral {

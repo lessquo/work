@@ -131,7 +131,7 @@ export function InsertPlanButton({ onInsert }: { onInsert: (section: { title: st
                           const matches = matchesById.get(item.id);
                           return (
                             <Combobox.Item key={item.id} value={item} className='combobox-item'>
-                              <span className='inline-block w-4 shrink-0 text-right font-mono text-[11px] text-gray-500'>
+                              <span className='inline-block w-4 shrink-0 text-right font-mono text-xs text-gray-500'>
                                 {item.key}
                               </span>
                               <span className='truncate'>

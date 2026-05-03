@@ -37,7 +37,7 @@ export function SessionCard({
           {title}
         </span>
       </div>
-      <div className='mt-1 flex flex-wrap items-center gap-x-2 text-[11px] text-gray-500'>
+      <div className='mt-1 flex flex-wrap items-center gap-x-2 text-xs text-gray-500'>
         <span>#{session.id}</span>
         <span>·</span>
         <code className='font-mono text-gray-700'>{session.prompt}</code>
@@ -56,7 +56,7 @@ export function SessionCard({
         <span>·</span>
         <span>{timeAgo(session.created_at)}</span>
       </div>
-      {session.error && <div className='mt-1 truncate text-xs text-rose-600'>{session.error}</div>}
+      {session.error && <div className='mt-1 truncate text-sm text-rose-600'>{session.error}</div>}
     </li>
   );
 }

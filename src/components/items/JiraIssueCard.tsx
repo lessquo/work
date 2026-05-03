@@ -20,7 +20,7 @@ export function JiraIssueCard({ item, selected = false, matches, onSelect, onOpe
       onSelect={onSelect}
       onOpenSession={onOpenSession}
       rightMeta={
-        <div className='text-[11px] text-gray-400'>
+        <div className='text-xs text-gray-400'>
           <HighlightMatch text={item.key} matches={matches} field='key' />
         </div>
       }

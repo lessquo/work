@@ -26,7 +26,7 @@ export function ToastViewport() {
             <div className='flex items-start gap-3'>
               <div className='min-w-0 flex-1'>
                 {toast.title && <Base.Title className='font-medium' />}
-                {toast.description && <Base.Description className='mt-0.5 text-[11px] opacity-90' />}
+                {toast.description && <Base.Description className='mt-0.5 text-xs opacity-90' />}
               </div>
               <Base.Close
                 aria-label='close'

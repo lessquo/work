@@ -72,7 +72,7 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
       }}
     >
       <Combobox.Trigger
-        className={cn('btn-sm btn-ghost flex items-center gap-1 text-[11px]', 'data-popup-open:bg-gray-100')}
+        className={cn('btn-sm btn-ghost flex items-center gap-1 text-xs', 'data-popup-open:bg-gray-100')}
         title='Attach item'
       >
         <Plus />
@@ -98,14 +98,14 @@ export function AttachItemButton({ flowId, sourceId }: { flowId: number; sourceI
                   return (
                     <Combobox.Item key={item.id} value={item} className='combobox-item'>
                       <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-                      <span className='shrink-0 font-mono text-[11px] text-gray-500'>
+                      <span className='shrink-0 font-mono text-xs text-gray-500'>
                         <HighlightMatch text={item.key} matches={matches} field='key' />
                       </span>
                       <span className='truncate'>
                         <HighlightMatch text={item.title} matches={matches} field='title' />
                       </span>
                       {item.flow_id != null && (
-                        <span className='ml-auto shrink-0 rounded bg-amber-100 px-1 text-[10px] text-amber-800'>
+                        <span className='ml-auto shrink-0 rounded bg-amber-100 px-1 text-xs text-amber-800'>
                           in flow #{item.flow_id}
                         </span>
                       )}

@@ -35,7 +35,7 @@ export function PromptTemplateEditor({ prompt, readOnly = false }: { prompt: Pro
 
   return (
     <div className='flex min-h-0 flex-1 flex-col bg-white'>
-      <div className='flex items-center gap-3 border-b bg-gray-50 px-3 py-1.5 text-[11px]'>
+      <div className='flex items-center gap-3 border-b bg-gray-50 px-3 py-1.5 text-xs'>
         <span className='min-w-0 truncate text-gray-500'>
           <code className='font-mono text-gray-700'>{prompt.id}</code>
           {prompt.hint && <span className='ml-2'>· {prompt.hint}</span>}

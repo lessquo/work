@@ -1,7 +1,7 @@
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
 import { Loader2 } from 'lucide-react';
-import { useState, type Ref, type UIEvent } from 'react';
+import { Fragment, useState, type Ref, type UIEvent } from 'react';
 
 type Block =
   | { kind: 'event'; time: string; verb: string; message: string }
@@ -40,12 +40,12 @@ export function LogsView({
           isRunning ? (
             <RunningIndicator />
           ) : (
-            <span className='block px-4 py-1 text-gray-500'>(no output)</span>
+            <span className='block px-4 py-2 text-gray-500'>(no output)</span>
           )
         ) : view === 'pretty' ? (
           parseBlocks(stripped).map((b, i) => <BlockRow key={i} block={b} />)
         ) : (
-          <pre className='px-4 py-1 leading-relaxed whitespace-pre-wrap text-gray-700'>{stripped}</pre>
+          <pre className='px-4 py-2 leading-relaxed whitespace-pre-wrap text-gray-700'>{stripped}</pre>
         )}
       </div>
     </div>
@@ -54,7 +54,7 @@ export function LogsView({
 
 function RunningIndicator() {
   return (
-    <span className='inline-flex items-center gap-1.5 px-4 py-1 text-gray-500'>
+    <span className='inline-flex items-center gap-1.5 px-4 py-2 text-gray-500'>
       <Loader2 className='size-3.5 animate-spin' />
       Waiting for output…
     </span>
@@ -79,7 +79,7 @@ function BlockRow({ block }: { block: Block }) {
 function EventRow({ time, verb, message }: { time: string; verb: string; message: string }) {
   const cls = VERB_CLASS[verb] ?? 'text-gray-700';
   return (
-    <div className='flex gap-2 px-4 py-1 leading-relaxed'>
+    <div className='flex gap-2 px-4 py-2 leading-relaxed hover:bg-gray-50'>
       <span className='shrink-0 text-gray-400'>{shortTime(time)}</span>
       <span className={cn('font-medium', cls)}>{message}</span>
     </div>
@@ -87,49 +87,57 @@ function EventRow({ time, verb, message }: { time: string; verb: string; message
 }
 
 function ToolRow({ name, input }: { name: string; input: string }) {
-  const { formatted, summary } = parseToolInput(input);
+  const { entries, formatted } = parseToolInput(input);
   return (
-    <details className='px-4 py-1'>
-      <summary className='flex cursor-pointer items-center gap-2'>
-        <span className='shrink-0 text-xs font-semibold tracking-wide text-gray-700 uppercase'>{name}</span>
-        {summary && <span className='truncate text-gray-500'>{summary}</span>}
-      </summary>
-      <pre className='overflow-x-auto pt-1.5 leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
-    </details>
+    <div className='px-4 py-2 hover:bg-gray-50'>
+      <div className={cn('text-xs font-semibold tracking-wide uppercase', TOOL_COLOR[name] ?? 'text-gray-700')}>
+        {name}
+      </div>
+      {entries ? (
+        <div className='mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 leading-relaxed'>
+          {entries.map(([k, v]) => (
+            <Fragment key={k}>
+              <div className='text-gray-500'>{k}</div>
+              <pre className='overflow-x-auto whitespace-pre-wrap text-gray-700'>{v}</pre>
+            </Fragment>
+          ))}
+        </div>
+      ) : (
+        <pre className='mt-1 overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
+      )}
+    </div>
   );
 }
 
-const SUMMARY_KEYS = ['command', 'file_path', 'path', 'pattern', 'query', 'url', 'description', 'prompt'] as const;
-
-function parseToolInput(input: string): { formatted: string; summary: string } {
+function parseToolInput(input: string): {
+  entries: [string, string][] | null;
+  formatted: string;
+} {
   const trimmed = input.trim();
   if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
-    return { formatted: input, summary: trimmed.split('\n')[0] };
+    return { entries: null, formatted: input };
   }
   try {
     const parsed = JSON.parse(trimmed) as unknown;
     const formatted = JSON.stringify(parsed, null, 2);
-    let summary = '';
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       const obj = parsed as Record<string, unknown>;
-      for (const key of SUMMARY_KEYS) {
-        const v = obj[key];
-        if (typeof v === 'string' && v.trim()) {
-          summary = v.trim().split('\n')[0];
-          break;
-        }
-      }
+      const entries: [string, string][] = Object.entries(obj).map(([k, v]) => [
+        k,
+        typeof v === 'string' ? v : JSON.stringify(v, null, 2),
+      ]);
+      return { entries, formatted };
     }
-    return { formatted, summary };
+    return { entries: null, formatted };
   } catch {
-    return { formatted: input, summary: trimmed.split('\n')[0] };
+    return { entries: null, formatted: input };
   }
 }
 
 function ResultRow({ ok, message }: { ok: boolean; message: string }) {
   const label = ok ? 'text-emerald-700' : 'text-rose-700';
   return (
-    <div className='px-4 py-1'>
+    <div className='px-4 py-2 hover:bg-gray-50'>
       <div className={cn('text-xs font-semibold tracking-wide uppercase', label)}>
         {ok ? 'Result' : 'Result · error'}
       </div>
@@ -140,19 +148,33 @@ function ResultRow({ ok, message }: { ok: boolean; message: string }) {
 
 function PromptRow({ promptId, body }: { promptId: string; body: string }) {
   return (
-    <details className='px-4 py-1'>
-      <summary className='flex cursor-pointer items-center gap-2'>
+    <div className='px-4 py-2 hover:bg-gray-50'>
+      <div className='flex items-center gap-2'>
         <span className='text-xs font-semibold tracking-wide text-purple-700 uppercase'>Prompt</span>
         <span className='text-gray-500'>{promptId}</span>
-      </summary>
-      <pre className='overflow-x-auto pt-1.5 leading-relaxed whitespace-pre-wrap text-gray-700'>{body}</pre>
-    </details>
+      </div>
+      <pre className='mt-1 overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{body}</pre>
+    </div>
   );
 }
 
 function TextRow({ body }: { body: string }) {
-  return <div className='px-4 py-1 leading-relaxed whitespace-pre-wrap text-gray-700'>{body}</div>;
+  return <div className='px-4 py-2 leading-relaxed whitespace-pre-wrap text-gray-700 hover:bg-gray-50'>{body}</div>;
 }
+
+const TOOL_COLOR: Record<string, string> = {
+  Bash: 'text-amber-700',
+  Read: 'text-sky-700',
+  Edit: 'text-blue-700',
+  Write: 'text-blue-700',
+  NotebookEdit: 'text-blue-700',
+  Glob: 'text-emerald-700',
+  Grep: 'text-emerald-700',
+  WebFetch: 'text-violet-700',
+  WebSearch: 'text-violet-700',
+  Task: 'text-fuchsia-700',
+  TodoWrite: 'text-cyan-700',
+};
 
 const VERB_CLASS: Record<string, string> = {
   cloning: 'text-sky-700',

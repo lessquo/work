@@ -88,7 +88,9 @@ function EventRow({ time, verb, message }: { time: string; verb: string; message
 }
 
 function ToolRow({ name, input }: { name: string; input: string }) {
+  const edit = name === 'Edit' ? parseEditInput(input) : null;
   const { entries, formatted } = parseToolInput(input);
+  const gridEntries = edit ? edit.entries : entries;
   return (
     <div className='flex gap-3 px-4 py-2'>
       <div
@@ -99,22 +101,100 @@ function ToolRow({ name, input }: { name: string; input: string }) {
       >
         {name}
       </div>
-      {entries ? (
-        <div className='grid min-w-0 flex-1 grid-cols-[max-content_1fr] gap-x-3 gap-y-1 leading-relaxed'>
-          {entries.map(([k, v]) => (
-            <Fragment key={k}>
-              <div className='text-gray-500'>{k}</div>
-              <pre className='overflow-x-auto whitespace-pre-wrap text-gray-700'>{v}</pre>
-            </Fragment>
-          ))}
-        </div>
-      ) : (
-        <pre className='min-w-0 flex-1 overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>
-          {formatted}
-        </pre>
-      )}
+      <div className='min-w-0 flex-1'>
+        {gridEntries ? (
+          gridEntries.length > 0 && (
+            <div className='grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 leading-relaxed'>
+              {gridEntries.map(([k, v]) => (
+                <Fragment key={k}>
+                  <div className='text-gray-500'>{k}</div>
+                  <pre className='overflow-x-auto whitespace-pre-wrap text-gray-700'>{v}</pre>
+                </Fragment>
+              ))}
+            </div>
+          )
+        ) : (
+          <pre className='overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
+        )}
+        {edit && <EditDiff oldStr={edit.oldStr} newStr={edit.newStr} />}
+      </div>
     </div>
   );
+}
+
+function parseEditInput(input: string): { entries: [string, string][]; oldStr: string; newStr: string } | null {
+  const trimmed = input.trim();
+  if (!trimmed.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    if (typeof parsed.old_string !== 'string' || typeof parsed.new_string !== 'string') return null;
+    const entries: [string, string][] = Object.entries(parsed)
+      .filter(([k]) => k !== 'old_string' && k !== 'new_string')
+      .map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v, null, 2)]);
+    return { entries, oldStr: parsed.old_string, newStr: parsed.new_string };
+  } catch {
+    return null;
+  }
+}
+
+function EditDiff({ oldStr, newStr }: { oldStr: string; newStr: string }) {
+  const lines = lineDiff(oldStr, newStr);
+  return (
+    <pre className='mt-1 overflow-x-auto leading-relaxed whitespace-pre'>
+      <div className='inline-block min-w-full'>
+        {lines.map((l, i) => (
+          <div key={i} className={cn('px-2', DIFF_LINE_CLASS[l.kind])}>
+            <span className='select-none'>{l.kind === 'add' ? '+' : l.kind === 'del' ? '-' : ' '} </span>
+            {l.text || ' '}
+          </div>
+        ))}
+      </div>
+    </pre>
+  );
+}
+
+const DIFF_LINE_CLASS: Record<'add' | 'del' | 'ctx', string> = {
+  add: 'bg-emerald-50 text-emerald-900',
+  del: 'bg-rose-50 text-rose-900',
+  ctx: 'text-gray-700',
+};
+
+function lineDiff(oldStr: string, newStr: string): { kind: 'add' | 'del' | 'ctx'; text: string }[] {
+  if (oldStr === '') return newStr.split('\n').map(text => ({ kind: 'add', text }));
+  if (newStr === '') return oldStr.split('\n').map(text => ({ kind: 'del', text }));
+  const a = oldStr.split('\n');
+  const b = newStr.split('\n');
+  const m = a.length;
+  const n = b.length;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0));
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] + 1 : Math.max(dp[i - 1][j], dp[i][j - 1]);
+    }
+  }
+  const out: { kind: 'add' | 'del' | 'ctx'; text: string }[] = [];
+  let i = m;
+  let j = n;
+  while (i > 0 && j > 0) {
+    if (a[i - 1] === b[j - 1]) {
+      out.push({ kind: 'ctx', text: a[i - 1] });
+      i--;
+      j--;
+    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
+      out.push({ kind: 'del', text: a[i - 1] });
+      i--;
+    } else {
+      out.push({ kind: 'add', text: b[j - 1] });
+      j--;
+    }
+  }
+  while (i > 0) {
+    out.push({ kind: 'del', text: a[--i] });
+  }
+  while (j > 0) {
+    out.push({ kind: 'add', text: b[--j] });
+  }
+  return out.reverse();
 }
 
 function parseToolInput(input: string): {

@@ -336,7 +336,7 @@ export function SessionPanel({
             </>
           )}
         </TabsList>
-        <TabsPanel value='setup' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
+        <TabsPanel value='setup' keepMounted={false} className='flex min-h-0 flex-1 flex-col'>
           <Suspense fallback={<p className='p-4 text-sm text-gray-500'>Loading prompts…</p>}>
             <SetupTab session={session} />
           </Suspense>
@@ -349,13 +349,13 @@ export function SessionPanel({
               </div>
             </TabsPanel>
             {isPlan ? (
-              <TabsPanel value='plan' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+              <TabsPanel value='plan' keepMounted={false} className='min-h-0 flex-1'>
                 <PlanView session={session} />
               </TabsPanel>
             ) : (
               <>
                 {!isJira && (
-                  <TabsPanel value='diff' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
+                  <TabsPanel value='diff' keepMounted={false} className='min-h-0 flex-1'>
                     <div className='h-full overflow-auto bg-white p-4'>
                       <Suspense fallback={<p className='text-sm text-gray-500'>Loading diff…</p>}>
                         <DiffView sessionId={sessionId} />
@@ -363,7 +363,7 @@ export function SessionPanel({
                     </div>
                   </TabsPanel>
                 )}
-                <TabsPanel value='pr' keepMounted={false} className='flex min-h-0 flex-1 flex-col overflow-hidden'>
+                <TabsPanel value='pr' keepMounted={false} className='flex min-h-0 flex-1 flex-col'>
                   <div className='h-40 shrink-0 border-b'>
                     <TitleEditor sessionId={sessionId} session={session} isJira={isJira} />
                   </div>

@@ -90,12 +90,17 @@ function EventRow({ time, verb, message }: { time: string; verb: string; message
 function ToolRow({ name, input }: { name: string; input: string }) {
   const { entries, formatted } = parseToolInput(input);
   return (
-    <div className='px-4 py-2'>
-      <div className={cn('text-xs font-semibold tracking-wide uppercase', TOOL_COLOR[name] ?? 'text-gray-700')}>
+    <div className='flex gap-3 px-4 py-2'>
+      <div
+        className={cn(
+          'shrink-0 text-xs leading-relaxed font-semibold tracking-wide uppercase',
+          TOOL_COLOR[name] ?? 'text-gray-700',
+        )}
+      >
         {name}
       </div>
       {entries ? (
-        <div className='mt-1 grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 leading-relaxed'>
+        <div className='grid min-w-0 flex-1 grid-cols-[max-content_1fr] gap-x-3 gap-y-1 leading-relaxed'>
           {entries.map(([k, v]) => (
             <Fragment key={k}>
               <div className='text-gray-500'>{k}</div>
@@ -104,7 +109,9 @@ function ToolRow({ name, input }: { name: string; input: string }) {
           ))}
         </div>
       ) : (
-        <pre className='mt-1 overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
+        <pre className='min-w-0 flex-1 overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>
+          {formatted}
+        </pre>
       )}
     </div>
   );
@@ -136,17 +143,11 @@ function parseToolInput(input: string): {
 }
 
 function ResultRow({ ok }: { ok: boolean; message: string }) {
-  const tone = ok
-    ? { bg: 'bg-emerald-50', label: 'text-emerald-700', Icon: CheckCircle2 }
-    : { bg: 'bg-rose-50', label: 'text-rose-700', Icon: XCircle };
+  const tone = ok ? { label: 'text-emerald-700', Icon: CheckCircle2 } : { label: 'text-rose-700', Icon: XCircle };
   const { Icon } = tone;
   return (
     <div
-      className={cn(
-        'flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide uppercase',
-        tone.bg,
-        tone.label,
-      )}
+      className={cn('flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide uppercase', tone.label)}
     >
       <Icon className='size-3.5' />
       {ok ? 'Result · success' : 'Result · error'}

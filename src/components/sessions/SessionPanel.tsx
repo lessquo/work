@@ -343,13 +343,9 @@ export function SessionPanel({
         </TabsPanel>
         {!isDraft && (
           <>
-            <TabsPanel value='logs' keepMounted={false} className='min-h-0 flex-1 overflow-hidden'>
-              <div
-                ref={logRef}
-                onScroll={handleLogScroll}
-                className='h-full overflow-auto bg-white p-4 font-mono text-xs text-gray-800'
-              >
-                <LogsView text={logs} isRunning={active} />
+            <TabsPanel value='logs' keepMounted={false} className='min-h-0 flex-1'>
+              <div className='h-full bg-white font-mono text-xs text-gray-800'>
+                <LogsView text={logs} isRunning={active} scrollRef={logRef} onScroll={handleLogScroll} />
               </div>
             </TabsPanel>
             {isPlan ? (

@@ -1,7 +1,7 @@
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
 import { Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type Ref, type UIEvent } from 'react';
 
 type Block =
   | { kind: 'event'; time: string; verb: string; message: string }
@@ -12,15 +12,22 @@ type Block =
 
 type View = 'pretty' | 'raw';
 
-export function LogsView({ text, isRunning = false }: { text: string; isRunning?: boolean }) {
+export function LogsView({
+  text,
+  isRunning = false,
+  scrollRef,
+  onScroll,
+}: {
+  text: string;
+  isRunning?: boolean;
+  scrollRef?: Ref<HTMLDivElement>;
+  onScroll?: (e: UIEvent<HTMLDivElement>) => void;
+}) {
   const [view, setView] = useState<View>('pretty');
   const stripped = stripAnsi(text);
-  if (!stripped) {
-    return isRunning ? <RunningIndicator /> : <span className='text-gray-500'>(no output)</span>;
-  }
   return (
-    <div className='group flex flex-col gap-1.5'>
-      <div className='pointer-events-none sticky top-0 z-10 flex h-0 justify-end opacity-0 group-hover:opacity-100'>
+    <div className='group flex h-full flex-col'>
+      <div className='pointer-events-none sticky top-0 z-10 flex h-0 items-center justify-end px-4 opacity-0 group-hover:opacity-100'>
         <TabsRoot value={view} onValueChange={v => setView(v as View)} className='pointer-events-auto'>
           <PillTabsList>
             <PillTabsTab value='pretty'>Pretty</PillTabsTab>
@@ -28,18 +35,26 @@ export function LogsView({ text, isRunning = false }: { text: string; isRunning?
           </PillTabsList>
         </TabsRoot>
       </div>
-      {view === 'pretty' ? (
-        parseBlocks(stripped).map((b, i) => <BlockRow key={i} block={b} />)
-      ) : (
-        <pre className='leading-relaxed whitespace-pre-wrap text-gray-700'>{stripped}</pre>
-      )}
+      <div ref={scrollRef} onScroll={onScroll} className='min-h-0 flex-1 overflow-auto'>
+        {!stripped ? (
+          isRunning ? (
+            <RunningIndicator />
+          ) : (
+            <span className='block px-4 py-1 text-gray-500'>(no output)</span>
+          )
+        ) : view === 'pretty' ? (
+          parseBlocks(stripped).map((b, i) => <BlockRow key={i} block={b} />)
+        ) : (
+          <pre className='px-4 py-1 leading-relaxed whitespace-pre-wrap text-gray-700'>{stripped}</pre>
+        )}
+      </div>
     </div>
   );
 }
 
 function RunningIndicator() {
   return (
-    <span className='inline-flex items-center gap-1.5 text-gray-500'>
+    <span className='inline-flex items-center gap-1.5 px-4 py-1 text-gray-500'>
       <Loader2 className='size-3.5 animate-spin' />
       Waiting for output…
     </span>
@@ -64,7 +79,7 @@ function BlockRow({ block }: { block: Block }) {
 function EventRow({ time, verb, message }: { time: string; verb: string; message: string }) {
   const cls = VERB_CLASS[verb] ?? 'text-gray-700';
   return (
-    <div className='flex gap-2 leading-relaxed'>
+    <div className='flex gap-2 px-4 py-1 leading-relaxed'>
       <span className='shrink-0 text-gray-400'>{shortTime(time)}</span>
       <span className={cn('font-medium', cls)}>{message}</span>
     </div>
@@ -74,14 +89,12 @@ function EventRow({ time, verb, message }: { time: string; verb: string; message
 function ToolRow({ name, input }: { name: string; input: string }) {
   const { formatted, summary } = parseToolInput(input);
   return (
-    <details className='rounded border border-gray-300 bg-gray-50'>
-      <summary className='flex cursor-pointer items-center gap-2 px-2 py-1'>
+    <details className='px-4 py-1'>
+      <summary className='flex cursor-pointer items-center gap-2'>
         <span className='shrink-0 text-xs font-semibold tracking-wide text-gray-700 uppercase'>{name}</span>
         {summary && <span className='truncate text-gray-500'>{summary}</span>}
       </summary>
-      <pre className='overflow-x-auto border-t border-gray-300 px-2 py-1.5 leading-relaxed whitespace-pre-wrap text-gray-700'>
-        {formatted}
-      </pre>
+      <pre className='overflow-x-auto pt-1.5 leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
     </details>
   );
 }
@@ -114,35 +127,31 @@ function parseToolInput(input: string): { formatted: string; summary: string } {
 }
 
 function ResultRow({ ok, message }: { ok: boolean; message: string }) {
-  const tone = ok
-    ? { border: 'border-emerald-300', bg: 'bg-emerald-50', label: 'text-emerald-700' }
-    : { border: 'border-rose-300', bg: 'bg-rose-50', label: 'text-rose-700' };
+  const label = ok ? 'text-emerald-700' : 'text-rose-700';
   return (
-    <div className={cn('rounded border-l-2', tone.border, tone.bg)}>
-      <div className={cn('px-2 py-1 text-xs font-semibold tracking-wide uppercase', tone.label)}>
+    <div className='px-4 py-1'>
+      <div className={cn('text-xs font-semibold tracking-wide uppercase', label)}>
         {ok ? 'Result' : 'Result · error'}
       </div>
-      {message && <div className='px-2 pb-1.5 leading-relaxed whitespace-pre-wrap text-gray-800'>{message}</div>}
+      {message && <div className='leading-relaxed whitespace-pre-wrap text-gray-800'>{message}</div>}
     </div>
   );
 }
 
 function PromptRow({ promptId, body }: { promptId: string; body: string }) {
   return (
-    <details className='rounded border border-purple-100 bg-purple-50/40'>
-      <summary className='flex cursor-pointer items-center gap-2 px-2 py-1'>
+    <details className='px-4 py-1'>
+      <summary className='flex cursor-pointer items-center gap-2'>
         <span className='text-xs font-semibold tracking-wide text-purple-700 uppercase'>Prompt</span>
         <span className='text-gray-500'>{promptId}</span>
       </summary>
-      <pre className='overflow-x-auto border-t border-purple-100 px-2 py-1.5 leading-relaxed whitespace-pre-wrap text-gray-700'>
-        {body}
-      </pre>
+      <pre className='overflow-x-auto pt-1.5 leading-relaxed whitespace-pre-wrap text-gray-700'>{body}</pre>
     </details>
   );
 }
 
 function TextRow({ body }: { body: string }) {
-  return <div className='leading-relaxed whitespace-pre-wrap text-gray-700'>{body}</div>;
+  return <div className='px-4 py-1 leading-relaxed whitespace-pre-wrap text-gray-700'>{body}</div>;
 }
 
 const VERB_CLASS: Record<string, string> = {

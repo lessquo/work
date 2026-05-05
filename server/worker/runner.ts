@@ -275,7 +275,7 @@ async function runJob(sessionId: number): Promise<void> {
       await log(`[event] branched ${branch} from ${defaultBranch}\n`);
 
       const promptText = await buildPromptText();
-      await log(`\n[user] ${promptText}\n`);
+      await log(`\n[msg: user] ${promptText}\n`);
       return promptText;
     },
   });
@@ -334,7 +334,7 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
         },
         session.prompt,
       );
-      await log(`\n[user] ${promptText}\n`);
+      await log(`\n[msg: user] ${promptText}\n`);
       return promptText;
     },
   });
@@ -459,7 +459,7 @@ async function runPlanJob(sessionId: number, session: Session): Promise<void> {
         },
         session.prompt,
       );
-      await log(`\n[user] ${promptText}\n`);
+      await log(`\n[msg: user] ${promptText}\n`);
       return promptText;
     },
     postSuccess: async log => {
@@ -512,7 +512,7 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
       db.prepare(`UPDATE sessions SET status = 'running', error = NULL WHERE id = ?`).run(sessionId);
     },
     preflight: async log => {
-      await log(`\n[user] ${message}\n`);
+      await log(`\n[msg: user] ${message}\n`);
       return message;
     },
     postSuccess:
@@ -539,7 +539,7 @@ function formatMessage(msg: SDKMessage): string {
     }>;
     const out: string[] = [];
     for (const b of blocks) {
-      if (b.type === 'text' && b.text) out.push(`\n[assistant] ${b.text}\n`);
+      if (b.type === 'text' && b.text) out.push(`\n[msg: assistant] ${b.text}\n`);
       else if (b.type === 'tool_use') {
         const input = typeof b.input === 'string' ? b.input : JSON.stringify(b.input);
         out.push(`\n[tool: ${b.name}] ${input ?? ''}\n`);
@@ -549,8 +549,8 @@ function formatMessage(msg: SDKMessage): string {
   }
   if (msg.type === 'result') {
     const r = msg as { subtype?: string; result?: string; is_error?: boolean };
-    if (r.subtype === 'success' && r.result) return `\n[result] ${r.result}\n`;
-    if (r.is_error) return `\n[result error]\n`;
+    if (r.subtype === 'success' && r.result) return `\n[msg: result] ${r.result}\n`;
+    if (r.is_error) return `\n[msg: result error]\n`;
     return '';
   }
   if (msg.type === 'system') {

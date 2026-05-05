@@ -253,7 +253,8 @@ const TOOL_COLOR: Record<string, string> = {
 };
 
 const TOOL_RE = /^\[tool:\s*([^\]]+)\]\s*(.*)$/;
-const MESSAGE_RE = /^\[(user|assistant|system|event|error|result(?:\s+error)?)\]\s*(.*)$/;
+const MSG_RE = /^\[msg:\s*([^\]]+)\]\s*(.*)$/;
+const EVENT_RE = /^\[(event|error)\]\s*(.*)$/;
 
 function parseBlocks(text: string): Block[] {
   const lines = text.split('\n');
@@ -277,14 +278,14 @@ function parseBlocks(text: string): Block[] {
       continue;
     }
 
-    const messageM = line.match(MESSAGE_RE);
+    const messageM = line.match(MSG_RE) ?? line.match(EVENT_RE);
     if (messageM) {
       flushText();
       const buf = [messageM[2]];
       let j = i + 1;
       while (j < lines.length) {
         const next = lines[j];
-        if (TOOL_RE.test(next) || MESSAGE_RE.test(next)) break;
+        if (TOOL_RE.test(next) || MSG_RE.test(next) || EVENT_RE.test(next)) break;
         buf.push(next);
         j++;
       }

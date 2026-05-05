@@ -6,20 +6,20 @@ applies_to: github_pr
 
 ## Issue
 
-Sentry URL: {{sentry_url}}
+{{user_context}}
 
 ## Your tasks
 
-1. Fetch the Sentry issue and the latest event (full stacktrace, breadcrumbs, request/user context) via the Sentry MCP before investigating.
+1. Fetch the Sentry issue and the latest event (full stacktrace, breadcrumbs, request/user context) via the Sentry MCP before investigating. If you find Slack thread links, fetch them as well.
 2. Investigate the affected file(s) and identify the root cause. Use context7 MCP for libraries best practice.
-3. Edit — add the targeted logging/context (or, if unsure what to log, write `./CLAUDE_NOTES.md` instead).
+3. Edit — add the targeted logging/context. (or, if unsure, write `./CLAUDE_NOTES.md` instead).
 4. Write `./COMMIT_MSG.txt` — required. One line, maximum 72 characters, Conventional Commits format `fix(<area>): <subject>` where `<area>` is a short identifier for the affected module/file (e.g. `serializer`, `auth`, `webhook`). The subject must be imperative mood (`log request id around handler`, not `logged request id`), no trailing period, no quotes. Example: `fix(webhook): log request id around handler`. The worker uses the first line of this file as the git commit subject and PR title.
 5. Write `./PR_BODY.md` — required. Shorter is better. Exactly these three sections in Markdown and nothing else:
 
    ```md
    ### Sentry link
 
-   [{{shortId}}]({{sentry_url}})
+   [<short_id>](issue_url)
 
    ### Issue
 
@@ -30,6 +30,6 @@ Sentry URL: {{sentry_url}}
    - <short bullet per change, referencing the file. Prefer one or two bullets.>
    ```
 
-### Before you finish
+## Before you finish
 
-Verify that **both** `./COMMIT_MSG.txt` and `./PR_BODY.md` exist at the repo root. If either is missing, create it now. These files are required — without them the commit and PR cannot be created cleanly.
+Verify that both `./COMMIT_MSG.txt` and `./PR_BODY.md` exist at the repo root. If either is missing, create it now. These files are required — without them the commit and PR cannot be created cleanly.

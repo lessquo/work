@@ -102,6 +102,10 @@ export async function upsertSentryIssue(sourceId: number, sentryId: string): Pro
   return i;
 }
 
+export function buildSentryIssueContext(item: { key: string; url: string }): string {
+  return `[${item.key}](${item.url})`;
+}
+
 export async function syncSentrySource(source: Source, limit: number): Promise<number> {
   const remote = await fetchAllSentryIssues(source, limit);
   upsertItems(

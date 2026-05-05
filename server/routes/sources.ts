@@ -2,6 +2,7 @@ import { createFlowForSession, db, type Item, type ItemType, type Source } from 
 import { syncGithubSource } from '@server/integrations/github.js';
 import { buildJiraIssueContext, syncJiraSource } from '@server/integrations/jira.js';
 import {
+  buildSentryIssueContext,
   commentOnSentryIssue,
   getSentryCurrentUsername,
   resolveSentryIssue,
@@ -159,9 +160,13 @@ sources.post('/:id/session-items', async c => {
       skipped++;
       continue;
     }
-    const isJira = it.type === 'jira_issue';
-    const sessionItemId: number | null = isJira ? null : it.id;
-    const userContext: string | null = isJira ? buildJiraIssueContext(it) : null;
+    const userContext: string | null =
+      it.type === 'jira_issue'
+        ? buildJiraIssueContext(it)
+        : it.type === 'sentry_issue'
+          ? buildSentryIssueContext(it)
+          : null;
+    const sessionItemId: number | null = userContext === null ? it.id : null;
     const res = insert.run(sessionItemId, id, userContext, repo, prompt);
     const sessionId = Number(res.lastInsertRowid);
     createFlowForSession(sessionId, it.id);

@@ -71,11 +71,13 @@ async function buildPrompt(item: Item, promptId: string): Promise<string> {
   );
 }
 
-// Orphan Jira PR sessions carry the issue reference in user_context — either as
-// `[KEY](URL)` (written by buildJiraIssueContext) or as a raw `.../browse/KEY`
-// URL pasted by the user. We pull KEY back out for the branch name so the PR
-// has a readable slug.
-function extractJiraKey(userContext: string | null): string | null {
+// Orphan PR sessions (Jira- or Sentry-driven) carry the issue reference in
+// user_context — either as `[KEY](URL)` (written by build*IssueContext) or
+// as a raw `.../browse/KEY` Jira URL pasted by the user. We pull KEY back
+// out for the branch name so the PR has a readable slug. Sentry shortIds
+// follow the same `KEY-N` shape as Jira keys, so the markdown-link form
+// works for both.
+function extractIssueKey(userContext: string | null): string | null {
   if (!userContext) return null;
   const md = userContext.match(/\[([A-Z][A-Z0-9_]*-\d+)\]/);
   if (md) return md[1];
@@ -241,7 +243,7 @@ async function runJob(sessionId: number): Promise<void> {
     branch = `${safeBranchSlug(item.key)}-${sessionId}`;
     buildPromptText = () => buildPrompt(item, session.prompt);
   } else {
-    const issueKey = extractJiraKey(session.user_context);
+    const issueKey = extractIssueKey(session.user_context);
     branch = issueKey ? `${issueKey}-${sessionId}` : `pr-${sessionId}`;
     const userContext = session.user_context ?? '';
     buildPromptText = () => renderPrompt({ user_context: userContext }, session.prompt);

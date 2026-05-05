@@ -1,6 +1,7 @@
 import { createFlowForSession, db, sessionColumns, sessionFrom, type Item, type Session } from '@server/db.js';
 import { parseGithubPrUrl, upsertGithubPr } from '@server/integrations/github.js';
 import { buildJiraIssueContext, createJiraIssue, updateJiraIssue, upsertJiraIssue } from '@server/integrations/jira.js';
+import { buildSentryIssueContext } from '@server/integrations/sentry.js';
 import { abortSession, getSessionEmitter } from '@server/worker/events.js';
 import {
   commitAll,
@@ -60,6 +61,9 @@ sessions.post('/sessions/draft', async c => {
     sourceId = item.source_id;
     if (item.type === 'jira_issue') {
       userContext = buildJiraIssueContext(item);
+      sessionItemId = null;
+    } else if (item.type === 'sentry_issue') {
+      userContext = buildSentryIssueContext(item);
       sessionItemId = null;
     } else {
       const existing = db
@@ -194,13 +198,17 @@ sessions.post('/items/:id/sessions', async c => {
     return c.json({ error: 'Item already has an active session' }, 409);
   }
 
-  // Jira-driven PR sessions are orphaned: the session's eventual item is the
-  // GitHub PR it produces, not the originating Jira issue. The issue content
-  // is captured in user_context so the runner doesn't need item_id to render
-  // the prompt. Sentry sessions still own their item.
-  const isJira = item.type === 'jira_issue';
-  const sessionItemId: number | null = isJira ? null : itemId;
-  const userContext: string | null = isJira ? buildJiraIssueContext(item) : null;
+  // Issue-driven PR sessions are orphaned: the session's eventual item is the
+  // GitHub PR it produces, not the originating Jira/Sentry issue. The issue
+  // reference is captured in user_context so the runner doesn't need item_id
+  // to render the prompt.
+  const userContext: string | null =
+    item.type === 'jira_issue'
+      ? buildJiraIssueContext(item)
+      : item.type === 'sentry_issue'
+        ? buildSentryIssueContext(item)
+        : null;
+  const sessionItemId: number | null = userContext === null ? itemId : null;
 
   const res = db
     .prepare(

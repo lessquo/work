@@ -165,16 +165,16 @@ async function runSDKTurn(opts: {
         claudeSessionId,
         sessionId,
       );
-      await log(`[${new Date().toISOString()}] aborted\n`);
+      await log(`[event] aborted\n`);
       return;
     }
 
     if (!skipGit) {
       await intentToAddAll(cwd);
       if (await hasChanges(cwd)) {
-        await log(`[${new Date().toISOString()}] staged changes — commit deferred until you click Create PR\n`);
+        await log(`[event] staged changes — commit deferred until you click Create PR\n`);
       } else {
-        await log(`[${new Date().toISOString()}] no file changes\n`);
+        await log(`[event] no file changes\n`);
       }
     }
 
@@ -182,9 +182,7 @@ async function runSDKTurn(opts: {
       try {
         await postSuccess(log);
       } catch (e) {
-        await log(
-          `[${new Date().toISOString()}] post-run hook failed: ${e instanceof Error ? e.message : String(e)}\n`,
-        );
+        await log(`[error] post-run hook failed: ${e instanceof Error ? e.message : String(e)}\n`);
       }
     }
 
@@ -195,7 +193,7 @@ async function runSDKTurn(opts: {
     ).run(claudeSessionId, sessionId);
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
-    await log(`[${new Date().toISOString()}] error: ${errMsg}\n`);
+    await log(`[error] ${errMsg}\n`);
     db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(errMsg, sessionId);
   } finally {
     unregisterSessionAbort(sessionId);
@@ -272,9 +270,9 @@ async function runJob(sessionId: number): Promise<void> {
         await rm(clonePath, { recursive: true, force: true });
       }
       const { defaultBranch } = await prepareClone(clonePath, repo);
-      await log(`[${new Date().toISOString()}] cloned ${repo} into ${clonePath}\n`);
+      await log(`[event] cloned ${repo} into ${clonePath}\n`);
       await checkoutNewBranch(clonePath, branch, defaultBranch);
-      await log(`[${new Date().toISOString()}] branched ${branch} from ${defaultBranch}\n`);
+      await log(`[event] branched ${branch} from ${defaultBranch}\n`);
 
       const promptText = await buildPromptText();
       await log(`\n[user] ${promptText}\n`);
@@ -320,12 +318,12 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
       if (session.repo) {
         const { defaultBranch } = await prepareClone(workspace, session.repo);
         await log(
-          `[${new Date().toISOString()}] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
+          `[event] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
         );
         repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground the ticket — but do NOT modify any source files.`;
       } else {
         mkdirSync(workspace, { recursive: true });
-        await log(`[${new Date().toISOString()}] workspace ${workspace} (no repo)\n`);
+        await log(`[event] workspace ${workspace} (no repo)\n`);
       }
 
       const promptText = await renderPrompt(
@@ -440,19 +438,19 @@ async function runPlanJob(sessionId: number, session: Session): Promise<void> {
       if (session.repo) {
         const { defaultBranch } = await prepareClone(workspace, session.repo);
         await log(
-          `[${new Date().toISOString()}] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
+          `[event] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
         );
         repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground the plan — but do NOT modify any files in the cloned repo.`;
       } else {
         mkdirSync(workspace, { recursive: true });
-        await log(`[${new Date().toISOString()}] workspace ${workspace} (no repo)\n`);
+        await log(`[event] workspace ${workspace} (no repo)\n`);
       }
 
       const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(itemId) as Item | undefined;
       const existing = item ? parsePlanRaw(item.raw) : { title: '', body: '' };
       const seedTitle = existing.title || item?.title || 'Untitled';
       await writeFile(filePath, planFileContent(seedTitle, existing.body), 'utf8');
-      await log(`[${new Date().toISOString()}] materialized existing plan into ./${PLAN_FILENAME}\n`);
+      await log(`[event] materialized existing plan into ./${PLAN_FILENAME}\n`);
 
       const promptText = await renderPrompt(
         {
@@ -468,8 +466,8 @@ async function runPlanJob(sessionId: number, session: Session): Promise<void> {
       const ok = await syncPlanWorkspace(itemId, workspace);
       await log(
         ok
-          ? `[${new Date().toISOString()}] synced ./${PLAN_FILENAME} back into the plan\n`
-          : `[${new Date().toISOString()}] no ./${PLAN_FILENAME} found — nothing synced\n`,
+          ? `[event] synced ./${PLAN_FILENAME} back into the plan\n`
+          : `[event] no ./${PLAN_FILENAME} found — nothing synced\n`,
       );
     },
   });
@@ -524,8 +522,8 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
             const ok = await syncPlanWorkspace(planItemId, workspace);
             await log(
               ok
-                ? `[${new Date().toISOString()}] synced ./${PLAN_FILENAME} back into the plan\n`
-                : `[${new Date().toISOString()}] no ./${PLAN_FILENAME} found — nothing synced\n`,
+                ? `[event] synced ./${PLAN_FILENAME} back into the plan\n`
+                : `[event] no ./${PLAN_FILENAME} found — nothing synced\n`,
             );
           },
   });

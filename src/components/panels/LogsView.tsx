@@ -5,7 +5,6 @@ import { Loader2 } from 'lucide-react';
 import { Fragment, useState, type Ref, type UIEvent } from 'react';
 
 type Block =
-  | { kind: 'event'; time: string; verb: string; message: string }
   | { kind: 'tool'; name: string; input: string }
   | { kind: 'message'; messageType: string; body: string }
   | { kind: 'text'; body: string };
@@ -63,8 +62,6 @@ function RunningIndicator() {
 
 function BlockRow({ block }: { block: Block }) {
   switch (block.kind) {
-    case 'event':
-      return <EventRow time={block.time} verb={block.verb} message={block.message} />;
     case 'tool':
       return <ToolRow name={block.name} input={block.input} />;
     case 'message':
@@ -72,16 +69,6 @@ function BlockRow({ block }: { block: Block }) {
     case 'text':
       return <TextRow body={block.body} />;
   }
-}
-
-function EventRow({ time, verb, message }: { time: string; verb: string; message: string }) {
-  const cls = VERB_CLASS[verb] ?? 'text-gray-700';
-  return (
-    <div className='flex gap-2 px-4 py-2 leading-relaxed'>
-      <span className='shrink-0 text-gray-400'>{shortTime(time)}</span>
-      <span className={cn('font-medium', cls)}>{message}</span>
-    </div>
-  );
 }
 
 function ToolRow({ name, input }: { name: string; input: string }) {
@@ -237,6 +224,8 @@ const MESSAGE_COLOR: Record<string, string> = {
   user: 'text-purple-700',
   assistant: 'text-gray-700',
   system: 'text-amber-700',
+  event: 'text-sky-700',
+  error: 'text-rose-700',
   result: 'text-emerald-700',
   'result error': 'text-rose-700',
 };
@@ -263,17 +252,8 @@ const TOOL_COLOR: Record<string, string> = {
   TodoWrite: 'text-cyan-700',
 };
 
-const VERB_CLASS: Record<string, string> = {
-  cloning: 'text-sky-700',
-  branched: 'text-sky-700',
-  committed: 'text-emerald-700',
-  aborted: 'text-amber-700',
-  error: 'text-rose-700',
-};
-
-const ISO_RE = /^\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\]\s+(.*)$/;
 const TOOL_RE = /^\[tool:\s*([^\]]+)\]\s*(.*)$/;
-const MESSAGE_RE = /^\[(user|assistant|system|result(?:\s+error)?)\]\s*(.*)$/;
+const MESSAGE_RE = /^\[(user|assistant|system|event|error|result(?:\s+error)?)\]\s*(.*)$/;
 
 function parseBlocks(text: string): Block[] {
   const lines = text.split('\n');
@@ -290,15 +270,6 @@ function parseBlocks(text: string): Block[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    const eventM = line.match(ISO_RE);
-    if (eventM) {
-      flushText();
-      const [, time, message] = eventM;
-      const verb = message.split(/[:\s]/)[0] ?? '';
-      out.push({ kind: 'event', time, verb, message });
-      continue;
-    }
-
     const toolM = line.match(TOOL_RE);
     if (toolM) {
       flushText();
@@ -313,7 +284,7 @@ function parseBlocks(text: string): Block[] {
       let j = i + 1;
       while (j < lines.length) {
         const next = lines[j];
-        if (ISO_RE.test(next) || TOOL_RE.test(next) || MESSAGE_RE.test(next)) break;
+        if (TOOL_RE.test(next) || MESSAGE_RE.test(next)) break;
         buf.push(next);
         j++;
       }
@@ -340,11 +311,6 @@ function collapseBlanks(lines: string[]): string[] {
   }
   while (out.length > 0 && out[out.length - 1].trim() === '') out.pop();
   return out;
-}
-
-function shortTime(iso: string): string {
-  const m = iso.match(/T(\d{2}:\d{2}:\d{2})/);
-  return m ? m[1] : iso;
 }
 
 function stripAnsi(s: string): string {

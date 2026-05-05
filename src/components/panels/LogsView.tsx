@@ -8,7 +8,7 @@ type Block =
   | { kind: 'event'; time: string; verb: string; message: string }
   | { kind: 'tool'; name: string; input: string }
   | { kind: 'result'; ok: boolean; message: string }
-  | { kind: 'prompt'; promptId: string; body: string }
+  | { kind: 'message'; messageType: string; body: string }
   | { kind: 'text'; body: string };
 
 type View = 'pretty' | 'raw';
@@ -70,8 +70,8 @@ function BlockRow({ block }: { block: Block }) {
       return <ToolRow name={block.name} input={block.input} />;
     case 'result':
       return <ResultRow ok={block.ok} message={block.message} />;
-    case 'prompt':
-      return <PromptRow promptId={block.promptId} body={block.body} />;
+    case 'message':
+      return <MessageRow messageType={block.messageType} body={block.body} />;
     case 'text':
       return <TextRow body={block.body} />;
   }
@@ -235,19 +235,25 @@ function ResultRow({ ok }: { ok: boolean; message: string }) {
   );
 }
 
-function PromptRow({ promptId, body }: { promptId: string; body: string }) {
+function MessageRow({ messageType, body }: { messageType: string; body: string }) {
+  const color = MESSAGE_COLOR[messageType] ?? 'text-gray-700';
   return (
-    <div className='px-4 py-2 text-gray-700 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs'>
-      <div className='flex items-center gap-2'>
-        <span className='text-xs font-semibold tracking-wide text-purple-700 uppercase'>Prompt</span>
-        <span className='text-gray-500'>{promptId}</span>
+    <div className='flex gap-3 px-4 py-2 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs'>
+      <div className={cn('shrink-0 text-xs leading-relaxed font-semibold tracking-wide uppercase', color)}>
+        {messageType}
       </div>
-      <div className='mt-1'>
+      <div className='min-w-0 flex-1 text-gray-700'>
         <Markdown>{body}</Markdown>
       </div>
     </div>
   );
 }
+
+const MESSAGE_COLOR: Record<string, string> = {
+  user: 'text-purple-700',
+  assistant: 'text-gray-700',
+  system: 'text-amber-700',
+};
 
 function TextRow({ body }: { body: string }) {
   return (
@@ -282,6 +288,7 @@ const VERB_CLASS: Record<string, string> = {
 const ISO_RE = /^\[(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+Z)\]\s+(.*)$/;
 const TOOL_RE = /^\[tool:\s*([^\]]+)\]\s*(.*)$/;
 const RESULT_RE = /^\[result(\s+error)?\]\s*(.*)$/;
+const MESSAGE_RE = /^\[(user|assistant|system)\]\s*(.*)$/;
 
 function parseBlocks(text: string): Block[] {
   const lines = text.split('\n');
@@ -302,18 +309,6 @@ function parseBlocks(text: string): Block[] {
     if (eventM) {
       flushText();
       const [, time, message] = eventM;
-      const promptM = message.match(/^prompt:\s*(.+)$/);
-      if (promptM && lines[i + 1] === '---') {
-        const bodyLines: string[] = [];
-        let j = i + 2;
-        while (j < lines.length && lines[j] !== '---') {
-          bodyLines.push(lines[j]);
-          j++;
-        }
-        out.push({ kind: 'prompt', promptId: promptM[1].trim(), body: bodyLines.join('\n').trim() });
-        i = j;
-        continue;
-      }
       const verb = message.split(/[:\s]/)[0] ?? '';
       out.push({ kind: 'event', time, verb, message });
       continue;
@@ -334,13 +329,30 @@ function parseBlocks(text: string): Block[] {
       let j = i + 1;
       while (j < lines.length) {
         const next = lines[j];
-        if (ISO_RE.test(next) || TOOL_RE.test(next) || RESULT_RE.test(next)) break;
+        if (ISO_RE.test(next) || TOOL_RE.test(next) || RESULT_RE.test(next) || MESSAGE_RE.test(next)) break;
         buf.push(next);
         j++;
       }
       i = j - 1;
       while (buf.length > 0 && buf[buf.length - 1].trim() === '') buf.pop();
       out.push({ kind: 'result', ok, message: buf.join('\n').trim() });
+      continue;
+    }
+
+    const messageM = line.match(MESSAGE_RE);
+    if (messageM) {
+      flushText();
+      const buf = [messageM[2]];
+      let j = i + 1;
+      while (j < lines.length) {
+        const next = lines[j];
+        if (ISO_RE.test(next) || TOOL_RE.test(next) || RESULT_RE.test(next) || MESSAGE_RE.test(next)) break;
+        buf.push(next);
+        j++;
+      }
+      i = j - 1;
+      while (buf.length > 0 && buf[buf.length - 1].trim() === '') buf.pop();
+      out.push({ kind: 'message', messageType: messageM[1], body: buf.join('\n').trim() });
       continue;
     }
 

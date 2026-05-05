@@ -542,7 +542,7 @@ function formatMessage(msg: SDKMessage): string {
       if (b.type === 'text' && b.text) out.push(`\n[msg: assistant] ${b.text}\n`);
       else if (b.type === 'tool_use') {
         const input = typeof b.input === 'string' ? b.input : JSON.stringify(b.input);
-        out.push(`\n[tool: ${b.name}] ${input ?? ''}\n`);
+        out.push(`\n[msg: tool: ${b.name}] ${input ?? ''}\n`);
       }
     }
     return out.join('') + '\n';

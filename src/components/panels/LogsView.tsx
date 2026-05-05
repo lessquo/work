@@ -252,7 +252,6 @@ const TOOL_COLOR: Record<string, string> = {
   TodoWrite: 'text-cyan-700',
 };
 
-const TOOL_RE = /^\[tool:\s*([^\]]+)\]\s*(.*)$/;
 const MSG_RE = /^\[msg:\s*([^\]]+)\]\s*(.*)$/;
 const EVENT_RE = /^\[(event|error)\]\s*(.*)$/;
 
@@ -271,27 +270,26 @@ function parseBlocks(text: string): Block[] {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
-    const toolM = line.match(TOOL_RE);
-    if (toolM) {
-      flushText();
-      out.push({ kind: 'tool', name: toolM[1].trim(), input: toolM[2] });
-      continue;
-    }
-
     const messageM = line.match(MSG_RE) ?? line.match(EVENT_RE);
     if (messageM) {
       flushText();
+      const subtype = messageM[1].trim();
+      const toolM = subtype.match(/^tool:\s*(.+)$/);
+      if (toolM) {
+        out.push({ kind: 'tool', name: toolM[1].trim(), input: messageM[2] });
+        continue;
+      }
       const buf = [messageM[2]];
       let j = i + 1;
       while (j < lines.length) {
         const next = lines[j];
-        if (TOOL_RE.test(next) || MSG_RE.test(next) || EVENT_RE.test(next)) break;
+        if (MSG_RE.test(next) || EVENT_RE.test(next)) break;
         buf.push(next);
         j++;
       }
       i = j - 1;
       while (buf.length > 0 && buf[buf.length - 1].trim() === '') buf.pop();
-      out.push({ kind: 'message', messageType: messageM[1], body: buf.join('\n').trim() });
+      out.push({ kind: 'message', messageType: subtype, body: buf.join('\n').trim() });
       continue;
     }
 

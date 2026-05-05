@@ -208,8 +208,14 @@ function parseToolInput(input: string): {
 
 function MessageRow({ messageType, body }: { messageType: string; body: string }) {
   const color = MESSAGE_COLOR[messageType] ?? 'text-gray-700';
+  const isUser = messageType === 'user';
   return (
-    <div className='flex gap-3 px-4 py-2 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs'>
+    <div
+      className={cn(
+        'flex gap-3 px-4 py-2 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs',
+        isUser && 'mt-2 border-t pt-3',
+      )}
+    >
       <div className={cn('shrink-0 text-xs leading-relaxed font-semibold tracking-wide uppercase', color)}>
         {messageType}
       </div>

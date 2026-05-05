@@ -23,7 +23,9 @@ const COMPONENTS: React.ComponentProps<typeof ReactMarkdown>['components'] = {
     <code className='rounded bg-gray-100 px-1 py-0.5 font-mono text-[0.85em] text-gray-800'>{children}</code>
   ),
   pre: ({ children }) => (
-    <pre className='my-2 overflow-x-auto rounded-md border bg-gray-50 p-3 text-xs text-gray-800'>{children}</pre>
+    <pre className='my-2 overflow-x-auto rounded-md border bg-gray-50 p-3 text-xs text-gray-800 [&_code]:rounded-none [&_code]:bg-transparent [&_code]:p-0'>
+      {children}
+    </pre>
   ),
   strong: ({ children }) => <strong className='font-semibold'>{children}</strong>,
   table: ({ children }) => (

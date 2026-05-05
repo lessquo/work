@@ -1,3 +1,4 @@
+import { Markdown } from '@/components/panels/Markdown';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
 import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
@@ -79,7 +80,7 @@ function BlockRow({ block }: { block: Block }) {
 function EventRow({ time, verb, message }: { time: string; verb: string; message: string }) {
   const cls = VERB_CLASS[verb] ?? 'text-gray-700';
   return (
-    <div className='flex gap-2 px-4 py-2 leading-relaxed hover:bg-gray-50'>
+    <div className='flex gap-2 px-4 py-2 leading-relaxed'>
       <span className='shrink-0 text-gray-400'>{shortTime(time)}</span>
       <span className={cn('font-medium', cls)}>{message}</span>
     </div>
@@ -89,7 +90,7 @@ function EventRow({ time, verb, message }: { time: string; verb: string; message
 function ToolRow({ name, input }: { name: string; input: string }) {
   const { entries, formatted } = parseToolInput(input);
   return (
-    <div className='px-4 py-2 hover:bg-gray-50'>
+    <div className='px-4 py-2'>
       <div className={cn('text-xs font-semibold tracking-wide uppercase', TOOL_COLOR[name] ?? 'text-gray-700')}>
         {name}
       </div>
@@ -155,18 +156,24 @@ function ResultRow({ ok }: { ok: boolean; message: string }) {
 
 function PromptRow({ promptId, body }: { promptId: string; body: string }) {
   return (
-    <div className='px-4 py-2 hover:bg-gray-50'>
+    <div className='px-4 py-2 text-gray-700 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs'>
       <div className='flex items-center gap-2'>
         <span className='text-xs font-semibold tracking-wide text-purple-700 uppercase'>Prompt</span>
         <span className='text-gray-500'>{promptId}</span>
       </div>
-      <pre className='mt-1 overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{body}</pre>
+      <div className='mt-1'>
+        <Markdown>{body}</Markdown>
+      </div>
     </div>
   );
 }
 
 function TextRow({ body }: { body: string }) {
-  return <div className='px-4 py-2 leading-relaxed whitespace-pre-wrap text-gray-700 hover:bg-gray-50'>{body}</div>;
+  return (
+    <div className='px-4 py-2 text-gray-700 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs'>
+      <Markdown>{body}</Markdown>
+    </div>
+  );
 }
 
 const TOOL_COLOR: Record<string, string> = {

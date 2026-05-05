@@ -1,6 +1,6 @@
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
-import { Loader2 } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { Fragment, useState, type Ref, type UIEvent } from 'react';
 
 type Block =
@@ -134,14 +134,21 @@ function parseToolInput(input: string): {
   }
 }
 
-function ResultRow({ ok, message }: { ok: boolean; message: string }) {
-  const label = ok ? 'text-emerald-700' : 'text-rose-700';
+function ResultRow({ ok }: { ok: boolean; message: string }) {
+  const tone = ok
+    ? { bg: 'bg-emerald-50', label: 'text-emerald-700', Icon: CheckCircle2 }
+    : { bg: 'bg-rose-50', label: 'text-rose-700', Icon: XCircle };
+  const { Icon } = tone;
   return (
-    <div className='px-4 py-2 hover:bg-gray-50'>
-      <div className={cn('text-xs font-semibold tracking-wide uppercase', label)}>
-        {ok ? 'Result' : 'Result · error'}
-      </div>
-      {message && <div className='leading-relaxed whitespace-pre-wrap text-gray-800'>{message}</div>}
+    <div
+      className={cn(
+        'flex items-center gap-1.5 px-4 py-2 text-xs font-semibold tracking-wide uppercase',
+        tone.bg,
+        tone.label,
+      )}
+    >
+      <Icon className='size-3.5' />
+      {ok ? 'Result · success' : 'Result · error'}
     </div>
   );
 }

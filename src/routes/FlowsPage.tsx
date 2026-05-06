@@ -68,8 +68,8 @@ export function FlowsPage() {
       <title>Flows · Work</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
-        <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
-          <div className='mb-4 flex items-center justify-between'>
+        <div className='flex min-w-0 flex-1 flex-col gap-4 overflow-y-scroll py-6'>
+          <div className='flex items-center justify-between px-4'>
             <h1 className='flex items-center gap-1 text-lg font-semibold'>
               <HomeLink />
               <PageSwitcher />
@@ -101,15 +101,15 @@ export function FlowsPage() {
           </div>
 
           {error && (
-            <div className='mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700'>{error}</div>
+            <div className='mx-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700'>{error}</div>
           )}
 
           {flowsQuery.isLoading ? (
-            <p className='text-gray-500'>Loading…</p>
+            <p className='mx-4 text-gray-500'>Loading…</p>
           ) : flows.length === 0 ? (
-            <p className='text-gray-500'>No flows yet.</p>
+            <p className='mx-4 text-gray-500'>No flows yet.</p>
           ) : (
-            <ul className='flex flex-col gap-2'>
+            <ul className='flex flex-col divide-y'>
               {flows.map(flow => (
                 <FlowCard key={flow.id} flow={flow} />
               ))}

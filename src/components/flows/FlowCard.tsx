@@ -213,7 +213,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   const title = stripBold(flow.name);
 
   return (
-    <li className='group/flowcard flex flex-col gap-4 rounded-lg border bg-white p-3'>
+    <li className='group/flowcard flex flex-col gap-4 bg-white p-4 pb-8'>
       <div className='flex items-center justify-between gap-2'>
         <div className='flex min-w-0 items-baseline gap-2'>
           <h2 className='flex items-baseline gap-2 text-sm' title={title}>

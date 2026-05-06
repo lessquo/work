@@ -13,6 +13,7 @@ You are writing or revising a plan in `./plan.md`. A plan consists of one or mor
 - Long plan should be broken into multiple sections. Each section must start with a level-2 heading (e.g. `## Enable no-var ESList rule`). List sections in recommended execution order.
 - All headings should be short and imperative.
 - Keep each section under 1000 characters.
+- Each section should be complete, meaning it should be independently releasable.
 
 ## Repo
 

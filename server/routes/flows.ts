@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 
 export const flows = new Hono();
 
+// The auto-name response embeds **bold** markers around tech keywords; sanitization preserves them.
 function sanitizeName(s: string): string {
   return (
     s
@@ -41,10 +42,22 @@ flows.post('/:id/auto-name', async c => {
   const lines: string[] = [];
   lines.push('Generate a short name for the flow described below.');
   lines.push('Constraints:');
-  lines.push('- Max 40 characters.');
-  lines.push('- Sentence case, plain text, no quotes, no trailing punctuation.');
-  lines.push('- Capture the unifying theme across the items and sessions.');
-  lines.push('- Output ONLY the name on a single line. No preamble or explanation.');
+  lines.push(
+    '- Max 40 visible characters (excluding ** markers), sentence case, plain text, no quotes, no trailing punctuation.',
+  );
+  lines.push(
+    '- Capture the unifying theme; mention the specific technology/product/tool being changed when one applies.',
+  );
+  lines.push(
+    '- Wrap each technology/product/tool keyword in **double-asterisk** markdown bold so the UI can highlight it. Bold ONLY concrete tools/libraries/products (e.g. **Vite 7**, **Tailwind v4**, **MUI**, **nuqs**), not language names, ecosystems, source types, or layer labels.',
+  );
+  lines.push('- Output ONLY the marked-up name on a single line. No preamble or explanation.');
+  lines.push('');
+  lines.push('Examples:');
+  lines.push('- Migrate web-app to **Vite 7**');
+  lines.push('- Migrate **Tailwind v3** to **v4** in builder-frontend');
+  lines.push('- Migrate web-app from **MUI** to **Tailwind**');
+  lines.push('- Adopt **nuqs** for URL query state');
   lines.push('');
   if (items.length) {
     lines.push('Items:');

@@ -59,7 +59,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   async function handleDelete() {
     const ok = await confirm({
       title: 'Delete flow?',
-      description: `Delete "${flow.name ?? `Flow #${flow.id}`}"? Attached items and sessions will be detached.`,
+      description: `Delete "${stripBold(flow.name) || `Flow #${flow.id}`}"? Attached items and sessions will be detached.`,
       confirmText: 'Delete',
       destructive: true,
     });
@@ -210,15 +210,17 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     })).filter(c => c.items.length > 0 || c.orphanSessions.length > 0);
   }, [flow.items, flow.sessions]);
 
-  const title = flow.name ?? '';
+  const title = stripBold(flow.name);
 
   return (
-    <li className='group/flowcard rounded-lg border bg-white p-3'>
-      <div className='mb-2 flex items-center justify-between gap-2'>
+    <li className='group/flowcard flex flex-col gap-4 rounded-lg border bg-white p-3'>
+      <div className='flex items-center justify-between gap-2'>
         <div className='flex min-w-0 items-baseline gap-2'>
           <h2 className='flex items-baseline gap-2 text-sm' title={title}>
             <span className='truncate font-light text-gray-500'>{flow.id}</span>
-            <span className='font-medium'>{flow.name}</span>
+            <span className='font-medium'>
+              <HighlightedName name={flow.name ?? ''} />
+            </span>
           </h2>
           <span className='shrink-0 text-xs text-gray-500'>{timeAgo(flow.created_at)}</span>
         </div>
@@ -423,6 +425,30 @@ function SessionChip({ session, to, selected }: { session: FlowSessionChild; to:
       </Link>
     </li>
   );
+}
+
+// The auto-name response wraps tech keywords in **double-asterisk** markdown bold;
+// we split on those markers and color the wrapped segments.
+function HighlightedName({ name }: { name: string }) {
+  const parts = name.split(/(\*\*[^*]+\*\*)/);
+  return (
+    <>
+      {parts.map((p, i) => {
+        const m = p.match(/^\*\*(.+)\*\*$/);
+        return m ? (
+          <span key={i} className='text-blue-600'>
+            {m[1]}
+          </span>
+        ) : (
+          <span key={i}>{p}</span>
+        );
+      })}
+    </>
+  );
+}
+
+function stripBold(name: string | null | undefined): string {
+  return (name ?? '').replace(/\*\*(.+?)\*\*/g, '$1');
 }
 
 function firstLine(text: string): string {

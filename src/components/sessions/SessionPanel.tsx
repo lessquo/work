@@ -13,7 +13,7 @@ import { Select, type SelectOption } from '@/components/ui/Select';
 import { TabsList, TabsPanel, TabsRoot, TabsTab } from '@/components/ui/Tabs';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { api, DEFAULT_PROMPT_ID, parsePlanRaw, type Prompt, type PromptId, type Session, type Source } from '@/lib/api';
+import { api, parsePlanRaw, type Prompt, type PromptId, type Session, type Source } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useMutation, useQuery, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -417,7 +417,7 @@ function SetupTab({ session }: { session: Session | null }) {
   const selectedSource = sources.find(s => s.id === sessionSourceId) ?? null;
   const compatiblePrompts = selectedSource ? prompts.filter(p => p.applies_to === selectedSource.type) : prompts;
 
-  const sessionPrompt: PromptId = session?.prompt ?? DEFAULT_PROMPT_ID;
+  const sessionPrompt: PromptId = session?.prompt ?? prompts[0]?.id ?? '';
   const effectivePromptId = compatiblePrompts.some(p => p.id === sessionPrompt)
     ? sessionPrompt
     : (compatiblePrompts[0]?.id ?? sessionPrompt);

@@ -148,7 +148,6 @@ export function parsePlanRaw(raw: string): PlanRaw {
 
 export type SessionStatus = 'draft' | 'queued' | 'running' | 'succeeded' | 'failed' | 'aborted';
 export type PromptId = string;
-export const DEFAULT_PROMPT_ID: PromptId = 'fix-sentry-issue';
 export type Prompt = {
   id: PromptId;
   label: string;

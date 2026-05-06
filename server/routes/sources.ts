@@ -9,7 +9,7 @@ import {
   syncSentrySource,
 } from '@server/integrations/sentry.js';
 import { getSyncLimit } from '@server/settings.js';
-import { DEFAULT_PROMPT_ID, isPromptId } from '@server/worker/prompt.js';
+import { firstPromptId, isPromptId } from '@server/worker/prompt.js';
 import { enqueueSession } from '@server/worker/runner.js';
 import { Hono } from 'hono';
 
@@ -138,7 +138,7 @@ sources.post('/:id/session-items', async c => {
     .json<{ itemIds?: number[]; prompt?: string; repo?: string }>()
     .catch(() => ({}) as { itemIds?: number[]; prompt?: string; repo?: string });
   const ids = Array.isArray(body.itemIds) ? body.itemIds.filter(n => Number.isInteger(n)) : [];
-  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_PROMPT_ID;
+  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : await firstPromptId();
   const repo = (body.repo ?? '').trim();
   if (!repo) return c.json({ error: 'repo is required' }, 400);
   if (ids.length === 0) return c.json({ enqueued: 0, skipped: 0 });

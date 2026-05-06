@@ -12,7 +12,7 @@ import {
   intentToAddAll,
   pushBranch,
 } from '@server/worker/git.js';
-import { DEFAULT_PROMPT_ID, isPromptId } from '@server/worker/prompt.js';
+import { firstPromptId, isPromptId } from '@server/worker/prompt.js';
 import { deleteSessionFolder, enqueueFollowup, enqueueSession } from '@server/worker/runner.js';
 import { Hono } from 'hono';
 import { streamSSE } from 'hono/streaming';
@@ -91,7 +91,7 @@ sessions.post('/sessions/draft', async c => {
     sourceId = firstSource.id;
   }
 
-  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_PROMPT_ID;
+  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : await firstPromptId();
   const repo = (body.repo ?? '').trim() || null;
   const flowId = typeof body.flowId === 'number' ? body.flowId : null;
 
@@ -190,7 +190,7 @@ sessions.post('/items/:id/sessions', async c => {
   const body = await c.req
     .json<{ prompt?: string; repo?: string }>()
     .catch(() => ({}) as { prompt?: string; repo?: string });
-  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : DEFAULT_PROMPT_ID;
+  const prompt = body.prompt && isPromptId(body.prompt) ? body.prompt : await firstPromptId();
   const repo = (body.repo ?? '').trim();
   if (!repo) return c.json({ error: 'repo is required' }, 400);
 

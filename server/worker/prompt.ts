@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 export type PromptContext = Record<string, string>;
@@ -10,12 +10,23 @@ export type PromptMeta = { label: string; hint: string; applies_to: PromptSource
 
 const PROMPT_SOURCE_TYPES: PromptSourceType[] = ['sentry_issue', 'jira_issue', 'github_pr', 'plan'];
 
-export const DEFAULT_PROMPT_ID: PromptId = 'fix-sentry-issue';
-
 const ID_REGEX = /^[a-z0-9][a-z0-9-]*$/;
 
+const PROMPTS_DIR = resolve(process.cwd(), 'prompts');
+
 export function promptPath(id: string): string {
-  return resolve(process.cwd(), 'prompts', `${id}.md`);
+  return resolve(PROMPTS_DIR, `${id}.md`);
+}
+
+// The oldest prompt by birthtime — matches the order used in the prompts list UI.
+export async function firstPromptId(): Promise<PromptId> {
+  const entries = (await readdir(PROMPTS_DIR)).filter(f => f.endsWith('.md'));
+  if (entries.length === 0) throw new Error('no prompts available');
+  const stamped = await Promise.all(
+    entries.map(async f => ({ id: f.slice(0, -3), birth: (await stat(resolve(PROMPTS_DIR, f))).birthtimeMs })),
+  );
+  stamped.sort((a, b) => a.birth - b.birth);
+  return stamped[0].id;
 }
 
 export function isPromptId(v: unknown): v is PromptId {
@@ -55,7 +66,7 @@ export function serializePromptFile(meta: PromptMeta, content: string): string {
   return `---\n${lines.join('\n')}\n---\n${content}`;
 }
 
-export async function renderPrompt(ctx: PromptContext, promptId: PromptId = DEFAULT_PROMPT_ID): Promise<string> {
+export async function renderPrompt(ctx: PromptContext, promptId: PromptId): Promise<string> {
   const path = promptPath(promptId);
   if (!existsSync(path)) throw new Error(`Unknown prompt id: ${promptId}`);
   const raw = await readFile(path, 'utf8');

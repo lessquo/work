@@ -6,15 +6,12 @@ applies_to: jira_issue
 
 You are drafting a new Jira ticket for project `{{project_key}}`. Read the user's context below, then produce a concise ticket draft. Do not attempt to implement anything — only produce the draft files.
 
-## Repo
-
-{{repo_note}}
-
 ## Your tasks
 
+0. First, run `pwd` to capture the absolute workspace root.
 1. Read the user's context below. Decide whether it's a bug, feature request, or chore.
-2. Write `./JIRA_TITLE.txt` — required. One line. A concise, imperative-mood summary suitable as a Jira issue summary (e.g. `Crash when uploading > 100MB CSV`, not `we should fix the upload bug`). No trailing period. No quotes. Maximum ~90 characters.
-3. Write `./JIRA_DESCRIPTION.md` — required. Markdown. Shorter is better. Use this format:
+2. Write `<workspace-root>/JIRA_TITLE.txt` (using the absolute path from step 0) — required. One line. A concise, imperative-mood summary suitable as a Jira issue summary (e.g. `Crash when uploading > 100MB CSV`, not `we should fix the upload bug`). No trailing period. No quotes. Maximum ~90 characters.
+3. Write `<workspace-root>/JIRA_DESCRIPTION.md` (using the absolute path from step 0) — required. Markdown. Shorter is better. Use this format:
 
    ```md
    ### Context
@@ -35,4 +32,4 @@ You are drafting a new Jira ticket for project `{{project_key}}`. Read the user'
 
 ## Before you finish
 
-Verify that both `./JIRA_TITLE.txt` and `./JIRA_DESCRIPTION.md` exist at the workspace root. If either is missing, create it now. These files are required — without them the Jira ticket cannot be created.
+Verify that both `JIRA_TITLE.txt` and `JIRA_DESCRIPTION.md` exist at the absolute workspace root captured in step 0. If either is missing, create it now using that absolute path. These files are required — without them the Jira ticket cannot be created.

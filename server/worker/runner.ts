@@ -314,13 +314,11 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
         await rm(workspace, { recursive: true, force: true });
       }
 
-      let repoNote = 'No repo cloned — base the draft on the user context alone.';
       if (session.repo) {
         const { defaultBranch } = await prepareClone(workspace, session.repo);
         await log(
           `[event] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
         );
-        repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground the ticket — but do NOT modify any source files.`;
       } else {
         mkdirSync(workspace, { recursive: true });
         await log(`[event] workspace ${workspace} (no repo)\n`);
@@ -330,7 +328,6 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
         {
           project_key: source.ext_id,
           user_context: session.user_context ?? '',
-          repo_note: repoNote,
         },
         session.prompt,
       );
@@ -434,13 +431,11 @@ async function runPlanJob(sessionId: number, session: Session): Promise<void> {
         await rm(workspace, { recursive: true, force: true });
       }
 
-      let repoNote = 'No repo cloned — base the plan on the user context alone.';
       if (session.repo) {
         const { defaultBranch } = await prepareClone(workspace, session.repo);
         await log(
           `[event] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
         );
-        repoNote = `Repo \`${session.repo}\` is cloned at the workspace root (default branch \`${defaultBranch}\`). You may read it freely to ground the plan — but do NOT modify any files in the cloned repo.`;
       } else {
         mkdirSync(workspace, { recursive: true });
         await log(`[event] workspace ${workspace} (no repo)\n`);
@@ -455,7 +450,6 @@ async function runPlanJob(sessionId: number, session: Session): Promise<void> {
       const promptText = await renderPrompt(
         {
           user_context: session.user_context ?? '',
-          repo_note: repoNote,
         },
         session.prompt,
       );

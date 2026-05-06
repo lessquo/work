@@ -34,7 +34,7 @@ export function LogsView({
           </PillTabsList>
         </TabsRoot>
       </div>
-      <div ref={scrollRef} onScroll={onScroll} className='min-h-0 flex-1 overflow-auto'>
+      <div ref={scrollRef} onScroll={onScroll} tabIndex={0} className='min-h-0 flex-1 overflow-auto outline-none'>
         {!stripped ? (
           isRunning ? (
             <RunningIndicator />

@@ -5,10 +5,7 @@ import { cn } from '@/lib/cn';
 import { Loader2 } from 'lucide-react';
 import { Fragment, useState, type Ref, type UIEvent } from 'react';
 
-type Block =
-  | { kind: 'tool'; name: string; input: string }
-  | { kind: 'message'; messageType: string; body: string }
-  | { kind: 'text'; body: string };
+type Block = { kind: 'tool'; name: string; input: string } | { kind: 'message'; messageType: string; body: string };
 
 type View = 'pretty' | 'raw';
 
@@ -67,8 +64,6 @@ function BlockRow({ block }: { block: Block }) {
       return <ToolRow name={block.name} input={block.input} />;
     case 'message':
       return <MessageRow messageType={block.messageType} body={block.body} />;
-    case 'text':
-      return <TextRow body={block.body} />;
   }
 }
 
@@ -222,14 +217,6 @@ const MESSAGE_COLOR: Record<string, string> = {
   'result error': 'text-rose-700',
 };
 
-function TextRow({ body }: { body: string }) {
-  return (
-    <div className='px-4 py-2 text-gray-700 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs'>
-      <Markdown>{body}</Markdown>
-    </div>
-  );
-}
-
 const TOOL_COLOR: Record<string, string> = {
   Bash: 'text-amber-700',
   Read: 'text-sky-700',
@@ -250,57 +237,28 @@ const EVENT_RE = /^\[(event|error)\]\s*(.*)$/;
 function parseBlocks(text: string): Block[] {
   const lines = text.split('\n');
   const out: Block[] = [];
-  let textBuf: string[] = [];
-
-  const flushText = () => {
-    if (textBuf.length === 0) return;
-    const collapsed = collapseBlanks(textBuf);
-    if (collapsed.length > 0) out.push({ kind: 'text', body: collapsed.join('\n') });
-    textBuf = [];
-  };
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    const messageM = line.match(MSG_RE) ?? line.match(EVENT_RE);
-    if (messageM) {
-      flushText();
-      const subtype = messageM[1].trim();
-      const toolM = subtype.match(/^tool:\s*(.+)$/);
-      if (toolM) {
-        out.push({ kind: 'tool', name: toolM[1].trim(), input: messageM[2] });
-        continue;
-      }
-      const buf = [messageM[2]];
-      let j = i + 1;
-      while (j < lines.length) {
-        const next = lines[j];
-        if (MSG_RE.test(next) || EVENT_RE.test(next)) break;
-        buf.push(next);
-        j++;
-      }
-      i = j - 1;
-      while (buf.length > 0 && buf[buf.length - 1].trim() === '') buf.pop();
-      out.push({ kind: 'message', messageType: subtype, body: buf.join('\n').trim() });
+    const messageM = lines[i].match(MSG_RE) ?? lines[i].match(EVENT_RE);
+    if (!messageM) continue;
+    const subtype = messageM[1].trim();
+    const toolM = subtype.match(/^tool:\s*(.+)$/);
+    if (toolM) {
+      out.push({ kind: 'tool', name: toolM[1].trim(), input: messageM[2] });
       continue;
     }
-
-    textBuf.push(line);
+    const buf = [messageM[2]];
+    let j = i + 1;
+    while (j < lines.length) {
+      const next = lines[j];
+      if (MSG_RE.test(next) || EVENT_RE.test(next)) break;
+      buf.push(next);
+      j++;
+    }
+    i = j - 1;
+    while (buf.length > 0 && buf[buf.length - 1].trim() === '') buf.pop();
+    out.push({ kind: 'message', messageType: subtype, body: buf.join('\n').trim() });
   }
-  flushText();
-  return out;
-}
-
-function collapseBlanks(lines: string[]): string[] {
-  const out: string[] = [];
-  let prevEmpty = true;
-  for (const l of lines) {
-    const empty = l.trim() === '';
-    if (empty && prevEmpty) continue;
-    out.push(l);
-    prevEmpty = empty;
-  }
-  while (out.length > 0 && out[out.length - 1].trim() === '') out.pop();
   return out;
 }
 

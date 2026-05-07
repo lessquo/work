@@ -5,7 +5,11 @@ import { cn } from '@/lib/cn';
 import { Loader2 } from 'lucide-react';
 import { Fragment, useState, type Ref, type UIEvent } from 'react';
 
-type Block = { kind: 'tool'; name: string; input: string } | { kind: 'message'; messageType: string; body: string };
+type Block = { subtype: string; body: string };
+
+const TOOL_PREFIX = 'tool: ';
+const toolName = (subtype: string): string | null =>
+  subtype.startsWith(TOOL_PREFIX) ? subtype.slice(TOOL_PREFIX.length) : null;
 
 type View = 'pretty' | 'raw';
 
@@ -59,46 +63,48 @@ function RunningIndicator() {
 }
 
 function BlockRow({ block }: { block: Block }) {
-  switch (block.kind) {
-    case 'tool':
-      return <ToolRow name={block.name} input={block.input} />;
-    case 'message':
-      return <MessageRow messageType={block.messageType} body={block.body} />;
-  }
+  const tool = toolName(block.subtype);
+  const label = tool ?? block.subtype;
+  const color = tool ? (TOOL_COLOR[tool] ?? 'text-gray-700') : (MESSAGE_COLOR[block.subtype] ?? 'text-gray-700');
+  const isUser = block.subtype === 'user';
+  return (
+    <div
+      className={cn(
+        'flex gap-3 px-4 py-2',
+        !tool && '[&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs',
+        isUser && 'mt-2 border-t pt-3',
+      )}
+    >
+      <div className={cn('shrink-0 text-xs leading-relaxed font-semibold tracking-wide uppercase', color)}>{label}</div>
+      <div className={cn('min-w-0 flex-1', !tool && 'leading-relaxed text-gray-700 *:first:mt-0 *:last:mb-0')}>
+        {tool ? <ToolBody name={tool} input={block.body} /> : <Markdown>{block.body}</Markdown>}
+      </div>
+    </div>
+  );
 }
 
-function ToolRow({ name, input }: { name: string; input: string }) {
+function ToolBody({ name, input }: { name: string; input: string }) {
   const edit = name === 'Edit' ? parseEditInput(input) : null;
   const { entries, formatted } = parseToolInput(input);
   const gridEntries = edit ? edit.entries : entries;
   return (
-    <div className='flex gap-3 px-4 py-2'>
-      <div
-        className={cn(
-          'shrink-0 text-xs leading-relaxed font-semibold tracking-wide uppercase',
-          TOOL_COLOR[name] ?? 'text-gray-700',
-        )}
-      >
-        {name}
-      </div>
-      <div className='min-w-0 flex-1'>
-        {gridEntries ? (
-          gridEntries.length > 0 && (
-            <div className='grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 leading-relaxed'>
-              {gridEntries.map(([k, v]) => (
-                <Fragment key={k}>
-                  <div className='text-gray-500'>{k}</div>
-                  <pre className='overflow-x-auto whitespace-pre-wrap text-gray-700'>{v}</pre>
-                </Fragment>
-              ))}
-            </div>
-          )
-        ) : (
-          <pre className='overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
-        )}
-        {edit && <EditDiff oldStr={edit.oldStr} newStr={edit.newStr} />}
-      </div>
-    </div>
+    <>
+      {gridEntries ? (
+        gridEntries.length > 0 && (
+          <div className='grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 leading-relaxed'>
+            {gridEntries.map(([k, v]) => (
+              <Fragment key={k}>
+                <div className='text-gray-500'>{k}</div>
+                <pre className='overflow-x-auto whitespace-pre-wrap text-gray-700'>{v}</pre>
+              </Fragment>
+            ))}
+          </div>
+        )
+      ) : (
+        <pre className='overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
+      )}
+      {edit && <EditDiff oldStr={edit.oldStr} newStr={edit.newStr} />}
+    </>
   );
 }
 
@@ -187,26 +193,6 @@ function parseToolInput(input: string): {
   }
 }
 
-function MessageRow({ messageType, body }: { messageType: string; body: string }) {
-  const color = MESSAGE_COLOR[messageType] ?? 'text-gray-700';
-  const isUser = messageType === 'user';
-  return (
-    <div
-      className={cn(
-        'flex gap-3 px-4 py-2 [&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs',
-        isUser && 'mt-2 border-t pt-3',
-      )}
-    >
-      <div className={cn('shrink-0 text-xs leading-relaxed font-semibold tracking-wide uppercase', color)}>
-        {messageType}
-      </div>
-      <div className='min-w-0 flex-1 leading-relaxed text-gray-700 *:first:mt-0 *:last:mb-0'>
-        <Markdown>{body}</Markdown>
-      </div>
-    </div>
-  );
-}
-
 const MESSAGE_COLOR: Record<string, string> = {
   user: 'text-purple-700',
   assistant: 'text-gray-700',
@@ -239,15 +225,10 @@ function parseBlocks(text: string): Block[] {
   const out: Block[] = [];
 
   for (let i = 0; i < lines.length; i++) {
-    const messageM = lines[i].match(MSG_RE) ?? lines[i].match(EVENT_RE);
-    if (!messageM) continue;
-    const subtype = messageM[1].trim();
-    const toolM = subtype.match(/^tool:\s*(.+)$/);
-    if (toolM) {
-      out.push({ kind: 'tool', name: toolM[1].trim(), input: messageM[2] });
-      continue;
-    }
-    const buf = [messageM[2]];
+    const m = lines[i].match(MSG_RE) ?? lines[i].match(EVENT_RE);
+    if (!m) continue;
+    const subtype = m[1].trim();
+    const buf = [m[2]];
     let j = i + 1;
     while (j < lines.length) {
       const next = lines[j];
@@ -257,7 +238,7 @@ function parseBlocks(text: string): Block[] {
     }
     i = j - 1;
     while (buf.length > 0 && buf[buf.length - 1].trim() === '') buf.pop();
-    out.push({ kind: 'message', messageType: subtype, body: buf.join('\n').trim() });
+    out.push({ subtype, body: buf.join('\n').trim() });
   }
   return out;
 }

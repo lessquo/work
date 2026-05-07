@@ -42,7 +42,11 @@ function clonePathFor(sessionId: number): string {
 }
 
 function logPathFor(sessionId: number): string {
-  return resolve(clonePathFor(sessionId), 'session.log');
+  return resolve(clonePathFor(sessionId), 'session.jsonl');
+}
+
+function userMessageJson(text: string): string {
+  return JSON.stringify({ type: 'user', message: { role: 'user', content: [{ type: 'text', text }] } }) + '\n';
 }
 
 function currentStatus(sessionId: number): string | undefined {
@@ -157,7 +161,7 @@ async function runSDKTurn(opts: {
     for await (const msg of q as AsyncGenerator<SDKMessage>) {
       if (abortController.signal.aborted) break;
       claudeSessionId = (msg as { session_id?: string }).session_id ?? claudeSessionId;
-      await log(formatMessage(msg));
+      await log(JSON.stringify(msg) + '\n');
     }
 
     if (abortController.signal.aborted) {
@@ -165,24 +169,24 @@ async function runSDKTurn(opts: {
         claudeSessionId,
         sessionId,
       );
-      await log(`[event] aborted\n`);
+      // await log(`[event] aborted\n`);
       return;
     }
 
     if (!skipGit) {
       await intentToAddAll(cwd);
       if (await hasChanges(cwd)) {
-        await log(`[event] staged changes — commit deferred until you click Create PR\n`);
+        // await log(`[event] staged changes — commit deferred until you click Create PR\n`);
       } else {
-        await log(`[event] no file changes\n`);
+        // await log(`[event] no file changes\n`);
       }
     }
 
     if (postSuccess) {
       try {
         await postSuccess(log);
-      } catch (e) {
-        await log(`[error] post-run hook failed: ${e instanceof Error ? e.message : String(e)}\n`);
+      } catch {
+        // await log(`[error] post-run hook failed: ${e instanceof Error ? e.message : String(e)}\n`);
       }
     }
 
@@ -193,7 +197,7 @@ async function runSDKTurn(opts: {
     ).run(claudeSessionId, sessionId);
   } catch (e) {
     const errMsg = e instanceof Error ? e.message : String(e);
-    await log(`[error] ${errMsg}\n`);
+    // await log(`[error] ${errMsg}\n`);
     db.prepare(`UPDATE sessions SET status = 'failed', error = ? WHERE id = ?`).run(errMsg, sessionId);
   } finally {
     unregisterSessionAbort(sessionId);
@@ -270,12 +274,12 @@ async function runJob(sessionId: number): Promise<void> {
         await rm(clonePath, { recursive: true, force: true });
       }
       const { defaultBranch } = await prepareClone(clonePath, repo);
-      await log(`[event] cloned ${repo} into ${clonePath}\n`);
+      // await log(`[event] cloned ${repo} into ${clonePath}\n`);
       await checkoutNewBranch(clonePath, branch, defaultBranch);
-      await log(`[event] branched ${branch} from ${defaultBranch}\n`);
+      // await log(`[event] branched ${branch} from ${defaultBranch}\n`);
 
       const promptText = await buildPromptText();
-      await log(`\n[msg: user] ${promptText}\n`);
+      await log(userMessageJson(promptText));
       return promptText;
     },
   });
@@ -315,13 +319,13 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
       }
 
       if (session.repo) {
-        const { defaultBranch } = await prepareClone(workspace, session.repo);
-        await log(
-          `[event] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
-        );
+        await prepareClone(workspace, session.repo);
+        // await log(
+        //   `[event] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
+        // );
       } else {
         mkdirSync(workspace, { recursive: true });
-        await log(`[event] workspace ${workspace} (no repo)\n`);
+        // await log(`[event] workspace ${workspace} (no repo)\n`);
       }
 
       const promptText = await renderPrompt(
@@ -331,7 +335,7 @@ async function runJiraDraftJob(sessionId: number, session: Session): Promise<voi
         },
         session.prompt,
       );
-      await log(`\n[msg: user] ${promptText}\n`);
+      await log(userMessageJson(promptText));
       return promptText;
     },
   });
@@ -432,20 +436,20 @@ async function runPlanJob(sessionId: number, session: Session): Promise<void> {
       }
 
       if (session.repo) {
-        const { defaultBranch } = await prepareClone(workspace, session.repo);
-        await log(
-          `[event] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
-        );
+        await prepareClone(workspace, session.repo);
+        // await log(
+        //   `[event] cloned ${session.repo} into ${workspace} (default branch ${defaultBranch}) — read-only investigation\n`,
+        // );
       } else {
         mkdirSync(workspace, { recursive: true });
-        await log(`[event] workspace ${workspace} (no repo)\n`);
+        // await log(`[event] workspace ${workspace} (no repo)\n`);
       }
 
       const item = db.prepare(`SELECT * FROM items WHERE id = ?`).get(itemId) as Item | undefined;
       const existing = item ? parsePlanRaw(item.raw) : { title: '', body: '' };
       const seedTitle = existing.title || item?.title || 'Untitled';
       await writeFile(filePath, planFileContent(seedTitle, existing.body), 'utf8');
-      await log(`[event] materialized existing plan into ./${PLAN_FILENAME}\n`);
+      // await log(`[event] materialized existing plan into ./${PLAN_FILENAME}\n`);
 
       const promptText = await renderPrompt(
         {
@@ -453,16 +457,16 @@ async function runPlanJob(sessionId: number, session: Session): Promise<void> {
         },
         session.prompt,
       );
-      await log(`\n[msg: user] ${promptText}\n`);
+      await log(userMessageJson(promptText));
       return promptText;
     },
-    postSuccess: async log => {
-      const ok = await syncPlanWorkspace(itemId, workspace);
-      await log(
-        ok
-          ? `[event] synced ./${PLAN_FILENAME} back into the plan\n`
-          : `[event] no ./${PLAN_FILENAME} found — nothing synced\n`,
-      );
+    postSuccess: async () => {
+      await syncPlanWorkspace(itemId, workspace);
+      // await log(
+      //   ok
+      //     ? `[event] synced ./${PLAN_FILENAME} back into the plan\n`
+      //     : `[event] no ./${PLAN_FILENAME} found — nothing synced\n`,
+      // );
     },
   });
 }
@@ -506,51 +510,21 @@ async function runFollowupJob(sessionId: number, message: string): Promise<void>
       db.prepare(`UPDATE sessions SET status = 'running', error = NULL WHERE id = ?`).run(sessionId);
     },
     preflight: async log => {
-      await log(`\n[msg: user] ${message}\n`);
+      await log(userMessageJson(message));
       return message;
     },
     postSuccess:
       planItemId === null
         ? undefined
-        : async log => {
-            const ok = await syncPlanWorkspace(planItemId, workspace);
-            await log(
-              ok
-                ? `[event] synced ./${PLAN_FILENAME} back into the plan\n`
-                : `[event] no ./${PLAN_FILENAME} found — nothing synced\n`,
-            );
+        : async () => {
+            await syncPlanWorkspace(planItemId, workspace);
+            // await log(
+            //   ok
+            //     ? `[event] synced ./${PLAN_FILENAME} back into the plan\n`
+            //     : `[event] no ./${PLAN_FILENAME} found — nothing synced\n`,
+            // );
           },
   });
-}
-
-function formatMessage(msg: SDKMessage): string {
-  if (msg.type === 'assistant') {
-    const blocks = (msg.message?.content ?? []) as Array<{
-      type: string;
-      text?: string;
-      name?: string;
-      input?: unknown;
-    }>;
-    const out: string[] = [];
-    for (const b of blocks) {
-      if (b.type === 'text' && b.text) out.push(`\n[msg: assistant] ${b.text}\n`);
-      else if (b.type === 'tool_use') {
-        const input = typeof b.input === 'string' ? b.input : JSON.stringify(b.input);
-        out.push(`\n[msg: tool: ${b.name}] ${input ?? ''}\n`);
-      }
-    }
-    return out.join('') + '\n';
-  }
-  if (msg.type === 'result') {
-    const r = msg as { subtype?: string; result?: string; is_error?: boolean };
-    if (r.subtype === 'success' && r.result) return `\n[msg: result] ${r.result}\n`;
-    if (r.is_error) return `\n[msg: result error]\n`;
-    return '';
-  }
-  if (msg.type === 'system') {
-    return '';
-  }
-  return '';
 }
 
 export async function deleteSessionFolder(sessionId: number): Promise<boolean> {

@@ -25,7 +25,6 @@ export function LogsView({
   onScroll?: (e: UIEvent<HTMLDivElement>) => void;
 }) {
   const [view, setView] = useState<View>('pretty');
-  const stripped = stripAnsi(text);
   return (
     <div className='group flex h-full flex-col'>
       <div className='pointer-events-none sticky top-0 z-10 flex h-0 items-center justify-end px-4 opacity-0 group-hover:opacity-100'>
@@ -37,16 +36,16 @@ export function LogsView({
         </TabsRoot>
       </div>
       <div ref={scrollRef} onScroll={onScroll} tabIndex={0} className='min-h-0 flex-1 overflow-auto outline-none'>
-        {!stripped ? (
+        {!text ? (
           isRunning ? (
             <RunningIndicator />
           ) : (
             <span className='block px-4 py-2 text-gray-500'>(no output)</span>
           )
         ) : view === 'pretty' ? (
-          parseBlocks(stripped).map((b, i) => <BlockRow key={i} block={b} />)
+          parseTranscript(text).map((b, i) => <BlockRow key={i} block={b} />)
         ) : (
-          <pre className='px-4 py-2 leading-relaxed whitespace-pre-wrap text-gray-700'>{stripped}</pre>
+          <pre className='px-4 py-2 leading-relaxed whitespace-pre-wrap text-gray-700'>{text}</pre>
         )}
       </div>
     </div>
@@ -217,35 +216,35 @@ const TOOL_COLOR: Record<string, string> = {
   TodoWrite: 'text-cyan-700',
 };
 
-const MSG_RE = /^\[msg:\s*([^\]]+)\]\s*(.*)$/;
-const EVENT_RE = /^\[(event|error)\]\s*(.*)$/;
+type ContentBlock = { type: string; text?: string; name?: string; input?: unknown };
+type TranscriptMessage =
+  | { type: 'assistant' | 'user'; message?: { content?: ContentBlock[] } }
+  | { type: 'result'; subtype?: string; result?: string; is_error?: boolean }
+  | { type: 'system' };
 
-function parseBlocks(text: string): Block[] {
-  const lines = text.split('\n');
+function parseTranscript(text: string): Block[] {
   const out: Block[] = [];
-
-  for (let i = 0; i < lines.length; i++) {
-    const m = lines[i].match(MSG_RE) ?? lines[i].match(EVENT_RE);
-    if (!m) continue;
-    const subtype = m[1].trim();
-    const buf = [m[2]];
-    let j = i + 1;
-    while (j < lines.length) {
-      const next = lines[j];
-      if (MSG_RE.test(next) || EVENT_RE.test(next)) break;
-      buf.push(next);
-      j++;
+  for (const line of text.split('\n')) {
+    if (!line.trim()) continue;
+    let msg: TranscriptMessage;
+    try {
+      msg = JSON.parse(line) as TranscriptMessage;
+    } catch {
+      continue;
     }
-    i = j - 1;
-    while (buf.length > 0 && buf[buf.length - 1].trim() === '') buf.pop();
-    out.push({ subtype, body: buf.join('\n').trim() });
+    if (msg.type === 'assistant' || msg.type === 'user') {
+      for (const c of msg.message?.content ?? []) {
+        if (c.type === 'text' && c.text) {
+          out.push({ subtype: msg.type, body: c.text });
+        } else if (c.type === 'tool_use' && c.name) {
+          const input = typeof c.input === 'string' ? c.input : JSON.stringify(c.input);
+          out.push({ subtype: `tool: ${c.name}`, body: input });
+        }
+      }
+    } else if (msg.type === 'result') {
+      if (msg.is_error) out.push({ subtype: 'result error', body: '' });
+      else if (msg.result) out.push({ subtype: 'result', body: msg.result });
+    }
   }
   return out;
-}
-
-function stripAnsi(s: string): string {
-  // CSI sequences only. The ESC anchor (\x1b) matters: without it the regex
-  // would also eat plain text like "[tool: Bash]".
-  // eslint-disable-next-line no-control-regex
-  return s.replace(/\x1b\[[0-9;?]*[A-Za-z]/g, '');
 }

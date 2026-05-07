@@ -1,8 +1,7 @@
+import { DiffLines, type DiffLine } from '@/components/panels/DiffLines';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
-type DiffLine = { kind: 'add' | 'del' | 'ctx' | 'hunk' | 'meta'; text: string };
 type DiffFile = {
   path: string;
   added: number;
@@ -51,29 +50,10 @@ function FileBlock({ file }: { file: DiffFile }) {
           <span className='font-mono text-rose-700'>-{file.removed}</span>
         </span>
       </div>
-      <pre className='overflow-x-auto bg-white font-mono text-xs leading-relaxed whitespace-pre'>
-        <div className='inline-block min-w-full'>
-          {file.lines.map((l, i) => (
-            <LineRow key={i} line={l} />
-          ))}
-        </div>
-      </pre>
+      <DiffLines lines={file.lines} className='bg-white font-mono text-xs' />
     </div>
   );
 }
-
-function LineRow({ line }: { line: DiffLine }) {
-  const cls = LINE_CLASS[line.kind];
-  return <div className={cn('px-3', cls)}>{line.text || ' '}</div>;
-}
-
-const LINE_CLASS: Record<DiffLine['kind'], string> = {
-  add: 'bg-emerald-50 text-emerald-900',
-  del: 'bg-rose-50 text-rose-900',
-  hunk: 'bg-sky-50 text-sky-800',
-  meta: 'text-gray-400',
-  ctx: 'text-gray-700',
-};
 
 function parseDiff(text: string): DiffFile[] {
   const files: DiffFile[] = [];

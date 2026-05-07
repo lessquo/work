@@ -1,4 +1,4 @@
-import { Markdown } from '@/components/panels/Markdown';
+import { Markdown } from '@/components/Markdown';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';

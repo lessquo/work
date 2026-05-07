@@ -1,4 +1,4 @@
-import { MarkdownEditor, type MarkdownEditorMode } from '@/components/panels/MarkdownEditor';
+import { MarkdownEditor, type MarkdownEditorMode } from '@/components/MarkdownEditor';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';

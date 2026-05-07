@@ -1,5 +1,5 @@
-import { DiffLines, type DiffLine } from '@/components/panels/DiffLines';
-import { Markdown } from '@/components/panels/Markdown';
+import { Markdown } from '@/components/Markdown';
+import { DiffLines, type DiffLine } from '@/components/session-panel/DiffLines';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
 import { Loader2 } from 'lucide-react';

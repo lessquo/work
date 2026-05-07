@@ -1,4 +1,4 @@
-import { SessionPanel } from '@/components/sessions/SessionPanel';
+import { SessionPanel } from '@/components/session-panel/SessionPanel';
 import { useNumberParam } from '@/lib/router';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useNavigate } from 'react-router';

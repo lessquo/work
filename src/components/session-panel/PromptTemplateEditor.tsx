@@ -1,4 +1,4 @@
-import { MarkdownEditor, type MarkdownEditorMode } from '@/components/panels/MarkdownEditor';
+import { MarkdownEditor, type MarkdownEditorMode } from '@/components/MarkdownEditor';
 import { api, type Prompt } from '@/lib/api';
 import { useDraftEditor } from '@/lib/useDraftEditor';
 import { useSuspenseQuery } from '@tanstack/react-query';

@@ -1,6 +1,6 @@
 import { FlowPanel } from '@/components/flows/FlowPanel';
 import { ItemPanel } from '@/components/items/ItemPanel';
-import { SessionPanel } from '@/components/sessions/SessionPanel';
+import { SessionPanel } from '@/components/session-panel/SessionPanel';
 import { useNumberParam } from '@/lib/router';
 import { parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
 

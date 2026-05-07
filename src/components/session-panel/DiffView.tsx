@@ -1,4 +1,4 @@
-import { DiffLines, type DiffLine } from '@/components/panels/DiffLines';
+import { DiffLines, type DiffLine } from '@/components/session-panel/DiffLines';
 import { api } from '@/lib/api';
 import { useSuspenseQuery } from '@tanstack/react-query';
 

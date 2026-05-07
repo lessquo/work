@@ -2,14 +2,9 @@ import { Markdown } from '@/components/Markdown';
 import { DiffLines, type DiffLine } from '@/components/session-panel/DiffLines';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
+import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import { Loader2 } from 'lucide-react';
-import { Fragment, useState, type Ref, type UIEvent } from 'react';
-
-type Block = { subtype: string; body: string };
-
-const TOOL_PREFIX = 'tool: ';
-const toolName = (subtype: string): string | null =>
-  subtype.startsWith(TOOL_PREFIX) ? subtype.slice(TOOL_PREFIX.length) : null;
+import { Fragment, useState, type ReactNode, type Ref, type UIEvent } from 'react';
 
 type View = 'pretty' | 'raw';
 
@@ -43,7 +38,7 @@ export function LogsView({
             <span className='block px-4 py-2 text-gray-500'>(no output)</span>
           )
         ) : view === 'pretty' ? (
-          parseTranscript(text).map((b, i) => <BlockRow key={i} block={b} />)
+          parseMessages(text).map((m, i) => <MessageRows key={i} msg={m} />)
         ) : (
           <pre className='px-4 py-2 leading-relaxed whitespace-pre-wrap text-gray-700'>{text}</pre>
         )}
@@ -61,22 +56,70 @@ function RunningIndicator() {
   );
 }
 
-function BlockRow({ block }: { block: Block }) {
-  const tool = toolName(block.subtype);
-  const label = tool ?? block.subtype;
-  const color = tool ? (TOOL_COLOR[tool] ?? 'text-gray-700') : (MESSAGE_COLOR[block.subtype] ?? 'text-gray-700');
-  const isUser = block.subtype === 'user';
+function MessageRows({ msg }: { msg: SDKMessage }) {
+  if (msg.type === 'assistant' || msg.type === 'user') {
+    const { content } = msg.message;
+    const blocks = typeof content === 'string' ? [{ type: 'text' as const, text: content }] : content;
+    return (
+      <>
+        {blocks.map((c, i) => {
+          if (c.type === 'text' && c.text) {
+            return (
+              <Row key={i} label={msg.type} color={MESSAGE_COLOR[msg.type]} divider={msg.type === 'user'} markdown>
+                <Markdown>{c.text}</Markdown>
+              </Row>
+            );
+          }
+          if (c.type === 'tool_use') {
+            const input = typeof c.input === 'string' ? c.input : JSON.stringify(c.input);
+            return (
+              <Row key={i} label={c.name} color={TOOL_COLOR[c.name] ?? 'text-gray-700'}>
+                <ToolBody name={c.name} input={input} />
+              </Row>
+            );
+          }
+          return null;
+        })}
+      </>
+    );
+  }
+  if (msg.type === 'result') {
+    if (msg.subtype === 'success') {
+      return msg.result ? (
+        <Row label='result' color={MESSAGE_COLOR.result} markdown>
+          <Markdown>{msg.result}</Markdown>
+        </Row>
+      ) : null;
+    }
+    return <Row label='result error' color={MESSAGE_COLOR['result error']} markdown />;
+  }
+  return null;
+}
+
+function Row({
+  label,
+  color,
+  markdown = false,
+  divider = false,
+  children,
+}: {
+  label: string;
+  color: string;
+  markdown?: boolean;
+  divider?: boolean;
+  children?: ReactNode;
+}) {
   return (
     <div
       className={cn(
         'flex gap-3 px-4 py-2',
-        !tool && '[&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs',
-        isUser && 'mt-2 border-t pt-3',
+        markdown && '[&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs',
+        divider && 'mt-2 border-t pt-3',
       )}
     >
       <div className={cn('shrink-0 text-xs leading-relaxed font-semibold tracking-wide uppercase', color)}>{label}</div>
-      <div className={cn('min-w-0 flex-1', !tool && 'leading-relaxed text-gray-700 *:first:mt-0 *:last:mb-0')}>
-        {tool ? <ToolBody name={tool} input={block.body} /> : <Markdown>{block.body}</Markdown>}
+      <div className={cn('min-w-0 flex-1', markdown && 'leading-relaxed text-gray-700 *:first:mt-0 *:last:mb-0')}>
+        {children}
       </div>
     </div>
   );
@@ -192,15 +235,12 @@ function parseToolInput(input: string): {
   }
 }
 
-const MESSAGE_COLOR: Record<string, string> = {
+const MESSAGE_COLOR = {
   user: 'text-purple-700',
   assistant: 'text-gray-700',
-  system: 'text-amber-700',
-  event: 'text-sky-700',
-  error: 'text-rose-700',
   result: 'text-emerald-700',
   'result error': 'text-rose-700',
-};
+} as const;
 
 const TOOL_COLOR: Record<string, string> = {
   Bash: 'text-amber-700',
@@ -216,34 +256,14 @@ const TOOL_COLOR: Record<string, string> = {
   TodoWrite: 'text-cyan-700',
 };
 
-type ContentBlock = { type: string; text?: string; name?: string; input?: unknown };
-type TranscriptMessage =
-  | { type: 'assistant' | 'user'; message?: { content?: ContentBlock[] } }
-  | { type: 'result'; subtype?: string; result?: string; is_error?: boolean }
-  | { type: 'system' };
-
-function parseTranscript(text: string): Block[] {
-  const out: Block[] = [];
+function parseMessages(text: string): SDKMessage[] {
+  const out: SDKMessage[] = [];
   for (const line of text.split('\n')) {
     if (!line.trim()) continue;
-    let msg: TranscriptMessage;
     try {
-      msg = JSON.parse(line) as TranscriptMessage;
+      out.push(JSON.parse(line) as SDKMessage);
     } catch {
       continue;
-    }
-    if (msg.type === 'assistant' || msg.type === 'user') {
-      for (const c of msg.message?.content ?? []) {
-        if (c.type === 'text' && c.text) {
-          out.push({ subtype: msg.type, body: c.text });
-        } else if (c.type === 'tool_use' && c.name) {
-          const input = typeof c.input === 'string' ? c.input : JSON.stringify(c.input);
-          out.push({ subtype: `tool: ${c.name}`, body: input });
-        }
-      }
-    } else if (msg.type === 'result') {
-      if (msg.is_error) out.push({ subtype: 'result error', body: '' });
-      else if (msg.result) out.push({ subtype: 'result', body: msg.result });
     }
   }
   return out;

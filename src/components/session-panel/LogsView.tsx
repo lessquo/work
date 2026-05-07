@@ -3,7 +3,7 @@ import { DiffLines, type DiffLine } from '@/components/session-panel/DiffLines';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
 import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
-import { Loader2 } from 'lucide-react';
+import { Circle, CircleCheck, CircleDot, Loader2 } from 'lucide-react';
 import { Fragment, useState, type ReactNode, type Ref, type UIEvent } from 'react';
 
 type View = 'pretty' | 'raw';
@@ -127,8 +127,9 @@ function Row({
 
 function ToolBody({ name, input }: { name: string; input: string }) {
   const edit = name === 'Edit' ? parseEditInput(input) : null;
+  const todos = name === 'TodoWrite' ? parseTodosInput(input) : null;
   const { entries, formatted } = parseToolInput(input);
-  const gridEntries = edit ? edit.entries : entries;
+  const gridEntries = edit ? edit.entries : todos ? todos.entries : entries;
   return (
     <>
       {gridEntries ? (
@@ -146,7 +147,49 @@ function ToolBody({ name, input }: { name: string; input: string }) {
         <pre className='overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
       )}
       {edit && <EditDiff oldStr={edit.oldStr} newStr={edit.newStr} />}
+      {todos && <TodoList todos={todos.todos} />}
     </>
+  );
+}
+
+type Todo = { content: string; activeForm: string; status: 'pending' | 'in_progress' | 'completed' };
+
+function parseTodosInput(input: string): { entries: [string, string][]; todos: Todo[] } | null {
+  const trimmed = input.trim();
+  if (!trimmed.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    if (!Array.isArray(parsed.todos)) return null;
+    const entries: [string, string][] = Object.entries(parsed)
+      .filter(([k]) => k !== 'todos')
+      .map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v, null, 2)]);
+    return { entries, todos: parsed.todos as Todo[] };
+  } catch {
+    return null;
+  }
+}
+
+function TodoList({ todos }: { todos: Todo[] }) {
+  return (
+    <ul className='flex flex-col gap-1 text-xs leading-relaxed'>
+      {todos.map((t, i) => {
+        const Icon = t.status === 'completed' ? CircleCheck : t.status === 'in_progress' ? CircleDot : Circle;
+        const iconColor =
+          t.status === 'completed'
+            ? 'text-emerald-600'
+            : t.status === 'in_progress'
+              ? 'text-amber-600'
+              : 'text-gray-400';
+        return (
+          <li key={i} className='flex items-start gap-2'>
+            <Icon className={cn('mt-0.5 size-3.5 shrink-0', iconColor)} />
+            <span className={cn(t.status === 'completed' && 'text-gray-500 line-through')}>
+              {t.status === 'in_progress' ? t.activeForm : t.content}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

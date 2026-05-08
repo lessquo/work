@@ -1,6 +1,4 @@
 ---
-label: Fix Sentry Issue
-hint: Make the minimal code change to fix the bug.
 applies_to: github_pr
 ---
 

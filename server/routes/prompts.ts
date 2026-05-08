@@ -25,8 +25,6 @@ prompts.get('/prompts', async c => {
         const s = await stat(path);
         return {
           id,
-          label: meta.label || id,
-          hint: meta.hint,
           applies_to: meta.applies_to,
           content,
           created_at: s.birthtime.toISOString(),
@@ -49,22 +47,20 @@ function asAppliesTo(v: unknown): AppliesTo | null {
 
 prompts.post('/prompts', async c => {
   const body = await c.req
-    .json<{ id?: unknown; label?: unknown; hint?: unknown; content?: unknown; applies_to?: unknown }>()
-    .catch(() => ({}) as { id?: unknown; label?: unknown; hint?: unknown; content?: unknown; applies_to?: unknown });
+    .json<{ id?: unknown; content?: unknown; applies_to?: unknown }>()
+    .catch(() => ({}) as { id?: unknown; content?: unknown; applies_to?: unknown });
   const id = typeof body.id === 'string' ? body.id.trim() : '';
-  const label = typeof body.label === 'string' ? body.label.trim() : '';
-  const hint = typeof body.hint === 'string' ? body.hint : '';
   const content = typeof body.content === 'string' ? body.content : '';
   const applies_to = asAppliesTo(body.applies_to);
 
-  if (!id || !label) return c.json({ error: 'id and label are required' }, 400);
+  if (!id) return c.json({ error: 'id is required' }, 400);
   if (!ID_REGEX.test(id)) {
     return c.json({ error: 'id must be a kebab-case slug (a-z, 0-9, hyphens; cannot start with hyphen)' }, 400);
   }
 
   const path = promptPath(id);
   try {
-    await writeFile(path, serializePromptFile({ label, hint, applies_to }, content), { flag: 'wx' });
+    await writeFile(path, serializePromptFile({ applies_to }, content), { flag: 'wx' });
   } catch (e) {
     if ((e as NodeJS.ErrnoException).code === 'EEXIST') {
       return c.json({ error: `prompt with id "${id}" already exists` }, 409);
@@ -73,7 +69,7 @@ prompts.post('/prompts', async c => {
   }
 
   const s = await stat(path);
-  return c.json({ id, label, hint, applies_to, content, created_at: s.birthtime.toISOString() }, 201);
+  return c.json({ id, applies_to, content, created_at: s.birthtime.toISOString() }, 201);
 });
 
 prompts.delete('/prompts/:id', async c => {

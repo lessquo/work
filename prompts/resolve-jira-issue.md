@@ -1,6 +1,4 @@
 ---
-label: Resolve Jira Issue
-hint: Make the change described in the Jira issue — fix, feature, refactor, etc.
 applies_to: github_pr
 ---
 

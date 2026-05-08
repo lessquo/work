@@ -20,10 +20,9 @@ export function PromptPicker({
               key={p.id}
               type='button'
               onClick={() => setPromptId(p.id)}
-              title={p.hint || undefined}
               className={cn('btn-sm selectable', selected && 'selected')}
             >
-              {p.label}
+              {p.id}
             </button>
           );
         })}

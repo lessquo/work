@@ -606,12 +606,9 @@ function SetupPromptPicker({
   onChange: (p: PromptId) => void;
 }) {
   if (readOnly) {
-    const active = prompts.find(p => p.id === promptId);
     return (
       <section className='border-b px-4 py-3 text-xs'>
-        <span className='text-gray-500'>Prompt:</span>{' '}
-        <span className='font-medium text-gray-800'>{active?.label ?? promptId}</span>
-        {active?.hint && <span className='ml-2 text-gray-500'>· {active.hint}</span>}
+        <span className='text-gray-500'>Prompt:</span> <span className='font-medium text-gray-800'>{promptId}</span>
       </section>
     );
   }

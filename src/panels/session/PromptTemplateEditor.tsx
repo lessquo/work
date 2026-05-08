@@ -38,7 +38,6 @@ export function PromptTemplateEditor({ prompt, readOnly = false }: { prompt: Pro
       <div className='flex items-center gap-3 border-b bg-gray-50 px-3 py-1.5 text-xs'>
         <span className='min-w-0 truncate text-gray-500'>
           <code className='font-mono text-gray-700'>{prompt.id}</code>
-          {prompt.hint && <span className='ml-2'>· {prompt.hint}</span>}
         </span>
       </div>
       <MarkdownEditor
@@ -47,7 +46,7 @@ export function PromptTemplateEditor({ prompt, readOnly = false }: { prompt: Pro
         mode={mode}
         setMode={setMode}
         readOnly={readOnly}
-        placeholder={`Edit the ${prompt.label} prompt…`}
+        placeholder={`Edit the ${prompt.id} prompt…`}
         statusText={statusText}
         statusError={!readOnly && status === 'error' && !!error}
         className='min-h-0 flex-1'

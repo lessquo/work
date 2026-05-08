@@ -1,6 +1,4 @@
 ---
-label: Create Jira Issue
-hint: Draft a Jira issue (title + description) from user-supplied context.
 applies_to: jira_issue
 ---
 

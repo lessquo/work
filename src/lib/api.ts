@@ -150,8 +150,6 @@ export type SessionStatus = 'draft' | 'queued' | 'running' | 'succeeded' | 'fail
 export type PromptId = string;
 export type Prompt = {
   id: PromptId;
-  label: string;
-  hint: string;
   applies_to: ItemType | null;
   content: string;
   created_at: string;
@@ -322,7 +320,7 @@ export const api = {
       body: JSON.stringify({ content }),
     }),
   listPrompts: () => req<Prompt[]>('/prompts'),
-  createPrompt: (p: { id: string; label: string; hint?: string; content?: string }) =>
+  createPrompt: (p: { id: string; applies_to?: ItemType | null; content?: string }) =>
     req<Prompt>('/prompts', { method: 'POST', body: JSON.stringify(p) }),
   deletePrompt: (id: string) => req<{ ok: true }>(`/prompts/${id}`, { method: 'DELETE' }),
   getSettings: () => req<Settings>('/settings'),

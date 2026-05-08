@@ -1,6 +1,4 @@
 ---
-label: Write Plan
-hint: Draft a single markdown plan from user-supplied context.
 applies_to: plan
 ---
 

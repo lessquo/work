@@ -6,7 +6,7 @@ export type PromptContext = Record<string, string>;
 
 export type PromptId = string;
 export type PromptSourceType = 'sentry_issue' | 'jira_issue' | 'github_pr' | 'plan';
-export type PromptMeta = { label: string; hint: string; applies_to: PromptSourceType | null };
+export type PromptMeta = { applies_to: PromptSourceType | null };
 
 const PROMPT_SOURCE_TYPES: PromptSourceType[] = ['sentry_issue', 'jira_issue', 'github_pr', 'plan'];
 
@@ -42,9 +42,9 @@ function isPromptSourceType(v: string): v is PromptSourceType {
 /** Parse a prompt markdown file. Frontmatter (between `---` markers) is optional. */
 export function parsePromptFile(text: string): { meta: PromptMeta; content: string } {
   const m = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
-  if (!m) return { meta: { label: '', hint: '', applies_to: null }, content: text };
+  if (!m) return { meta: { applies_to: null }, content: text };
   const [, fm, content] = m;
-  const meta: PromptMeta = { label: '', hint: '', applies_to: null };
+  const meta: PromptMeta = { applies_to: null };
   for (const line of fm.split(/\r?\n/)) {
     const colon = line.indexOf(':');
     if (colon < 0) continue;
@@ -53,16 +53,15 @@ export function parsePromptFile(text: string): { meta: PromptMeta; content: stri
     if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
       val = val.slice(1, -1);
     }
-    if (key === 'label') meta.label = val;
-    else if (key === 'hint') meta.hint = val;
-    else if (key === 'applies_to') meta.applies_to = isPromptSourceType(val) ? val : null;
+    if (key === 'applies_to') meta.applies_to = isPromptSourceType(val) ? val : null;
   }
   return { meta, content };
 }
 
 export function serializePromptFile(meta: PromptMeta, content: string): string {
-  const lines = [`label: ${meta.label}`, `hint: ${meta.hint}`];
+  const lines: string[] = [];
   if (meta.applies_to) lines.push(`applies_to: ${meta.applies_to}`);
+  if (lines.length === 0) return content;
   return `---\n${lines.join('\n')}\n---\n${content}`;
 }
 

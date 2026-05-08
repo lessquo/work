@@ -34,23 +34,16 @@ export function PromptTemplateEditor({ prompt, readOnly = false }: { prompt: Pro
             : null;
 
   return (
-    <div className='flex min-h-0 flex-1 flex-col bg-white'>
-      <div className='flex items-center gap-3 border-b bg-gray-50 px-3 py-1.5 text-xs'>
-        <span className='min-w-0 truncate text-gray-500'>
-          <code className='font-mono text-gray-700'>{prompt.id}</code>
-        </span>
-      </div>
-      <MarkdownEditor
-        value={draft}
-        onChange={setDraft}
-        mode={mode}
-        setMode={setMode}
-        readOnly={readOnly}
-        placeholder={`Edit the ${prompt.id} prompt…`}
-        statusText={statusText}
-        statusError={!readOnly && status === 'error' && !!error}
-        className='min-h-0 flex-1'
-      />
-    </div>
+    <MarkdownEditor
+      value={draft}
+      onChange={setDraft}
+      mode={mode}
+      setMode={setMode}
+      readOnly={readOnly}
+      placeholder={`Edit the ${prompt.id} prompt…`}
+      statusText={statusText}
+      statusError={!readOnly && status === 'error' && !!error}
+      className='min-h-0 flex-1'
+    />
   );
 }

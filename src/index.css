@@ -118,6 +118,11 @@
     animation-timeline: scroll(nearest);
     animation-range: 20px 40px;
   }
+  .hide-on-scroll {
+    animation: hide-on-scroll linear both;
+    animation-timeline: scroll(nearest);
+    animation-range: 20px 40px;
+  }
 }
 
 @keyframes stuck-on-scroll {
@@ -127,5 +132,12 @@
     box-shadow:
       0 10px 15px -3px rgb(0 0 0 / 0.1),
       0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+}
+
+@keyframes hide-on-scroll {
+  to {
+    opacity: 0;
+    max-width: 0;
   }
 }

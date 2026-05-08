@@ -1,5 +1,4 @@
 import { FlowCard } from '@/components/flows/FlowCard';
-import { HomeLink } from '@/components/HomeLink';
 import { PageSwitcher } from '@/components/PageSwitcher';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -71,10 +70,9 @@ export function FlowsPage() {
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='flex min-w-0 flex-1 flex-col gap-4 overflow-y-scroll py-6'>
           <div className='sticky top-0 z-10 flex items-center justify-between px-4'>
-            <h1 className='stuck-on-scroll flex items-center gap-1 rounded-xl text-lg font-semibold'>
-              <HomeLink />
+            <div className='flex items-center gap-2'>
               <PageSwitcher />
-            </h1>
+            </div>
             <div className='flex items-center gap-2'>
               <div className='stuck-on-scroll rounded-full'>
                 <Tooltip content={syncItemsMutation.isPending ? 'Syncing items' : 'Sync items'}>

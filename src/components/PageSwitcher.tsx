@@ -1,6 +1,7 @@
+import { Tooltip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
 import { Menu } from '@base-ui/react/menu';
-import { Box, Check, ChevronsUpDown, Database, Settings, Terminal, Workflow } from 'lucide-react';
+import { Box, Check, Database, Settings, Terminal, Workflow } from 'lucide-react';
 import { Link, useMatch } from 'react-router';
 
 const PAGES = [
@@ -18,13 +19,19 @@ export function PageSwitcher() {
 
   return (
     <Menu.Root>
-      <Menu.Trigger
-        aria-label='Switch page'
-        className={cn('btn-md btn-ghost text-lg font-semibold', 'data-popup-open:bg-gray-100')}
-      >
-        <span className='truncate'>{current?.label ?? 'Select page'}</span>
-        <ChevronsUpDown />
-      </Menu.Trigger>
+      <span className='stuck-on-scroll rounded-full'>
+        <Tooltip content='Switch page'>
+          <Menu.Trigger
+            aria-label='Switch page'
+            className={cn('btn-md btn-ghost rounded-full', 'data-popup-open:bg-gray-100')}
+          >
+            {current ? <current.icon /> : <Box />}
+          </Menu.Trigger>
+        </Tooltip>
+      </span>
+      <h1 className='hide-on-scroll overflow-hidden text-lg font-semibold whitespace-nowrap'>
+        {current?.label ?? 'Select page'}
+      </h1>
       <Menu.Portal>
         <Menu.Positioner sideOffset={4}>
           <Menu.Popup className='popup min-w-41'>

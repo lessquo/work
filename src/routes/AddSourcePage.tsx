@@ -49,7 +49,7 @@ export function AddSourcePage() {
 
   return (
     <>
-      <title>Add source · Work</title>
+      <title>Work Add source</title>
 
       <div className='mx-auto max-w-xl p-6'>
         <h1 className='mb-1 text-lg font-semibold'>Add source</h1>

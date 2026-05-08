@@ -32,7 +32,7 @@ export function SessionsPage() {
 
   return (
     <>
-      <title>Sessions · Work</title>
+      <title>Work Sessions</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>

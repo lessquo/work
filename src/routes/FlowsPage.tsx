@@ -65,7 +65,7 @@ export function FlowsPage() {
 
   return (
     <>
-      <title>Flows · Work</title>
+      <title>Work Flows</title>
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='flex min-w-0 flex-1 flex-col gap-4 overflow-y-scroll py-6'>

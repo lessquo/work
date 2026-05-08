@@ -3,7 +3,6 @@ import { SessionCard } from '@/components/SessionCard';
 import { api } from '@/lib/api';
 import { useNumberParam } from '@/lib/router';
 import { useQuery } from '@tanstack/react-query';
-import { useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
 export function SessionsPage() {
@@ -22,13 +21,6 @@ export function SessionsPage() {
   const sessions = sessionsQuery.data ?? [];
 
   const error = sessionsQuery.error instanceof Error ? sessionsQuery.error.message : null;
-
-  useEffect(() => {
-    if (sessions.length === 0) return;
-    if (sessionId !== null) return;
-    const params = new URLSearchParams(window.location.search);
-    navigate({ pathname: `/sessions/${sessions[0].id}`, search: params.toString() }, { replace: true });
-  }, [sessions, sessionId, navigate]);
 
   return (
     <>

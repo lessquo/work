@@ -3,14 +3,12 @@ import { PageHeader } from '@/components/PageHeader';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api } from '@/lib/api';
-import { useNumberParam } from '@/lib/router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
 export function FlowsPage() {
-  const flowId = useNumberParam('flowId');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -55,13 +53,6 @@ export function FlowsPage() {
       });
     },
   });
-
-  useEffect(() => {
-    if (flows.length === 0) return;
-    if (flowId) return;
-    const params = new URLSearchParams(window.location.search);
-    navigate({ pathname: `/flows/${flows[0].id}`, search: params.toString() }, { replace: true });
-  }, [flows, flowId, navigate]);
 
   return (
     <>

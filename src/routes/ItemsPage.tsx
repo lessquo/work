@@ -8,7 +8,7 @@ import { useNumberParam } from '@/lib/router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { parseAsArrayOf, parseAsInteger, parseAsString, useQueryState } from 'nuqs';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
 export function ItemsPage() {
@@ -47,13 +47,6 @@ export function ItemsPage() {
     if (validItemId !== null) set.add(validItemId);
     return set;
   }, [validSelectedIds, validItemId]);
-
-  useEffect(() => {
-    if (items.length === 0) return;
-    if (validItemId !== null) return;
-    const params = new URLSearchParams(window.location.search);
-    navigate({ pathname: `/items/${items[0].id}`, search: params.toString() }, { replace: true });
-  }, [items, validItemId, navigate]);
 
   const error = itemsQuery.error instanceof Error ? itemsQuery.error.message : null;
 

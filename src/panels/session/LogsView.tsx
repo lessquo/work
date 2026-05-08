@@ -65,7 +65,7 @@ function MessageRows({ msg }: { msg: SDKMessage }) {
         {blocks.map((c, i) => {
           if (c.type === 'text' && c.text) {
             return (
-              <Row key={i} label={msg.type} color={MESSAGE_COLOR[msg.type]} divider={msg.type === 'user'} markdown>
+              <Row key={i} label={msg.type} color={MESSAGE_COLOR[msg.type]} markdown>
                 <Markdown>{c.text}</Markdown>
               </Row>
             );
@@ -100,7 +100,6 @@ function Row({
   label,
   color,
   markdown = false,
-  divider = false,
   children,
 }: {
   label: string;
@@ -114,7 +113,6 @@ function Row({
       className={cn(
         'flex gap-3 px-4 py-2',
         markdown && '[&_h1]:text-sm [&_h2]:text-sm [&_h3]:text-xs [&_p]:my-1 [&_p]:text-xs [&_table]:text-xs',
-        divider && 'mt-2 border-t pt-3',
       )}
     >
       <div className={cn('shrink-0 text-xs leading-relaxed font-semibold tracking-wide uppercase', color)}>{label}</div>

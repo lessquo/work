@@ -11,7 +11,7 @@ export function ItemCardLayout({
 }: {
   item: ItemWithSessions;
   selected?: boolean;
-  onSelect?: (id: number, modifiers: { shiftKey: boolean; metaKey: boolean }) => void;
+  onSelect?: (id: number) => void;
   onOpenSession?: (sessionId: number) => void;
   body: React.ReactNode;
   rightMeta?: React.ReactNode;
@@ -19,7 +19,7 @@ export function ItemCardLayout({
   function handleCardClick(e: React.MouseEvent<HTMLLIElement>) {
     const target = e.target as HTMLElement;
     if (target.closest('a, button, input, textarea, label')) return;
-    onSelect?.(item.id, { shiftKey: e.shiftKey, metaKey: e.metaKey || e.ctrlKey });
+    onSelect?.(item.id);
   }
 
   return (

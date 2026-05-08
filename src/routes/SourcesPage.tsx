@@ -18,38 +18,36 @@ export function SourcesPage() {
     <>
       <title>Work Sources</title>
 
-      <div className='flex flex-1 overflow-y-scroll'>
-        <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
-          <div className='sticky top-0 z-10 mb-4 flex items-center justify-between'>
-            <div className='flex items-center gap-2'>
-              <PageHeader />
-            </div>
-            <div className='stuck-on-scroll rounded-full'>
-              <Tooltip content='Add source'>
-                <button
-                  type='button'
-                  onClick={() => setAddOpen(true)}
-                  className='btn-md btn-ghost rounded-full'
-                  aria-label='Add source'
-                >
-                  <Plus />
-                </button>
-              </Tooltip>
-            </div>
+      <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
+        <div className='sticky top-0 z-10 mb-4 flex items-center justify-between'>
+          <div className='flex items-center gap-2'>
+            <PageHeader />
           </div>
-
-          <AddSourceDialog open={addOpen} onOpenChange={setAddOpen} />
-
-          {sources.length === 0 ? (
-            <div className='rounded-lg border bg-white p-8 text-center text-sm text-gray-500'>No sources yet.</div>
-          ) : (
-            <ul className='flex flex-col rounded-lg border bg-white'>
-              {sources.map(s => (
-                <SourceRow key={s.id} source={s} />
-              ))}
-            </ul>
-          )}
+          <div className='stuck-on-scroll rounded-full'>
+            <Tooltip content='Add source'>
+              <button
+                type='button'
+                onClick={() => setAddOpen(true)}
+                className='btn-md btn-ghost rounded-full'
+                aria-label='Add source'
+              >
+                <Plus />
+              </button>
+            </Tooltip>
+          </div>
         </div>
+
+        <AddSourceDialog open={addOpen} onOpenChange={setAddOpen} />
+
+        {sources.length === 0 ? (
+          <div className='rounded-lg border bg-white p-8 text-center text-sm text-gray-500'>No sources yet.</div>
+        ) : (
+          <ul className='flex flex-col rounded-lg border bg-white'>
+            {sources.map(s => (
+              <SourceRow key={s.id} source={s} />
+            ))}
+          </ul>
+        )}
       </div>
     </>
   );

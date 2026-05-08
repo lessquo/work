@@ -1,9 +1,13 @@
+import { PanelHost } from '@/components/PanelHost';
 import { Outlet } from 'react-router';
 
 export function RootLayout() {
   return (
     <div className='flex h-dvh flex-col'>
-      <Outlet />
+      <div className='flex flex-1 overflow-y-scroll'>
+        <Outlet />
+        <PanelHost />
+      </div>
     </div>
   );
 }

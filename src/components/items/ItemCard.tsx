@@ -9,7 +9,7 @@ export type ItemCardProps = {
   item: ItemWithSessions;
   selected?: boolean;
   matches?: ReadonlyArray<FuseResultMatch>;
-  onSelect?: (id: number, modifiers: { shiftKey: boolean; metaKey: boolean }) => void;
+  onSelect?: (id: number) => void;
   onOpenSession?: (sessionId: number) => void;
 };
 

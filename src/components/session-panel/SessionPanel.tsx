@@ -29,20 +29,17 @@ export function SessionPanel({
   onDelete,
   tab,
   setTab,
-  descriptionMode,
-  setDescriptionMode,
 }: {
   sessionId: number;
   onClose: () => void;
   onDelete?: () => void;
   tab: SessionPanelTab;
   setTab: (t: SessionPanelTab) => void;
-  descriptionMode: DescriptionMode;
-  setDescriptionMode: (m: DescriptionMode) => void;
 }) {
   const qc = useQueryClient();
   const confirm = useConfirm();
   const toast = useToast();
+  const [descriptionMode, setDescriptionMode] = useState<DescriptionMode>('preview');
 
   async function copyClonePath() {
     if (!session?.clone_path) return;

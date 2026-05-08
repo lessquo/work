@@ -3,12 +3,11 @@ import { parseGithubPrRaw, type Item } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { GitBranch } from 'lucide-react';
 
-export function GithubPrPanel({ item, isFlowMode }: { item: Item; isFlowMode: boolean }) {
+export function GithubPrPanel({ item }: { item: Item }) {
   const pr = parseGithubPrRaw(item.raw);
   return (
     <ItemPanelLayout
       item={item}
-      isFlowMode={isFlowMode}
       headerKey={`#${item.key}`}
       body={
         <FieldList>

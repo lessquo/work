@@ -13,13 +13,13 @@ import {
   type SessionStatus,
 } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { useNumberParam } from '@/lib/router';
+import { usePanel, usePanelLink, type Panel } from '@/lib/panel';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Sparkles, SquarePlus, Trash2, X } from 'lucide-react';
-import { parseAsInteger, useQueryState } from 'nuqs';
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import { useEffect, useMemo, useRef } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 type ItemGroup = { item: Item; sessions: FlowSessionChild[] };
 type TypeColumn = { type: ItemType; items: ItemGroup[]; orphanSessions: FlowSessionChild[] };
@@ -27,24 +27,25 @@ type TypeColumn = { type: ItemType; items: ItemGroup[]; orphanSessions: FlowSess
 const COLUMN_ORDER: ItemType[] = ['plan', 'sentry_issue', 'jira_issue', 'github_pr'];
 
 export function FlowCard({ flow }: { flow: FlowWithChildren }) {
-  const flowId = useNumberParam('flowId');
   const location = useLocation();
-  const navigate = useNavigate();
-  const wid = flow.id;
-  const [openItemId] = useQueryState('item', parseAsInteger);
-  const [openSessionId] = useQueryState('session', parseAsInteger);
+  const buildLink = usePanelLink();
+  const flowId = flow.id;
+  const [panel, setPanel] = usePanel();
+  const [, setSessionTab] = useQueryState(
+    'sessionTab',
+    parseAsStringLiteral(['setup', 'logs', 'diff', 'pr', 'plan'] as const),
+  );
+  const openItemId = panel?.kind === 'item' ? panel.id : null;
+  const openSessionId = panel?.kind === 'session' ? panel.id : null;
   const confirm = useConfirm();
   const toast = useToast();
   const qc = useQueryClient();
 
   const deleteMutation = useMutation({
-    mutationFn: () => api.deleteFlow(wid),
+    mutationFn: () => api.deleteFlow(flowId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
-      if (flowId === wid) {
-        navigate({ pathname: `/flows`, search: location.search });
-      }
       toast.add({ title: 'Flow deleted', type: 'success' });
     },
     onError: e => {
@@ -68,7 +69,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   }
 
   const autoNameMutation = useMutation({
-    mutationFn: () => api.autoNameFlow(wid),
+    mutationFn: () => api.autoNameFlow(flowId),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flows'] });
     },
@@ -92,14 +93,11 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   }, [flow.name, hasSucceededSession, autoNameMutation]);
 
   const addSessionMutation = useMutation({
-    mutationFn: () => api.createDraftSession({ flowId: wid }),
+    mutationFn: () => api.createDraftSession({ flowId }),
     onSuccess: sess => {
       qc.invalidateQueries({ queryKey: ['flows'] });
-      const params = new URLSearchParams(location.search);
-      params.set('session', String(sess.id));
-      params.delete('item');
-      params.set('sessionTab', 'setup');
-      navigate({ pathname: `/flows/${wid}`, search: params.toString() });
+      void setPanel({ kind: 'session', id: sess.id });
+      void setSessionTab('setup');
     },
     onError: e => {
       toast.add({
@@ -113,17 +111,14 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   const addPlanMutation = useMutation({
     mutationFn: async (sessionIds: number[]) => {
       const item = await api.createPlan();
-      await api.setItemFlow(item.id, wid);
+      await api.setItemFlow(item.id, flowId);
       await Promise.all(sessionIds.map(id => api.updateDraftSession(id, { itemId: item.id })));
       return item;
     },
     onSuccess: item => {
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
-      const params = new URLSearchParams(location.search);
-      params.set('item', String(item.id));
-      params.delete('session');
-      navigate({ pathname: `/flows/${wid}`, search: params.toString() });
+      void setPanel({ kind: 'item', id: item.id });
     },
     onError: e => {
       toast.add({
@@ -161,13 +156,8 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     detachMutation.mutate(item.id);
   }
 
-  function chipHref(kind: 'item' | 'session', id: number): string {
-    const params = new URLSearchParams(location.search);
-    params.delete('item');
-    params.delete('session');
-    params.set(kind, String(id));
-    const search = params.toString();
-    return `/flows/${wid}${search ? `?${search}` : ''}`;
+  function chipHref(panel: Panel): string {
+    return buildLink(location.pathname, { panel });
   }
 
   const typeColumns = useMemo<TypeColumn[]>(() => {
@@ -225,7 +215,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
           <span className='shrink-0 text-xs text-gray-500'>{timeAgo(flow.created_at)}</span>
         </div>
         <div className='flex shrink-0 items-center gap-2 opacity-0 transition-opacity group-hover/flowcard:opacity-100 focus-within:opacity-100'>
-          <AttachItemButton flowId={wid} />
+          <AttachItemButton flowId={flowId} />
           <button
             type='button'
             onClick={() => addSessionMutation.mutate()}
@@ -268,7 +258,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                   <div key={`item-${item.id}`} className='flex flex-col gap-1.5'>
                     <ItemChip
                       item={item}
-                      to={chipHref('item', item.id)}
+                      to={chipHref({ kind: 'item', id: item.id })}
                       selected={openItemId === item.id}
                       onDetach={() => handleDetach(item)}
                     />
@@ -278,7 +268,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                           <SessionChip
                             key={`s-${s.id}`}
                             session={s}
-                            to={chipHref('session', s.id)}
+                            to={chipHref({ kind: 'session', id: s.id })}
                             selected={openSessionId === s.id}
                           />
                         ))}
@@ -305,7 +295,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
                         <SessionChip
                           key={`s-${s.id}`}
                           session={s}
-                          to={chipHref('session', s.id)}
+                          to={chipHref({ kind: 'session', id: s.id })}
                           selected={openSessionId === s.id}
                         />
                       ))}

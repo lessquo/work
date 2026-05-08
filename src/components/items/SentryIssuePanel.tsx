@@ -2,14 +2,13 @@ import { Field, FieldList, ItemPanelLayout } from '@/components/items/ItemPanelL
 import { parseSentryRaw, type Item } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 
-export function SentryIssuePanel({ item, isFlowMode }: { item: Item; isFlowMode: boolean }) {
+export function SentryIssuePanel({ item }: { item: Item }) {
   const s = parseSentryRaw(item.raw);
   const events = toInt(s.count);
   const users = toInt(s.userCount);
   return (
     <ItemPanelLayout
       item={item}
-      isFlowMode={isFlowMode}
       headerKey={item.key}
       body={
         <FieldList>

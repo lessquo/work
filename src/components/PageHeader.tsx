@@ -1,5 +1,6 @@
 import { Tooltip } from '@/components/ui/Tooltip';
 import { cn } from '@/lib/cn';
+import { usePanelLink } from '@/lib/panel';
 import { Menu } from '@base-ui/react/menu';
 import { Box, Check, Database, Settings, Terminal, Workflow } from 'lucide-react';
 import { Link, useMatch } from 'react-router';
@@ -14,6 +15,7 @@ const PAGES = [
 
 export function PageHeader() {
   const match = useMatch('/:tab/*');
+  const buildLink = usePanelLink();
   const activePath = match ? `/${match.params.tab}` : '';
   const current = PAGES.find(p => p.path === activePath) ?? null;
 
@@ -36,7 +38,7 @@ export function PageHeader() {
         <Menu.Positioner sideOffset={4}>
           <Menu.Popup className='popup min-w-41'>
             {PAGES.map(p => (
-              <Menu.Item key={p.path} render={<Link to={p.path} />} className='menu-item justify-between'>
+              <Menu.Item key={p.path} render={<Link to={buildLink(p.path)} />} className='menu-item justify-between'>
                 <span className='flex min-w-0 items-center gap-2'>
                   <p.icon />
                   <span className='truncate'>{p.label}</span>

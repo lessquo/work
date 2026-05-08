@@ -2,12 +2,11 @@ import { Field, FieldList, ItemPanelLayout } from '@/components/items/ItemPanelL
 import { parseJiraRaw, type Item } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 
-export function JiraIssuePanel({ item, isFlowMode }: { item: Item; isFlowMode: boolean }) {
+export function JiraIssuePanel({ item }: { item: Item }) {
   const j = parseJiraRaw(item.raw);
   return (
     <ItemPanelLayout
       item={item}
-      isFlowMode={isFlowMode}
       headerKey={item.key}
       body={
         <FieldList>

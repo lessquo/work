@@ -4,37 +4,27 @@ import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api, type Item } from '@/lib/api';
+import { usePanel } from '@/lib/panel';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Copy, RefreshCw } from 'lucide-react';
-import { parseAsArrayOf, parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs';
-import { useNavigate } from 'react-router';
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
 
-export function ItemPanelLayout({
-  item,
-  isFlowMode,
-  headerKey,
-  body,
-}: {
-  item: Item;
-  isFlowMode: boolean;
-  headerKey?: string;
-  body: React.ReactNode;
-}) {
-  const [, setSelectedIds] = useQueryState('selected', parseAsArrayOf(parseAsInteger).withDefault([]));
+export function ItemPanelLayout({ item, headerKey, body }: { item: Item; headerKey?: string; body: React.ReactNode }) {
   const [filter] = useQueryState('filter', parseAsStringLiteral(['open', 'resolved'] as const).withDefault('open'));
+  const [, setPanel] = usePanel();
+  const [, setSessionTab] = useQueryState(
+    'sessionTab',
+    parseAsStringLiteral(['setup', 'logs', 'diff', 'pr', 'plan'] as const),
+  );
   const qc = useQueryClient();
   const confirm = useConfirm();
   const toast = useToast();
-  const navigate = useNavigate();
 
   function invalidateAfterMutation() {
-    setSelectedIds(null);
     qc.invalidateQueries({ queryKey: ['items', item.source_id] });
     qc.invalidateQueries({ queryKey: ['itemCounts', item.source_id] });
-    if (isFlowMode) {
-      qc.invalidateQueries({ queryKey: ['flows'] });
-      qc.invalidateQueries({ queryKey: ['item', item.id] });
-    }
+    qc.invalidateQueries({ queryKey: ['flows'] });
+    qc.invalidateQueries({ queryKey: ['item', item.id] });
   }
 
   const createSessionMutation = useMutation({
@@ -42,19 +32,8 @@ export function ItemPanelLayout({
     onSuccess: sess => {
       toast.add({ title: 'Created draft session.' });
       invalidateAfterMutation();
-      qc.invalidateQueries({ queryKey: ['flows'] });
-      if (isFlowMode) {
-        const params = new URLSearchParams(window.location.search);
-        params.set('session', String(sess.id));
-        params.delete('item');
-        params.set('sessionTab', 'setup');
-        navigate({
-          pathname: sess.flow_id ? `/flows/${sess.flow_id}` : window.location.pathname,
-          search: params.toString(),
-        });
-      } else {
-        navigate(`/sessions/${sess.id}?sessionTab=setup`);
-      }
+      void setPanel({ kind: 'session', id: sess.id });
+      void setSessionTab('setup');
     },
   });
 

@@ -1,4 +1,5 @@
 import { PageHeader } from '@/components/PageHeader';
+import { AddSourceDialog } from '@/components/sources/AddSourceDialog';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -6,10 +7,12 @@ import { api, type Source } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { Link } from 'react-router';
 
 export function SourcesPage() {
   const { data: sources } = useSuspenseQuery({ queryKey: ['sources'], queryFn: api.listSources });
+  const [addOpen, setAddOpen] = useState(false);
 
   return (
     <>
@@ -23,12 +26,19 @@ export function SourcesPage() {
             </div>
             <div className='stuck-on-scroll rounded-full'>
               <Tooltip content='Add source'>
-                <Link to='/sources/add' className='btn-md btn-ghost rounded-full' aria-label='Add source'>
+                <button
+                  type='button'
+                  onClick={() => setAddOpen(true)}
+                  className='btn-md btn-ghost rounded-full'
+                  aria-label='Add source'
+                >
                   <Plus />
-                </Link>
+                </button>
               </Tooltip>
             </div>
           </div>
+
+          <AddSourceDialog open={addOpen} onOpenChange={setAddOpen} />
 
           {sources.length === 0 ? (
             <div className='rounded-lg border bg-white p-8 text-center text-sm text-gray-500'>No sources yet.</div>

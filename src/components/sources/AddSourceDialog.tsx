@@ -1,7 +1,9 @@
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { api, type ItemType } from '@/lib/api';
+import { Dialog } from '@base-ui/react/dialog';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { X } from 'lucide-react';
 import { Controller, useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router';
 
@@ -16,7 +18,20 @@ const TYPE_OPTIONS: Array<{ value: ItemType; label: string; hint: string }> = [
   { value: 'jira_issue', label: 'Jira project', hint: 'Jira project key' },
 ];
 
-export function AddSourcePage() {
+export function AddSourceDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (next: boolean) => void }) {
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className='fixed inset-0 bg-black/30' />
+        <Dialog.Popup className='fixed top-1/2 left-1/2 flex w-full max-w-md -translate-x-1/2 -translate-y-1/2 flex-col rounded-lg border bg-white shadow-xl outline-none'>
+          {open && <Body onClose={() => onOpenChange(false)} />}
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
+  );
+}
+
+function Body({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -41,6 +56,7 @@ export function AddSourcePage() {
     try {
       const s = await api.createSource(trimmed);
       qc.invalidateQueries({ queryKey: ['sources'] });
+      onClose();
       navigate(`/items?source=${s.id}`);
     } catch (e) {
       setError('root', { message: e instanceof Error ? e.message : String(e) });
@@ -48,60 +64,66 @@ export function AddSourcePage() {
   });
 
   return (
-    <>
-      <title>Work Add source</title>
-
-      <div className='mx-auto max-w-xl p-6'>
-        <h1 className='mb-1 text-lg font-semibold'>Add source</h1>
-        <p className='mb-5 text-sm text-gray-500'>Pick a type and choose from your existing projects/repos.</p>
-        <form onSubmit={submit} className='flex flex-col gap-5 rounded-lg border bg-white p-5'>
-          <Field label='Type' required>
-            <Controller
-              name='type'
-              control={control}
-              render={({ field }) => (
-                <Select<ItemType>
-                  value={field.value}
-                  onChange={field.onChange}
-                  options={TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
-                  ariaLabel='Source type'
-                  className={selectCls}
-                />
-              )}
-            />
-          </Field>
-
-          <Field label={option.label} hint={option.hint} required>
-            <Controller
-              name='ext_id'
-              control={control}
-              rules={{ validate: v => v.trim().length > 0 }}
-              render={({ field }) =>
-                type === 'sentry_issue' ? (
-                  <SentryProjectField value={field.value} onChange={field.onChange} />
-                ) : type === 'github_pr' ? (
-                  <GithubRepoField value={field.value} onChange={field.onChange} />
-                ) : (
-                  <JiraProjectField value={field.value} onChange={field.onChange} />
-                )
-              }
-            />
-          </Field>
-
-          {errors.root && (
-            <div className='rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700'>
-              {errors.root.message}
-            </div>
-          )}
-
-          <div className='flex items-center justify-end gap-2 pt-1'>
-            <button type='submit' disabled={!canSubmit} className='btn-md btn-neutral'>
-              {isSubmitting ? 'Creating…' : 'Create source'}
-            </button>
-          </div>
-        </form>
+    <form onSubmit={submit}>
+      <div className='flex items-center justify-between border-b px-4 py-3'>
+        <Dialog.Title className='text-base font-semibold'>Add source</Dialog.Title>
+        <button type='button' onClick={onClose} className='btn-md btn-ghost' aria-label='close'>
+          <X />
+        </button>
       </div>
-    </>
+
+      <div className='flex flex-col gap-5 px-4 py-4'>
+        <p className='text-sm text-gray-500'>Pick a type and choose from your existing projects/repos.</p>
+
+        <Field label='Type' required>
+          <Controller
+            name='type'
+            control={control}
+            render={({ field }) => (
+              <Select<ItemType>
+                value={field.value}
+                onChange={field.onChange}
+                options={TYPE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+                ariaLabel='Source type'
+                className={selectCls}
+              />
+            )}
+          />
+        </Field>
+
+        <Field label={option.label} hint={option.hint} required>
+          <Controller
+            name='ext_id'
+            control={control}
+            rules={{ validate: v => v.trim().length > 0 }}
+            render={({ field }) =>
+              type === 'sentry_issue' ? (
+                <SentryProjectField value={field.value} onChange={field.onChange} />
+              ) : type === 'github_pr' ? (
+                <GithubRepoField value={field.value} onChange={field.onChange} />
+              ) : (
+                <JiraProjectField value={field.value} onChange={field.onChange} />
+              )
+            }
+          />
+        </Field>
+
+        {errors.root && (
+          <div className='rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700'>
+            {errors.root.message}
+          </div>
+        )}
+      </div>
+
+      <div className='flex items-center justify-end gap-2 border-t px-4 py-3'>
+        <button type='button' onClick={onClose} className='btn-md btn-ghost'>
+          Cancel
+        </button>
+        <button type='submit' disabled={!canSubmit} className='btn-md btn-primary'>
+          {isSubmitting ? 'Creating…' : 'Create source'}
+        </button>
+      </div>
+    </form>
   );
 }
 

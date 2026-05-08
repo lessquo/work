@@ -1,4 +1,3 @@
-import { AddSourcePage } from '@/routes/AddSourcePage';
 import { FlowsPage } from '@/routes/FlowsPage';
 import { FlowsPageSlot } from '@/routes/FlowsPageSlot';
 import { ItemsPage } from '@/routes/ItemsPage';
@@ -16,7 +15,6 @@ export function App() {
       <Route element={<RootLayout />}>
         <Route index element={<Navigate to='/sources' replace />} />
         <Route path='/sources' element={<SourcesPage />} />
-        <Route path='/sources/add' element={<AddSourcePage />} />
         <Route path='/items' element={<ItemsPage />}>
           <Route path=':itemId' element={<ItemsPageSlot />} />
         </Route>

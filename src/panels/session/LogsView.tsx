@@ -1,7 +1,7 @@
 import { Markdown } from '@/components/Markdown';
-import { DiffLines, type DiffLine } from '@/components/session-panel/DiffLines';
 import { PillTabsList, PillTabsTab, TabsRoot } from '@/components/ui/Tabs';
 import { cn } from '@/lib/cn';
+import { DiffLines, type DiffLine } from '@/panels/session/DiffLines';
 import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import { Circle, CircleCheck, CircleDot, Loader2 } from 'lucide-react';
 import { Fragment, useState, type ReactNode, type Ref, type UIEvent } from 'react';

@@ -1,4 +1,4 @@
-import { PanelHost } from '@/components/PanelHost';
+import { PanelHost } from '@/panels/PanelHost';
 import { Outlet } from 'react-router';
 
 export function RootLayout() {

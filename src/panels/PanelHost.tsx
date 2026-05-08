@@ -1,6 +1,6 @@
-import { ItemPanel } from '@/components/items/ItemPanel';
-import { SessionPanel } from '@/components/session-panel/SessionPanel';
 import { usePanel } from '@/lib/panel';
+import { ItemPanel } from '@/panels/item/ItemPanel';
+import { SessionPanel } from '@/panels/session/SessionPanel';
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
 
 export function PanelHost() {

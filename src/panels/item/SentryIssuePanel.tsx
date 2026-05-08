@@ -1,6 +1,6 @@
-import { Field, FieldList, ItemPanelLayout } from '@/components/items/ItemPanelLayout';
 import { parseSentryRaw, type Item } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
+import { Field, FieldList, ItemPanelLayout } from '@/panels/item/ItemPanelLayout';
 
 export function SentryIssuePanel({ item }: { item: Item }) {
   const s = parseSentryRaw(item.raw);

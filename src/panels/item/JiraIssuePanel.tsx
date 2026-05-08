@@ -1,6 +1,6 @@
-import { Field, FieldList, ItemPanelLayout } from '@/components/items/ItemPanelLayout';
 import { parseJiraRaw, type Item } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
+import { Field, FieldList, ItemPanelLayout } from '@/panels/item/ItemPanelLayout';
 
 export function JiraIssuePanel({ item }: { item: Item }) {
   const j = parseJiraRaw(item.raw);

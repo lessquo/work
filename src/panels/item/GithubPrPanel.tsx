@@ -1,6 +1,6 @@
-import { Field, FieldList, ItemPanelLayout } from '@/components/items/ItemPanelLayout';
 import { parseGithubPrRaw, type Item } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
+import { Field, FieldList, ItemPanelLayout } from '@/panels/item/ItemPanelLayout';
 import { GitBranch } from 'lucide-react';
 
 export function GithubPrPanel({ item }: { item: Item }) {

@@ -1,8 +1,8 @@
-import { GithubPrPanel } from '@/components/items/GithubPrPanel';
-import { JiraIssuePanel } from '@/components/items/JiraIssuePanel';
-import { PlanPanel } from '@/components/items/PlanPanel';
-import { SentryIssuePanel } from '@/components/items/SentryIssuePanel';
 import { api } from '@/lib/api';
+import { GithubPrPanel } from '@/panels/item/GithubPrPanel';
+import { JiraIssuePanel } from '@/panels/item/JiraIssuePanel';
+import { PlanPanel } from '@/panels/item/PlanPanel';
+import { SentryIssuePanel } from '@/panels/item/SentryIssuePanel';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 export function ItemPanel({ itemId }: { itemId: number }) {

@@ -4,8 +4,8 @@ import {
   type SyncProgressState,
 } from '@/components/items/SyncProgressDialog';
 import { SyncSetupDialog } from '@/components/items/SyncSetupDialog';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { api } from '@/lib/api';
-import { cn } from '@/lib/cn';
 import { useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
 import { parseAsBoolean, useQueryState } from 'nuqs';
@@ -45,15 +45,17 @@ export function SyncItemsButton() {
 
   return (
     <>
-      <button
-        type='button'
-        onClick={() => setSetupOpen(true)}
-        disabled={sources.length === 0 || state?.status === 'running'}
-        className='btn-md btn-neutral'
-      >
-        <RefreshCw className={cn('size-3.5', state?.status === 'running' && 'animate-spin')} />
-        Sync items
-      </button>
+      <Tooltip content='Sync items'>
+        <button
+          type='button'
+          onClick={() => setSetupOpen(true)}
+          disabled={sources.length === 0 || state?.status === 'running'}
+          className='btn-md btn-ghost rounded-full'
+          aria-label='Sync items'
+        >
+          <RefreshCw className={state?.status === 'running' ? 'animate-spin' : undefined} />
+        </button>
+      </Tooltip>
 
       <SyncSetupDialog
         open={setupOpen}

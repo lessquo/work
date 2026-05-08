@@ -2,10 +2,11 @@ import { FlowCard } from '@/components/flows/FlowCard';
 import { HomeLink } from '@/components/HomeLink';
 import { PageSwitcher } from '@/components/PageSwitcher';
 import { useToast } from '@/components/ui/Toast.lib';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { api } from '@/lib/api';
 import { useNumberParam } from '@/lib/router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { Outlet, useNavigate } from 'react-router';
 
@@ -70,33 +71,42 @@ export function FlowsPage() {
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='flex min-w-0 flex-1 flex-col gap-4 overflow-y-scroll py-6'>
           <div className='sticky top-0 z-10 flex items-center justify-between px-4'>
-            <h1 className='stuck-on-scroll flex items-center gap-1 p-2 text-lg font-semibold'>
+            <h1 className='stuck-on-scroll flex items-center gap-1 rounded-xl text-lg font-semibold'>
               <HomeLink />
               <PageSwitcher />
             </h1>
-            <div className='stuck-on-scroll flex items-center gap-2 p-2'>
-              <button
-                onClick={() => syncItemsMutation.mutate(syncableItemIds)}
-                disabled={syncableItemIds.length === 0 || syncItemsMutation.isPending}
-                className='btn-md btn-neutral flex items-center gap-1.5'
-              >
-                <RefreshCw className={syncItemsMutation.isPending ? 'animate-spin' : undefined} />
-                {syncItemsMutation.isPending ? 'Syncing…' : 'Sync items'}
-              </button>
-              <button
-                onClick={async () => {
-                  const flow = await api.createFlow();
-                  await queryClient.invalidateQueries({ queryKey: ['flows'] });
-                  const params = new URLSearchParams(window.location.search);
-                  navigate({
-                    pathname: `/flows/${flow.id}`,
-                    search: params.toString(),
-                  });
-                }}
-                className='btn-md btn-neutral'
-              >
-                New flow
-              </button>
+            <div className='flex items-center gap-2'>
+              <div className='stuck-on-scroll rounded-full'>
+                <Tooltip content={syncItemsMutation.isPending ? 'Syncing items' : 'Sync items'}>
+                  <button
+                    onClick={() => syncItemsMutation.mutate(syncableItemIds)}
+                    disabled={syncableItemIds.length === 0 || syncItemsMutation.isPending}
+                    className='btn-md btn-ghost rounded-full'
+                    aria-label={syncItemsMutation.isPending ? 'Syncing items' : 'Sync items'}
+                  >
+                    <RefreshCw className={syncItemsMutation.isPending ? 'animate-spin' : undefined} />
+                  </button>
+                </Tooltip>
+              </div>
+              <div className='stuck-on-scroll rounded-full'>
+                <Tooltip content='New flow'>
+                  <button
+                    onClick={async () => {
+                      const flow = await api.createFlow();
+                      await queryClient.invalidateQueries({ queryKey: ['flows'] });
+                      const params = new URLSearchParams(window.location.search);
+                      navigate({
+                        pathname: `/flows/${flow.id}`,
+                        search: params.toString(),
+                      });
+                    }}
+                    className='btn-md btn-ghost rounded-full'
+                    aria-label='New flow'
+                  >
+                    <Plus />
+                  </button>
+                </Tooltip>
+              </div>
             </div>
           </div>
 

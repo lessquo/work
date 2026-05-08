@@ -38,7 +38,7 @@ export function SessionsPage() {
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='sticky top-0 z-10 mb-4 flex flex-wrap items-center gap-3'>
-            <h1 className='stuck-on-scroll flex items-center gap-1 p-2 text-lg font-semibold'>
+            <h1 className='stuck-on-scroll flex items-center gap-1 rounded-xl text-lg font-semibold'>
               <HomeLink />
               <PageSwitcher />
             </h1>

@@ -1,4 +1,4 @@
-import { PageSwitcher } from '@/components/PageSwitcher';
+import { PageHeader } from '@/components/PageHeader';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
 import { api, type SecretKey, type Settings } from '@/lib/api';
@@ -29,7 +29,7 @@ export function SettingsPage() {
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='sticky top-0 z-10 mb-4 flex items-center'>
             <div className='flex items-center gap-2'>
-              <PageSwitcher />
+              <PageHeader />
             </div>
           </div>
           <div className='mx-auto max-w-4xl'>

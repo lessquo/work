@@ -1,6 +1,6 @@
 import { ItemCard } from '@/components/items/ItemCard';
 import { SyncItemsButton } from '@/components/items/SyncItemsButton';
-import { PageSwitcher } from '@/components/PageSwitcher';
+import { PageHeader } from '@/components/PageHeader';
 import { Input } from '@/components/ui/Input';
 import { api } from '@/lib/api';
 import { useFuzzySearch } from '@/lib/fuse';
@@ -106,7 +106,7 @@ export function ItemsPage() {
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
           <div className='sticky top-0 z-10 mb-4 flex items-center justify-between'>
             <div className='flex items-center gap-2'>
-              <PageSwitcher />
+              <PageHeader />
             </div>
             <div className='stuck-on-scroll rounded-full'>
               <SyncItemsButton />

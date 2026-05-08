@@ -12,7 +12,7 @@ const PAGES = [
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
-export function PageSwitcher() {
+export function PageHeader() {
   const match = useMatch('/:tab/*');
   const activePath = match ? `/${match.params.tab}` : '';
   const current = PAGES.find(p => p.path === activePath) ?? null;

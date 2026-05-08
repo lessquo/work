@@ -1,5 +1,5 @@
 import { FlowCard } from '@/components/flows/FlowCard';
-import { PageSwitcher } from '@/components/PageSwitcher';
+import { PageHeader } from '@/components/PageHeader';
 import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api } from '@/lib/api';
@@ -71,7 +71,7 @@ export function FlowsPage() {
         <div className='flex min-w-0 flex-1 flex-col gap-4 overflow-y-scroll py-6'>
           <div className='sticky top-0 z-10 flex items-center justify-between px-4'>
             <div className='flex items-center gap-2'>
-              <PageSwitcher />
+              <PageHeader />
             </div>
             <div className='flex items-center gap-2'>
               <div className='stuck-on-scroll rounded-full'>

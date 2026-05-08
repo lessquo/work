@@ -28,10 +28,12 @@ export function SettingsPage() {
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
-          <h1 className='mb-4 flex items-center gap-1 text-lg font-semibold'>
-            <HomeLink />
-            <PageSwitcher />
-          </h1>
+          <div className='sticky top-0 z-10 mb-4 flex items-center'>
+            <h1 className='stuck-on-scroll flex items-center gap-1 p-2 text-lg font-semibold'>
+              <HomeLink />
+              <PageSwitcher />
+            </h1>
+          </div>
           <div className='mx-auto max-w-4xl'>
             <SetupSection
               title='Sentry'

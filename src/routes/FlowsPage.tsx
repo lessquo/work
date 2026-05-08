@@ -69,12 +69,12 @@ export function FlowsPage() {
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='flex min-w-0 flex-1 flex-col gap-4 overflow-y-scroll py-6'>
-          <div className='flex items-center justify-between px-4'>
-            <h1 className='flex items-center gap-1 text-lg font-semibold'>
+          <div className='sticky top-0 z-10 flex items-center justify-between px-4'>
+            <h1 className='stuck-on-scroll flex items-center gap-1 p-2 text-lg font-semibold'>
               <HomeLink />
               <PageSwitcher />
             </h1>
-            <div className='flex items-center gap-2'>
+            <div className='stuck-on-scroll flex items-center gap-2 p-2'>
               <button
                 onClick={() => syncItemsMutation.mutate(syncableItemIds)}
                 disabled={syncableItemIds.length === 0 || syncItemsMutation.isPending}

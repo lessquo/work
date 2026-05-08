@@ -112,4 +112,21 @@
   .menu-separator {
     @apply my-2 h-px bg-gray-200;
   }
+  /* Scroll */
+  .stuck-on-scroll {
+    animation: stuck-on-scroll linear both;
+    animation-timeline: scroll(nearest);
+    animation-range: 20px 40px;
+  }
+}
+
+@keyframes stuck-on-scroll {
+  to {
+    background-color: rgb(255 255 255 / 0.9);
+    backdrop-filter: blur(2px);
+    border-radius: 0.75rem;
+    box-shadow:
+      0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
 }

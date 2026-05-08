@@ -105,12 +105,14 @@ export function ItemsPage() {
 
       <div className='flex flex-1 overflow-y-scroll'>
         <div className='min-w-0 flex-1 overflow-y-scroll px-4 py-6'>
-          <div className='mb-4 flex items-center justify-between'>
-            <h1 className='flex items-center gap-1 text-lg font-semibold'>
+          <div className='sticky top-0 z-10 mb-4 flex items-center justify-between'>
+            <h1 className='stuck-on-scroll flex items-center gap-1 p-2 text-lg font-semibold'>
               <HomeLink />
               <PageSwitcher />
             </h1>
-            <SyncItemsButton />
+            <div className='stuck-on-scroll flex items-center gap-2 p-2'>
+              <SyncItemsButton />
+            </div>
           </div>
 
           <div className='mb-3'>

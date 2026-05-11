@@ -12,6 +12,7 @@ import { useDraftEditor } from '@/lib/useDraftEditor';
 import { DiffView } from '@/panels/session/DiffView';
 import { InsertJiraLinkButton } from '@/panels/session/InsertJiraLinkButton';
 import { InsertPlanButton } from '@/panels/session/InsertPlanButton';
+import { InsertSentryLinkButton } from '@/panels/session/InsertSentryLinkButton';
 import { LogsView } from '@/panels/session/LogsView';
 import { PromptPicker } from '@/panels/session/PromptPicker';
 import { PromptTemplateEditor } from '@/panels/session/PromptTemplateEditor';
@@ -581,6 +582,11 @@ function UserContextSection({
                 }}
               />
               <InsertJiraLinkButton
+                onInsert={url => {
+                  setDraft(draft.trim().length === 0 ? url : `${draft.trim()}\n\n${url}`);
+                }}
+              />
+              <InsertSentryLinkButton
                 onInsert={url => {
                   setDraft(draft.trim().length === 0 ? url : `${draft.trim()}\n\n${url}`);
                 }}

@@ -727,8 +727,8 @@ function FollowupComposer({
           onChange={e => setDraft(e.target.value)}
           onKeyDown={onKey}
           rows={2}
-          placeholder={active ? 'Working — wait for this turn to finish…' : 'Ask a follow-up · ⌘↵ to send'}
-          disabled={active || pending}
+          placeholder={active ? 'Prepare a follow-up — sends after this turn finishes' : 'Ask a follow-up · ⌘↵ to send'}
+          disabled={pending}
           className='max-h-60 min-h-0 flex-1 resize-none overflow-y-auto rounded-md border border-gray-300 bg-white px-2 py-1.5 text-sm text-gray-800 placeholder:text-gray-400 focus:border-indigo-400 focus:ring-1 focus:ring-indigo-300 focus:outline-none disabled:bg-gray-100 disabled:text-gray-500'
         />
         <Tooltip content='Continue this session with a follow-up turn'>

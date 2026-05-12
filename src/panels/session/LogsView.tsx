@@ -125,9 +125,10 @@ function Row({
 
 function ToolBody({ name, input }: { name: string; input: string }) {
   const edit = name === 'Edit' ? parseEditInput(input) : null;
+  const write = name === 'Write' ? parseWriteInput(input) : null;
   const todos = name === 'TodoWrite' ? parseTodosInput(input) : null;
   const { entries, formatted } = parseToolInput(input);
-  const gridEntries = edit ? edit.entries : todos ? todos.entries : entries;
+  const gridEntries = edit ? edit.entries : write ? write.entries : todos ? todos.entries : entries;
   return (
     <>
       {gridEntries ? (
@@ -145,6 +146,7 @@ function ToolBody({ name, input }: { name: string; input: string }) {
         <pre className='overflow-x-auto leading-relaxed whitespace-pre-wrap text-gray-700'>{formatted}</pre>
       )}
       {edit && <EditDiff oldStr={edit.oldStr} newStr={edit.newStr} />}
+      {write && <EditDiff oldStr='' newStr={write.content} />}
       {todos && <TodoList todos={todos.todos} />}
     </>
   );
@@ -189,6 +191,21 @@ function TodoList({ todos }: { todos: Todo[] }) {
       })}
     </ul>
   );
+}
+
+function parseWriteInput(input: string): { entries: [string, string][]; content: string } | null {
+  const trimmed = input.trim();
+  if (!trimmed.startsWith('{')) return null;
+  try {
+    const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+    if (typeof parsed.content !== 'string') return null;
+    const entries: [string, string][] = Object.entries(parsed)
+      .filter(([k]) => k !== 'content')
+      .map(([k, v]) => [k, typeof v === 'string' ? v : JSON.stringify(v, null, 2)]);
+    return { entries, content: parsed.content };
+  } catch {
+    return null;
+  }
 }
 
 function parseEditInput(input: string): { entries: [string, string][]; oldStr: string; newStr: string } | null {

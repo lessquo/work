@@ -134,12 +134,26 @@ function ToolBody({ name, input }: { name: string; input: string }) {
       {gridEntries ? (
         gridEntries.length > 0 && (
           <div className='grid grid-cols-[max-content_1fr] gap-x-3 gap-y-1 leading-relaxed'>
-            {gridEntries.map(([k, v]) => (
-              <Fragment key={k}>
-                <div className='text-gray-500'>{k}</div>
-                <pre className='overflow-x-auto whitespace-pre-wrap text-gray-700'>{v}</pre>
-              </Fragment>
-            ))}
+            {gridEntries.map(([k, v]) => {
+              const isFileLink = k === 'file_path' && v.startsWith('/');
+              return (
+                <Fragment key={k}>
+                  {isFileLink ? (
+                    <a
+                      href={`vscode://file${v}`}
+                      className='col-span-2 overflow-x-auto whitespace-pre-wrap text-gray-700 hover:underline'
+                    >
+                      {v}
+                    </a>
+                  ) : (
+                    <>
+                      <div className='text-gray-500'>{k}</div>
+                      <pre className='overflow-x-auto whitespace-pre-wrap text-gray-700'>{v}</pre>
+                    </>
+                  )}
+                </Fragment>
+              );
+            })}
           </div>
         )
       ) : (

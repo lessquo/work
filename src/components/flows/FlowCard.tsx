@@ -339,7 +339,7 @@ function ItemChip({
       >
         <div className='flex items-center gap-1.5'>
           <img src={logo.src} alt={logo.alt} className='size-3.5 shrink-0' />
-          <span className='truncate pr-4 text-xs font-medium text-gray-800'>{title}</span>
+          <span className='truncate text-xs font-medium text-gray-800 group-hover:pr-4'>{title}</span>
         </div>
         <div className='mt-1 flex items-center gap-1 text-xs text-gray-500'>
           <StatusBadge item={item} size='sm' />

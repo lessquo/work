@@ -1,5 +1,6 @@
 import { db, type Flow, type ItemType } from '@server/db.js';
 import { generateOneShotText } from '@server/worker/name.js';
+import { deleteSessionFolder } from '@server/worker/runner.js';
 import { Hono } from 'hono';
 
 export const flows = new Hono();
@@ -78,10 +79,24 @@ flows.post('/:id/auto-name', async c => {
   }
 });
 
-flows.delete('/:id', c => {
+flows.delete('/:id', async c => {
   const id = Number(c.req.param('id'));
-  const res = db.prepare(`DELETE FROM flows WHERE id = ?`).run(id);
-  if (res.changes === 0) return c.json({ error: 'not found' }, 404);
+  const flow = db.prepare(`SELECT id FROM flows WHERE id = ?`).get(id) as { id: number } | undefined;
+  if (!flow) return c.json({ error: 'not found' }, 404);
+
+  const sessionRows = db.prepare(`SELECT id, status FROM sessions WHERE flow_id = ?`).all(id) as Array<{
+    id: number;
+    status: string;
+  }>;
+  if (sessionRows.some(s => s.status === 'queued' || s.status === 'running')) {
+    return c.json({ error: 'flow has active sessions; abort them first' }, 409);
+  }
+
+  await Promise.all(sessionRows.map(s => deleteSessionFolder(s.id).catch(() => false)));
+  const deleteSessionStmt = db.prepare(`DELETE FROM sessions WHERE id = ?`);
+  for (const s of sessionRows) deleteSessionStmt.run(s.id);
+  db.prepare(`DELETE FROM items WHERE flow_id = ? AND type = 'plan'`).run(id);
+  db.prepare(`DELETE FROM flows WHERE id = ?`).run(id);
   return c.json({ ok: true });
 });
 

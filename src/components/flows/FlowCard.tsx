@@ -46,6 +46,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['allItems'] });
+      qc.invalidateQueries({ queryKey: ['sessions'] });
       toast.add({ title: 'Flow deleted', type: 'success' });
     },
     onError: e => {
@@ -60,7 +61,7 @@ export function FlowCard({ flow }: { flow: FlowWithChildren }) {
   async function handleDelete() {
     const ok = await confirm({
       title: 'Delete flow?',
-      description: `Delete "${stripBold(flow.name) || `Flow #${flow.id}`}"? Attached items and sessions will be detached.`,
+      description: `Delete "${stripBold(flow.name) || `Flow #${flow.id}`}"? Sessions and plans in this flow will be deleted; other items will be detached.`,
       confirmText: 'Delete',
       destructive: true,
     });

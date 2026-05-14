@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/PageHeader';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
 import { Input } from '@/components/ui/Input';
+import { useToast } from '@/components/ui/Toast.lib';
 import { api, type SecretKey, type Settings } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query';
@@ -8,6 +9,7 @@ import { useState } from 'react';
 
 export function SettingsPage() {
   const qc = useQueryClient();
+  const toast = useToast();
   const { data: settings } = useSuspenseQuery({ queryKey: ['settings'], queryFn: api.getSettings });
   const { data: secrets } = useSuspenseQuery({ queryKey: ['secrets'], queryFn: api.getSecrets });
 
@@ -18,6 +20,14 @@ export function SettingsPage() {
     onSuccess: s => {
       qc.setQueryData(['settings'], s);
       setMaxParallel(s.max_parallel);
+      toast.add({ title: `Max parallel set to ${s.max_parallel}.`, type: 'success' });
+    },
+    onError: e => {
+      toast.add({
+        title: 'Failed to save parallelism',
+        description: e instanceof Error ? e.message : String(e),
+        type: 'error',
+      });
     },
   });
 
@@ -273,6 +283,7 @@ function IdentifierField({
   current: string;
 }) {
   const qc = useQueryClient();
+  const toast = useToast();
   const [value, setValue] = useState(current);
 
   const saveMutation = useMutation({
@@ -280,6 +291,7 @@ function IdentifierField({
     onSuccess: s => {
       qc.setQueryData(['settings'], s);
       setValue(s[settingKey]);
+      toast.add({ title: `${label} saved.`, type: 'success' });
     },
   });
 
@@ -329,6 +341,7 @@ function SecretField({
 }) {
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const toast = useToast();
   const [value, setValue] = useState('');
 
   const saveMutation = useMutation({
@@ -336,6 +349,7 @@ function SecretField({
     onSuccess: () => {
       setValue('');
       qc.invalidateQueries({ queryKey: ['secrets'] });
+      toast.add({ title: `${label} saved.`, type: 'success' });
     },
   });
 
@@ -343,6 +357,7 @@ function SecretField({
     mutationFn: () => api.clearSecret(secretKey),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['secrets'] });
+      toast.add({ title: `${label} cleared.`, type: 'success' });
     },
   });
 

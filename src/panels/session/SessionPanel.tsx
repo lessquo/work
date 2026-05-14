@@ -72,11 +72,17 @@ export function SessionPanel({
   const createPrMutation = useMutation({
     mutationFn: () => api.createGithubPr(sessionId),
     onSuccess: updated => {
+      const hadPr = !!session?.item_id;
+      const hadChanges = prHasChanges;
       qc.setQueryData(['session', sessionId], updated);
       qc.invalidateQueries({ queryKey: ['items'] });
       qc.invalidateQueries({ queryKey: ['itemCounts'] });
       qc.invalidateQueries({ queryKey: ['flows'] });
       qc.invalidateQueries({ queryKey: ['session-has-changes', sessionId] });
+      toast.add({
+        title: hadPr ? (hadChanges ? 'Pushed to PR.' : 'PR updated.') : 'PR created.',
+        type: 'success',
+      });
     },
   });
 
@@ -87,6 +93,7 @@ export function SessionPanel({
       qc.invalidateQueries({ queryKey: ['items'] });
       qc.invalidateQueries({ queryKey: ['itemCounts'] });
       qc.invalidateQueries({ queryKey: ['flows'] });
+      toast.add({ title: 'Jira issue created.', type: 'success' });
     },
   });
 
@@ -96,6 +103,7 @@ export function SessionPanel({
       qc.setQueryData(['session', sessionId], updated);
       qc.invalidateQueries({ queryKey: ['items'] });
       qc.invalidateQueries({ queryKey: ['flows'] });
+      toast.add({ title: 'Jira issue updated.', type: 'success' });
     },
   });
 
@@ -104,6 +112,7 @@ export function SessionPanel({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['session', sessionId] });
       qc.invalidateQueries({ queryKey: ['items'] });
+      toast.add({ title: 'Session aborted.', type: 'success' });
     },
   });
 

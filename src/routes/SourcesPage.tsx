@@ -2,6 +2,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { AddSourceDialog } from '@/components/sources/AddSourceDialog';
 import { TYPE_LOGO } from '@/components/typeLogo';
 import { useConfirm } from '@/components/ui/ConfirmDialog.lib';
+import { useToast } from '@/components/ui/Toast.lib';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { api, type Source } from '@/lib/api';
 import { timeAgo } from '@/lib/time';
@@ -56,12 +57,23 @@ export function SourcesPage() {
 function SourceRow({ source }: { source: Source }) {
   const qc = useQueryClient();
   const confirm = useConfirm();
+  const toast = useToast();
   const logo = TYPE_LOGO[source.type];
   const isLocal = source.type === 'plan';
 
   const deleteMutation = useMutation({
     mutationFn: () => api.deleteSource(source.id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['sources'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['sources'] });
+      toast.add({ title: `Deleted source "${source.ext_id}".`, type: 'success' });
+    },
+    onError: e => {
+      toast.add({
+        title: 'Failed to delete source',
+        description: e instanceof Error ? e.message : String(e),
+        type: 'error',
+      });
+    },
   });
 
   const deleteButton = (

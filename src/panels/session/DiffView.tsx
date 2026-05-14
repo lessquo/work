@@ -50,7 +50,7 @@ function FileBlock({ file }: { file: DiffFile }) {
           <span className='font-mono text-rose-700'>-{file.removed}</span>
         </span>
       </div>
-      <DiffLines lines={file.lines} className='bg-white font-mono text-xs' />
+      <DiffLines lines={file.lines} showPrefix className='bg-white font-mono text-xs' />
     </div>
   );
 }
@@ -88,15 +88,15 @@ function parseDiff(text: string): DiffFile[] {
     ) {
       // skip git metadata in the body — file header above already shows the path
     } else if (raw.startsWith('+')) {
-      current.lines.push({ kind: 'add', text: raw });
+      current.lines.push({ kind: 'add', text: raw.slice(1) });
       current.added++;
     } else if (raw.startsWith('-')) {
-      current.lines.push({ kind: 'del', text: raw });
+      current.lines.push({ kind: 'del', text: raw.slice(1) });
       current.removed++;
     } else if (raw.startsWith('\\')) {
       current.lines.push({ kind: 'meta', text: raw });
     } else {
-      current.lines.push({ kind: 'ctx', text: raw });
+      current.lines.push({ kind: 'ctx', text: raw.startsWith(' ') ? raw.slice(1) : raw });
     }
   }
   if (current) files.push(current);

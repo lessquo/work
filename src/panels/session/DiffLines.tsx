@@ -17,7 +17,7 @@ export function DiffLines({
       <div className='inline-block min-w-full'>
         {lines.map((l, i) => (
           <div key={i} className={cn('px-2', DIFF_LINE_CLASS[l.kind])}>
-            {showPrefix && (
+            {showPrefix && (l.kind === 'add' || l.kind === 'del' || l.kind === 'ctx') && (
               <span className='select-none'>{l.kind === 'add' ? '+' : l.kind === 'del' ? '-' : ' '} </span>
             )}
             {l.text || ' '}
